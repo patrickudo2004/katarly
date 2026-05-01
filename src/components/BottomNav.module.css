@@ -49,21 +49,22 @@
 
 .actionItem {
   position: relative;
-  top: -12px;
+  top: -15px;
 }
 
 .actionItem .iconWrapper {
-  width: 56px;
-  height: 56px;
-  background-color: var(--text-primary);
-  color: var(--bg-primary);
+  width: 60px;
+  height: 60px;
+  background-color: #8b5cf6;
+  color: white;
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
   border: 4px solid var(--bg-primary);
 }
 
 .actionItem .label {
-  margin-top: 4px;
+  margin-top: 6px;
+  color: #8b5cf6;
 }
 
 .actionItem.active .iconWrapper {
