@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Calendar, Plus, QrCode, Clock, MapPin, Loader2, X, Printer } from 'lucide-react';
+import { Calendar, Plus, QrCode, Clock, MapPin, Loader2, X, Printer, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { AttendanceTicket } from '../components/AttendanceTicket';
 import styles from './ServiceManagement.module.css';
@@ -54,6 +54,20 @@ export const ServiceManagement: React.FC = () => {
     } catch (err) {
       alert("Failed to create service. Please ensure all fields are correct.");
     }
+  };
+
+  const handleDuplicate = (service: any) => {
+    const startDate = new Date(service.startTime);
+    const endDate = new Date(service.endTime);
+    
+    setFormData({
+      name: `${service.name}`,
+      date: format(startDate, 'yyyy-MM-dd'),
+      startTime: format(startDate, 'HH:mm'),
+      endTime: format(endDate, 'HH:mm'),
+      qrType: service.qrType || 'Unique'
+    });
+    setIsAdding(true);
   };
 
   const handlePrintPass = (startTime: number) => {
@@ -120,12 +134,21 @@ export const ServiceManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <button 
-                className={styles.printBtn}
-                onClick={() => handlePrintPass(service.startTime)}
-              >
-                <Printer size={18} /> Print Pass
-              </button>
+              <div className={styles.cardActions}>
+                <button 
+                  className={styles.duplicateBtn}
+                  onClick={() => handleDuplicate(service)}
+                  title="Duplicate this service"
+                >
+                  <Copy size={18} />
+                </button>
+                <button 
+                  className={styles.printBtn}
+                  onClick={() => handlePrintPass(service.startTime)}
+                >
+                  <Printer size={18} /> Print Pass
+                </button>
+              </div>
             </div>
           ))
         )}
