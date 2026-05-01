@@ -26,7 +26,9 @@ const nodeTypes = {
 export const NetworkPage: React.FC = () => {
   const church = useQuery(api.churches.getMyChurch);
   const organogram = useQuery(api.churches.getOrganogram);
-  const todayServices = useQuery(api.attendance.getTodayServices);
+  const todayServices = useQuery(api.attendance.getTodayServices, 
+    church?._id ? { churchId: church._id } : "skip"
+  );
   
   // Get live attendance for all subunits if a service is active
   const activeServiceId = todayServices?.[0]?._id;
