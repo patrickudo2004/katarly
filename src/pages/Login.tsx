@@ -57,13 +57,12 @@ export const Login: React.FC = () => {
       </div>
       <div className={styles.card}>
         <div className={styles.logoWrapper}>
-          <Church size={40} className={styles.logoIcon} />
-          <span className={styles.logoText}>ServeSync</span>
+          <span className={styles.logoText}>Katarly</span>
         </div>
         
         <div className={styles.header}>
-          <h1>Welcome Home</h1>
-          <p>Manage your church volunteers with ease.</p>
+          <h1>Equipping the Saints</h1>
+          <p>The modern stewardship platform for church ministry.</p>
         </div>
 
         <div className={styles.actions}>

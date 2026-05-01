@@ -1,6 +1,6 @@
-# Product Requirements Document (PRD) – ServeSync v1.0 MVP
+# Product Requirements Document (PRD) – Katarly v1.0 MVP
 
-**Product Name:** ServeSync  
+**Product Name:** Katarly  
 **Version:** 1.0 MVP  
 **Date:** March 2026  
 **Product Owner:** [Your Name]  
@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary & Vision
 
-ServeSync is a modern, mobile-first Progressive Web App (PWA) built specifically for churches. It provides a single, secure, real-time platform for managing volunteers across departments and subunits with the **exact hierarchy churches already use**.
+Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically for churches. It provides a single, secure, real-time platform for managing volunteers across departments and subunits with the **exact hierarchy churches already use**.
 
 ### Key Differentiators
 - Real-time QR-code attendance with geofence verification (the "killer feature")

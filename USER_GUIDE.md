@@ -1,6 +1,6 @@
-# ServeSync: Feature & Scenario Guide
+# Katarly: Feature & Scenario Guide
 
-This guide provides a detailed explanation of the menu items available in the ServeSync sidebar, along with real-world scenarios to help you understand the application's core logic.
+This guide provides a detailed explanation of the menu items available in the Katarly sidebar, along with real-world scenarios to help you understand the application's core logic.
 
 ---
 

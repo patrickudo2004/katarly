@@ -13,9 +13,9 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'ServeSync',
-          short_name: 'ServeSync',
-          description: 'Church Volunteer Management & Attendance System',
+          name: 'Katarly',
+          short_name: 'Katarly',
+          description: 'Equipping the Saints: Church Stewardship & Ministry Platform',
           theme_color: '#8b5cf6',
           icons: [
             {

@@ -1,4 +1,4 @@
-# Project Initiation Document – ServeSync v1.0 MVP
+# Project Initiation Document – Katarly v1.0 MVP
 **Date:** March 2026  
 **Project Owner:** [Your Name]  
 **Platform:** Google Antigravity + Convex + Vercel  

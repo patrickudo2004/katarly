@@ -1,25 +1,25 @@
-# Product Description – ServeSync
+# Product Description – Katarly
 
-**App Name:** ServeSync  
+**App Name:** Katarly  
 **Tagline:** Real-time volunteer management for churches — the Five Guys app, built for the house of God.  
 **Version:** 1.0 MVP (March 2026)  
 **Target Audience:** Churches of all sizes (starting with Winners Chapel Manchester and expanding to any church worldwide)  
-**Core Purpose:** ServeSync is a modern, mobile-first Progressive Web App (PWA) that completely replaces chaotic Google Sheets, WhatsApp groups, paper sign-in sheets, and manual rotas with a single, secure, real-time platform designed exactly around how churches actually operate.
+**Core Purpose:** Katarly is a modern, mobile-first Progressive Web App (PWA) that completely replaces chaotic Google Sheets, WhatsApp groups, paper sign-in sheets, and manual rotas with a single, secure, real-time platform designed exactly around how churches actually operate.
 
 ---
 
 ## Vision & Mission
 
 Churches run on volunteers — but managing them is still stuck in 2000s tools.  
-ServeSync brings church volunteer management into the 2020s with the same simplicity and authority structure pastors already use.
+Katarly brings church volunteer management into the 2020s with the same simplicity and authority structure pastors already use.
 
 It turns every Sunday into a smooth, joyful experience: volunteers scan a QR code and instantly appear as “present” on every leader’s phone. Leaders spend minutes instead of hours on rotas. Pastoral Oversight gets spiritual insight and escalation tools. Volunteers feel seen, valued, and motivated through recognition badges and easy self-service.
 
-ServeSync is not just another rota app — it is the **digital nervous system** for church volunteer teams.
+Katarly is not just another rota app — it is the **digital nervous system** for church volunteer teams.
 
 ---
 
-## Key Differentiators (What Makes ServeSync Unique)
+## Key Differentiators (What Makes Katarly Unique)
 
 1. **Real Hierarchy That Matches Real Churches**  
    Super Admin → Deacon Head (Governing Board) → Pastoral Oversight → Department Head → Subunit Lead → Volunteer
@@ -135,7 +135,7 @@ ServeSync is not just another rota app — it is the **digital nervous system** 
 
 ---
 
-## Why Churches Will Adopt ServeSync
+## Why Churches Will Adopt Katarly
 
 - Built exactly for how they already structure teams (including the often-missing Pastoral Oversight layer)
 - Feels like a native app on phones (the device everyone uses on Sunday)
@@ -145,14 +145,14 @@ ServeSync is not just another rota app — it is the **digital nervous system** 
 
 ---
 
-**ServeSync is more than software.**  
+**Katarly is more than software.**  
 It is the tool that helps churches serve better, retain volunteers longer, and free up leaders to focus on what really matters — ministry.
 
 **Ready to transform volunteer ministry?**  
-ServeSync — where every volunteer is seen, every leader is empowered, and every Sunday runs smoothly.
+Katarly — where every volunteer is seen, every leader is empowered, and every Sunday runs smoothly.
 
 ---
 
 **End of Product Description**
 
-This document is written to give Google Antigravity (or any AI coding agent) a clear, inspiring, and exhaustive understanding of the complete vision for ServeSync. It can be used alongside the PRD for maximum context.
+This document is written to give Google Antigravity (or any AI coding agent) a clear, inspiring, and exhaustive understanding of the complete vision for Katarly. It can be used alongside the PRD for maximum context.

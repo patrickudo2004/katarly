@@ -1,7 +1,7 @@
 {
-  "name": "ServeSync",
-  "short_name": "ServeSync",
-  "description": "Church Volunteer Management & Attendance System",
+  "name": "Katarly",
+  "short_name": "Katarly",
+  "description": "Equipping the Saints: Church Stewardship & Ministry Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -74,8 +74,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
         <div className={styles.logo}>
-          <div className={styles.logoIcon}>SS</div>
-          {!isCollapsed && <span className={styles.logoText}>ServeSync</span>}
+          <div className={styles.logoIcon}>K</div>
+          {!isCollapsed && <span className={styles.logoText}>Katarly</span>}
           <button className={styles.collapseBtn} onClick={toggleSidebar}>
             {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
