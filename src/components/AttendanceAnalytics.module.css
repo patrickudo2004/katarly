@@ -225,6 +225,30 @@
 .chartWrapper {
   width: 100%;
   height: 350px;
+  position: relative;
+}
+
+.emptyState {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  gap: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: 2px dashed var(--border-color);
+}
+
+.emptyState p {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptyState span {
+  font-size: 0.8125rem;
 }
 
 @media (max-width: 768px) {

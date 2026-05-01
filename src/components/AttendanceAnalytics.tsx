@@ -178,75 +178,86 @@ export const AttendanceAnalytics: React.FC<Props> = ({ departmentId: initialDept
 
       {/* Main Chart */}
       <div className={styles.chartWrapper}>
-        <ResponsiveContainer width="100%" height={350}>
-          <ComposedChart data={analytics?.trends || []}>
-            <defs>
-              <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1}/>
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-            <XAxis 
-              dataKey="date" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-            />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'var(--card-bg)', 
-                borderColor: 'var(--border-color)',
-                borderRadius: '12px',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-              }}
-              itemStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
-            />
-            
-            {/* Main Area */}
-            <Area 
-              type="monotone" 
-              dataKey="total" 
-              stroke="#8b5cf6" 
-              strokeWidth={3}
-              fillOpacity={1} 
-              fill="url(#colorTotal)" 
-            />
-
-            {/* Comparison Line (Last Year) */}
-            {showComparison && (
-              <Line 
-                type="monotone" 
-                dataKey="comparison" 
-                stroke="#94a3b8" 
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                dot={false}
-                name="Last Year"
+        {analytics?.trends && analytics.trends.length > 0 ? (
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={analytics.trends}>
+              <defs>
+                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+              <XAxis 
+                dataKey="date" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
               />
-            )}
-
-            {/* Forecast Line */}
-            {showForecast && (
-              <Line 
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'var(--card-bg)', 
+                  borderColor: 'var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }}
+                itemStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+              />
+              
+              {/* Main Area */}
+              <Area 
                 type="monotone" 
                 dataKey="total" 
-                stroke="#10b981" 
-                strokeDasharray="3 3"
+                stroke="#8b5cf6" 
                 strokeWidth={3}
-                dot={{ r: 4, fill: '#10b981' }}
-                data={analytics?.trends.filter((t: any) => t.isForecast)}
-                name="Forecast"
+                fillOpacity={1} 
+                fill="url(#colorTotal)" 
               />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
+
+              {/* Comparison Line (Last Year) */}
+              {showComparison && (
+                <Line 
+                  type="monotone" 
+                  dataKey="comparison" 
+                  stroke="#94a3b8" 
+                  strokeDasharray="5 5"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Last Year"
+                />
+              )}
+
+              {/* Forecast Line */}
+              {showForecast && (
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="#10b981" 
+                  strokeDasharray="3 3"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#10b981' }}
+                  data={analytics.trends.filter((t: any) => t.isForecast)}
+                  name="Forecast"
+                />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className={styles.emptyState}>
+            <Calendar size={40} />
+            <p>No attendance records found for this timeframe.</p>
+            <span>Try selecting a longer range or another department.</span>
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
     </div>
   );
 };
