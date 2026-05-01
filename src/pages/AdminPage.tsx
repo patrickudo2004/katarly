@@ -18,18 +18,24 @@ export const AdminPage: React.FC = () => {
   const users = useQuery(api.users.getAllChurchUsers);
   
   const createDept = useMutation(api.departments.createDepartment);
+  const updateDept = useMutation(api.departments.updateDepartment);
   const deleteDept = useMutation(api.departments.deleteDepartment);
   const createSubunit = useMutation(api.subunits.createSubunit);
+  const updateSubunitMutation = useMutation(api.subunits.updateSubunit);
   const deleteSubunit = useMutation(api.subunits.deleteSubunit);
   const updateUserRole = useMutation(api.users.updateUserRole);
 
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
+  const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
+  const [editingDeptName, setEditingDeptName] = useState('');
+
   const [isAddingSubunit, setIsAddingSubunit] = useState(false);
   const [newSubunit, setNewSubunit] = useState({ name: '', departmentId: '' as any });
+  const [editingSubunitId, setEditingSubunitId] = useState<string | null>(null);
+  const [editingSubunitName, setEditingSubunitName] = useState('');
 
   const updateDeptHeads = useMutation(api.departments.updateDepartmentHeads);
-  const updateSubunitMutation = useMutation(api.subunits.updateSubunit);
 
   const handleRoleChange = async (userId: any, role: string) => {
     try {
@@ -55,6 +61,28 @@ export const AdminPage: React.FC = () => {
       await deleteDept({ id });
     } catch (err: any) {
       alert(err.message || "Failed to delete department. Ensure it has no active subunits.");
+    }
+  };
+
+  const handleUpdateDept = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDeptId) return;
+    try {
+      await updateDept({ id: editingDeptId as any, name: editingDeptName });
+      setEditingDeptId(null);
+    } catch (err) {
+      alert("Failed to update department");
+    }
+  };
+
+  const handleUpdateSubunit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubunitId) return;
+    try {
+      await updateSubunitMutation({ id: editingSubunitId as any, name: editingSubunitName });
+      setEditingSubunitId(null);
+    } catch (err) {
+      alert("Failed to update subunit");
     }
   };
 
@@ -125,7 +153,34 @@ export const AdminPage: React.FC = () => {
                 {departments.map(dept => (
                   <div key={dept._id} className={styles.subunitCard}>
                     <div className={styles.cardInfo}>
-                      <strong>{dept.name}</strong>
+                      {editingDeptId === dept._id ? (
+                        <form onSubmit={handleUpdateDept} className={styles.editForm}>
+                          <input 
+                            value={editingDeptName} 
+                            onChange={e => setEditingDeptName(e.target.value)} 
+                            autoFocus
+                          />
+                          <div className={styles.editActions}>
+                            <button type="submit" className={styles.saveBtn}>Save</button>
+                            <button type="button" onClick={() => setEditingDeptId(null)} className={styles.cancelBtn}>Cancel</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className={styles.nameRow}>
+                          <strong>{dept.name}</strong>
+                          {activeUser?.role === 'SuperAdmin' && (
+                            <button 
+                              className={styles.editIconBtn}
+                              onClick={() => {
+                                setEditingDeptId(dept._id);
+                                setEditingDeptName(dept.name);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className={styles.assignmentRow}>
                         <label>Head:</label>
                         <select 
@@ -200,10 +255,37 @@ export const AdminPage: React.FC = () => {
                 {subunits.map(sub => (
                   <div key={sub._id} className={styles.subunitCard}>
                     <div className={styles.cardInfo}>
-                      <div>
-                        <strong>{sub.name}</strong>
-                        <span className={styles.deptBadge}>{sub.departmentName}</span>
-                      </div>
+                      {editingSubunitId === sub._id ? (
+                        <form onSubmit={handleUpdateSubunit} className={styles.editForm}>
+                          <input 
+                            value={editingSubunitName} 
+                            onChange={e => setEditingSubunitName(e.target.value)} 
+                            autoFocus
+                          />
+                          <div className={styles.editActions}>
+                            <button type="submit" className={styles.saveBtn}>Save</button>
+                            <button type="button" onClick={() => setEditingSubunitId(null)} className={styles.cancelBtn}>Cancel</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className={styles.nameRow}>
+                          <div className={styles.nameWithBadge}>
+                            <strong>{sub.name}</strong>
+                            <span className={styles.deptBadge}>{sub.departmentName}</span>
+                          </div>
+                          {activeUser?.role === 'SuperAdmin' && (
+                            <button 
+                              className={styles.editIconBtn}
+                              onClick={() => {
+                                setEditingSubunitId(sub._id);
+                                setEditingSubunitName(sub.name);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className={styles.assignmentRow}>
                         <label>Lead:</label>
                         <select 
