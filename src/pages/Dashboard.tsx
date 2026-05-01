@@ -30,6 +30,7 @@ import { useNavigate } from "react-router-dom";
 import { Organogram, OrgNode } from '../components/Organogram';
 import { UserRole } from '../components/RoleBadge';
 import { OversightDashboardTab } from '../components/OversightDashboardTab';
+import { MobileDashboard } from '../components/MobileDashboard';
 import styles from './Dashboard.module.css';
 
 // Statistics and Organization data will be fetched from Convex
@@ -50,6 +51,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const ensureChannels = useMutation(api.chat.ensureChannels);
   const seedBadges = useMutation(api.recognition.seedBadges);
 
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   React.useEffect(() => {
     if (me?.churchId) {
       ensureChannels({ churchId: me.churchId });
@@ -63,6 +72,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
         <Loader2 className="animate-spin text-purple-600" size={32} />
       </div>
     );
+  }
+
+  if (isMobile) {
+    return <MobileDashboard user={me} church={church} stats={stats} />;
   }
 
   return (
