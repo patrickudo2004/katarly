@@ -196,7 +196,7 @@
   }
 }
 
-.chartSection, .orgSection, .activitySection {
+.analyticsSection, .orgSection, .activitySection {
   background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 16px;

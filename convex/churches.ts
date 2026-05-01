@@ -300,72 +300,155 @@ export const getRecentActivities = query({
   },
 });
 
-export const getAttendanceTrends = query({
-  handler: async (ctx) => {
-    try {
-      const userId = await auth.getUserId(ctx);
-      if (!userId) return [];
-      const user = await ctx.db.get(userId);
-      if (!user?.churchId) return [];
+export const getAdvancedAnalytics = query({
+  args: {
+    rangeDays: v.number(),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    showComparison: v.boolean(),
+    showForecast: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    if (!user?.churchId) return null;
 
-      const churchId = user.churchId;
-      const now = Date.now();
-      
-      const services = await ctx.db
+    const churchId = user.churchId;
+    const now = Date.now();
+    const startTime = now - (args.rangeDays * 24 * 60 * 60 * 1000);
+    
+    // 1. Fetch relevant services
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_church_start_time", (q) => 
+        q.eq("churchId", churchId).gt("startTime", startTime).lt("startTime", now)
+      )
+      .collect();
+
+    // 2. Fetch Comparison Services (Last Year)
+    let comparisonData: any[] = [];
+    if (args.showComparison) {
+      const yearMs = 365 * 24 * 60 * 60 * 1000;
+      const compStart = startTime - yearMs;
+      const compEnd = now - yearMs;
+      const compServices = await ctx.db
         .query("services")
         .withIndex("by_church_start_time", (q) => 
-          q.eq("churchId", churchId).lt("startTime", now)
+          q.eq("churchId", churchId).gt("startTime", compStart).lt("startTime", compEnd)
         )
-        .order("desc")
-        .take(8);
-        
-      if (!services || services.length === 0) return [];
-
-      // Sort chronological (oldest to newest for trend chart)
-      const sortedServices = [...services].sort((a, b) => a.startTime - b.startTime);
+        .collect();
       
-      const trends = [];
-      
-      for (const service of sortedServices) {
-        if (!service) continue;
-        
-        const attendance = await ctx.db
+      for (const s of compServices) {
+        const att = await ctx.db
           .query("attendance")
-          .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+          .withIndex("by_service", (q) => q.eq("serviceId", s._id))
           .collect();
-          
-        let present = 0;
-        let late = 0;
-        let excused = 0;
         
-        if (attendance) {
-          attendance.forEach(a => {
-            if (a.status === "Present") present++;
-            else if (a.status === "Late") late++;
-            else if (a.status === "Excused") excused++;
-          });
+        // Filter by dept if needed
+        let count = att.length;
+        if (args.departmentId) {
+          const deptUsers = await ctx.db
+            .query("users")
+            .withIndex("by_dept", (q) => q.eq("departmentId", args.departmentId as any))
+            .collect();
+          const deptUserIds = new Set(deptUsers.map(u => u._id));
+          count = att.filter(a => deptUserIds.has(a.userId)).length;
         }
-        
-        const d = new Date(service.startTime);
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const dateStr = `${months[d.getMonth()]} ${d.getDate()}`;
 
-        trends.push({
-          date: dateStr,
-          name: service.name || "Unnamed Service",
-          present,
-          late,
-          excused,
-          total: present + late + excused
+        comparisonData.push({ time: s.startTime + yearMs, count });
+      }
+    }
+
+    // 3. Process Main Trends
+    const trends = [];
+    let totalAttendancePoints = 0;
+    
+    for (const service of services) {
+      const att = await ctx.db
+        .query("attendance")
+        .withIndex("by_service", (q) => q.eq("serviceId", service._id))
+        .collect();
+
+      let present = att.filter(a => a.status === "Present").length;
+      let late = att.filter(a => a.status === "Late").length;
+      
+      // Dept filtering
+      if (args.departmentId) {
+        const deptUsers = await ctx.db
+          .query("users")
+          .withIndex("by_dept", (q) => q.eq("departmentId", args.departmentId as any))
+          .collect();
+        const deptUserIds = new Set(deptUsers.map(u => u._id));
+        present = att.filter(a => a.status === "Present" && deptUserIds.has(a.userId)).length;
+        late = att.filter(a => a.status === "Late" && deptUserIds.has(a.userId)).length;
+      }
+
+      const total = present + late;
+      totalAttendancePoints += total;
+      
+      const d = new Date(service.startTime);
+      trends.push({
+        date: `${d.getMonth() + 1}/${d.getDate()}`,
+        timestamp: service.startTime,
+        total,
+        present,
+        late,
+        comparison: comparisonData.find(c => Math.abs(c.time - service.startTime) < 24 * 60 * 60 * 1000)?.count || 0
+      });
+    }
+
+    // 4. Calculate Scores
+    const allChurchUsers = await ctx.db
+      .query("users")
+      .withIndex("by_church", q => q.eq("churchId", churchId))
+      .collect();
+    
+    const targetUsers = args.departmentId 
+      ? allChurchUsers.filter(u => u.departmentId === args.departmentId)
+      : allChurchUsers;
+
+    const consistencyScore = services.length > 0 
+      ? Math.round((totalAttendancePoints / (services.length * targetUsers.length)) * 100)
+      : 0;
+
+    // Retention: How many of those who attended in the first 20% of the range also attended in the last 20%?
+    const windowSize = now - startTime;
+    const startWindow = startTime + (windowSize * 0.2);
+    const endWindow = now - (windowSize * 0.2);
+
+    const earlyAttendees = new Set();
+    const lateAttendees = new Set();
+
+    for (const service of services) {
+      const att = await ctx.db.query("attendance").withIndex("by_service", q => q.eq("serviceId", service._id)).collect();
+      if (service.startTime < startWindow) att.forEach(a => earlyAttendees.add(a.userId));
+      if (service.startTime > endWindow) att.forEach(a => lateAttendees.add(a.userId));
+    }
+
+    const common = [...earlyAttendees].filter(id => lateAttendees.has(id)).length;
+    const retentionRate = earlyAttendees.size > 0 ? Math.round((common / earlyAttendees.size) * 100) : 0;
+
+    // 5. Simple Forecast (Moving Average)
+    let forecast = [];
+    if (args.showForecast && trends.length > 0) {
+      const avg = Math.round(trends.slice(-4).reduce((acc, t) => acc + t.total, 0) / Math.min(trends.length, 4));
+      for (let i = 1; i <= 2; i++) {
+        const futureDate = new Date(now + i * 7 * 24 * 60 * 60 * 1000);
+        forecast.push({
+          date: `${futureDate.getMonth() + 1}/${futureDate.getDate()}`,
+          isForecast: true,
+          total: avg
         });
       }
-      
-      return trends;
-    } catch (error) {
-      console.error("Error in getAttendanceTrends:", error);
-      throw error; // Re-throw to show as Server Error but with details in logs
     }
-  }
+
+    return {
+      trends: [...trends, ...forecast],
+      retentionRate,
+      consistencyScore,
+      totalServices: services.length,
+    };
+  },
 });
 
 export const getOrganogram = query({
