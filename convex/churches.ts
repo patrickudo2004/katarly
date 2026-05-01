@@ -451,6 +451,13 @@ export const getAdvancedAnalytics = query({
   },
 });
 
+/** @deprecated Use getAdvancedAnalytics instead */
+export const getAttendanceTrends = query({
+  handler: async () => {
+    return [];
+  },
+});
+
 export const getOrganogram = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
