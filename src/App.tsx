@@ -23,6 +23,7 @@ import { AdminSettings } from './pages/AdminSettings';
 import { ServiceManagement } from './pages/ServiceManagement';
 import { PrintAttendance } from './pages/PrintAttendance';
 import { DebugAuth } from './pages/DebugAuth';
+import { NetworkPage } from './pages/NetworkPage';
 import { Layout } from './components/Layout';
 import { MobileLayout } from './layouts/MobileLayout';
 import { useMediaQuery } from './hooks/useMediaQuery';
@@ -134,6 +135,11 @@ function AppContent() {
       <Route path="/profile" element={
         <PageLayout user={me as any}>
           <ProfilePage />
+        </PageLayout>
+      } />
+      <Route path="/network" element={
+        <PageLayout user={me as any}>
+          <NetworkPage />
         </PageLayout>
       } />
       <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />

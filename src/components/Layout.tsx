@@ -16,7 +16,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Menu,
-  Users
+  Users,
+  Network
 } from 'lucide-react';
 import { RoleBadge, UserRole } from './RoleBadge';
 import { ThemeToggle } from './ThemeToggle';
@@ -63,6 +64,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     { label: 'Chat', icon: <MessageSquare size={20} />, path: '/chat', roles: allRoles },
     { label: 'Marketplace', icon: <ShoppingBag size={20} />, path: '/marketplace', roles: allRoles },
     { label: 'Hall of Fame', icon: <Trophy size={20} />, path: '/hall-of-fame', roles: allRoles },
+    { label: 'The Network', icon: <Network size={20} />, path: '/network', roles: allRoles },
     { label: 'Invites', icon: <Users size={20} />, path: '/invites', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead'] },
     { label: 'Profile', icon: <User size={20} />, path: '/profile', roles: allRoles },
   ];

@@ -1,0 +1,100 @@
+.handle {
+  width: 8px;
+  height: 8px;
+  background: #cbd5e1;
+  border: 2px solid white;
+}
+
+/* Base Node Style */
+.churchNode, .deptNode, .subunitNode, .volunteerNode {
+  padding: 1rem;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.nodeContent strong {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  display: block;
+}
+
+.nodeContent p {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Specific Variations */
+.churchNode {
+  border-top: 4px solid #8b5cf6;
+}
+.churchNode .nodeHeader { color: #8b5cf6; }
+
+.deptNode {
+  border-top: 4px solid #10b981;
+}
+.deptNode .nodeHeader { color: #10b981; }
+
+.subunitNode {
+  border-top: 4px solid #3b82f6;
+}
+.subunitNode .nodeHeader { color: #3b82f6; }
+
+.memberCount {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-top: 0.4rem;
+}
+
+/* Volunteer Node */
+.volunteerNode {
+  min-width: 140px;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+}
+
+.volunteerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  background: #94a3b8;
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.volunteerContent span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}

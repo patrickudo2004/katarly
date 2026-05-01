@@ -27,7 +27,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate } from "react-router-dom";
-import { Organogram, OrgNode } from '../components/Organogram';
+import { NetworkSummaryCard } from '../components/NetworkSummaryCard';
 import { UserRole } from '../components/RoleBadge';
 import { OversightDashboardTab } from '../components/OversightDashboardTab';
 import { MobileDashboard } from '../components/MobileDashboard';
@@ -204,24 +204,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           </div>
         </div>
 
-        {/* Organogram Section - Only for Admins/Heads/Oversight */}
-        {(userRole === 'SuperAdmin' || userRole === 'DepartmentHead' || userRole === 'PastoralOversight') && (
-          <div className={styles.orgSection}>
-            <div className={styles.sectionHeader}>
-              <Users size={20} />
-              <h2>Organization Structure</h2>
-            </div>
-            {organogramData ? (
-              <div className={styles.orgWrapper}>
-                <Organogram data={organogramData as any} />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center p-12 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                Set up your departments and subunits to view the organogram.
-              </div>
-            )}
-          </div>
-        )}
+        {/* Network Summary Section */}
+        <div className={styles.orgSection}>
+          <NetworkSummaryCard stats={{
+            departments: stats?.totalDepartments || 0,
+            subunits: stats?.totalSubunits || 0,
+            volunteers: stats?.totalVolunteers || 0
+          }} />
+        </div>
 
         {/* Recent Activity / Tasks */}
         <div className={styles.activitySection}>
