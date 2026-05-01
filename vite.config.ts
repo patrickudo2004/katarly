@@ -12,6 +12,9 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        workbox: {
+          maximumFileSizeToCacheInBytes: 3000000,
+        },
         manifest: {
           name: 'Katarly',
           short_name: 'Katarly',
