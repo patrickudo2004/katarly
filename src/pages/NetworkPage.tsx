@@ -16,6 +16,9 @@ import styles from './NetworkPage.module.css';
 
 import { ChurchNode, DeptNode, SubunitNode, VolunteerNode } from '../components/NetworkNodes';
 
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
+
 const nodeTypes = {
   church: ChurchNode,
   dept: DeptNode,
@@ -30,13 +33,12 @@ export const NetworkPage: React.FC = () => {
     church?._id ? { churchId: church._id } : "skip"
   );
   
-  // Get live attendance for all subunits if a service is active
-  const activeServiceId = todayServices?.[0]?._id;
-  
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [collapsedNodes, setCollapsedNodes] = React.useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = React.useState<'map' | 'list'>('map');
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [showExportMenu, setShowExportMenu] = React.useState(false);
 
   const toggleCollapse = (nodeId: string) => {
     setCollapsedNodes(prev => {
@@ -50,7 +52,6 @@ export const NetworkPage: React.FC = () => {
   const exportToCSV = () => {
     if (!organogram) return;
     let rows = [["Department", "Subunit", "Name", "Role"]];
-    
     organogram.children.forEach((dept: any) => {
       dept.children.forEach((sub: any) => {
         sub.children.forEach((vol: any) => {
@@ -60,7 +61,6 @@ export const NetworkPage: React.FC = () => {
       });
       if (dept.children.length === 0) rows.push([dept.name, "N/A", "N/A", "N/A"]);
     });
-
     const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -68,6 +68,39 @@ export const NetworkPage: React.FC = () => {
     link.setAttribute("download", `${church?.name || 'church'}_structure.csv`);
     document.body.appendChild(link);
     link.click();
+    setShowExportMenu(false);
+  };
+
+  const exportAsImage = async (format: 'png' | 'pdf') => {
+    const el = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!el) return;
+    setIsExporting(true);
+    setShowExportMenu(false);
+    
+    try {
+      const dataUrl = await toPng(document.querySelector('.react-flow') as HTMLElement, {
+        backgroundColor: '#f8fafc',
+        style: { transform: 'scale(1)' }
+      });
+
+      if (format === 'png') {
+        const link = document.createElement('a');
+        link.download = `${church?.name || 'church'}_map.png`;
+        link.href = dataUrl;
+        link.click();
+      } else {
+        const pdf = new jsPDF('l', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(dataUrl);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`${church?.name || 'church'}_map.pdf`);
+      }
+    } catch (err) {
+      console.error('Export failed', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   React.useEffect(() => {
@@ -88,7 +121,6 @@ export const NetworkPage: React.FC = () => {
       else if (level === 1) type = 'dept';
       else if (level === 2) type = 'subunit';
 
-      // Readiness logic (Mock/Live placeholder)
       let readiness = 'neutral';
       if (type === 'subunit') {
         const count = item.children?.length || 0;
@@ -165,10 +197,25 @@ export const NetworkPage: React.FC = () => {
               Directory
             </button>
           </div>
-          <button className={styles.exportBtn} onClick={exportToCSV}>
-            <Download size={18} />
-            <span>Export CSV</span>
-          </button>
+          
+          <div className={styles.exportWrapper}>
+            <button 
+              className={styles.exportBtn} 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+            >
+              <Download size={18} />
+              <span>{isExporting ? 'Exporting...' : 'Export'}</span>
+            </button>
+            
+            {showExportMenu && (
+              <div className={styles.exportMenu}>
+                <button onClick={() => exportAsImage('png')}>PNG Image</button>
+                <button onClick={() => exportAsImage('pdf')}>PDF Document</button>
+                <button onClick={exportToCSV}>CSV Data</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -206,18 +253,20 @@ export const NetworkPage: React.FC = () => {
         ) : (
           <div className={styles.directoryView}>
             {organogram?.children.map((dept: any) => (
-              <div key={dept.id} className={styles.deptGroup}>
-                <div className={styles.deptHeader}>
+              <details key={dept.id} className={styles.deptGroupDetail}>
+                <summary className={styles.deptHeaderSummary}>
                   <Shield size={18} />
                   <h3>{dept.name}</h3>
-                </div>
+                  <span className={styles.countBadge}>{dept.children.length} subunits</span>
+                </summary>
+                
                 <div className={styles.subunitsList}>
                   {dept.children.map((sub: any) => (
                     <details key={sub.id} className={styles.subunitDetail}>
                       <summary>
                         <MapPin size={16} />
                         <span>{sub.name}</span>
-                        <span className={styles.countBadge}>{sub.children.length} members</span>
+                        <span className={styles.countBadgeSmall}>{sub.children.length} members</span>
                       </summary>
                       <ul className={styles.memberList}>
                         {sub.children.map((vol: any) => (
@@ -231,7 +280,7 @@ export const NetworkPage: React.FC = () => {
                     </details>
                   ))}
                 </div>
-              </div>
+              </details>
             ))}
           </div>
         )}
