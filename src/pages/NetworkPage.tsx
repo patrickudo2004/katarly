@@ -11,7 +11,7 @@ import {
   MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Search, Filter, Download, Maximize2, Users, Building2, MapPin } from 'lucide-react';
+import { Search, Filter, Download, Maximize2, Users, Building2, MapPin, Shield, User } from 'lucide-react';
 import styles from './NetworkPage.module.css';
 
 import { ChurchNode, DeptNode, SubunitNode, VolunteerNode } from '../components/NetworkNodes';
