@@ -258,6 +258,3 @@ export const AttendanceAnalytics: React.FC<Props> = ({ departmentId: initialDept
     </div>
   );
 };
-    </div>
-  );
-};
