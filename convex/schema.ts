@@ -109,8 +109,9 @@ export default defineSchema({
     churchId: v.id("churches"),
     timestamp: v.number(),
     status: v.union(v.literal("Present"), v.literal("Late"), v.literal("Excused")),
-    method: v.string(), // "QR" or "Manual"
-    markedById: v.id("users"),
+    method: v.string(), // "QR", "Manual", or "Override"
+    markedById: v.optional(v.id("users")),
+    verifiedById: v.optional(v.id("users")),
     location: v.optional(v.object({
       lat: v.number(),
       lng: v.number(),
@@ -119,6 +120,19 @@ export default defineSchema({
   }).index("by_service", ["serviceId"])
     .index("by_user", ["userId"])
     .index("by_church", ["churchId"]),
+
+  verificationRequests: defineTable({
+    userId: v.id("users"),
+    serviceId: v.id("services"),
+    churchId: v.id("churches"),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined")),
+    requestedAt: v.number(),
+    location: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+    })),
+  }).index("by_church_status", ["churchId", "status"])
+    .index("by_user", ["userId"]),
 
   badges: defineTable({
     churchId: v.id("churches"),

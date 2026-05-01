@@ -158,7 +158,7 @@ export const manualMark = mutation({
   },
   handler: async (ctx, args) => {
     const marker = await ctx.db.get(args.markedById);
-    if (!marker || !["SuperAdmin", "DepartmentHead", "SubunitLead"].includes(marker.role)) {
+    if (!marker || !["SuperAdmin", "DepartmentHead", "SubunitLead", "PastoralOversight"].includes(marker.role)) {
       throw new Error("Unauthorized to mark attendance manually");
     }
 
@@ -178,6 +178,129 @@ export const manualMark = mutation({
     await checkMilestonesInternal(ctx, args.userId);
 
     return attendanceId;
+  },
+});
+
+export const getTodayServices = query({
+  args: { churchId: v.id("churches") },
+  handler: async (ctx, args) => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endOfDay = startOfDay + 24 * 60 * 60 * 1000;
+
+    return await ctx.db
+      .query("services")
+      .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
+      .filter((q) => q.and(
+        q.gte(q.field("startTime"), startOfDay),
+        q.lt(q.field("startTime"), endOfDay)
+      ))
+      .collect();
+  },
+});
+
+export const requestVerification = mutation({
+  args: {
+    serviceId: v.id("services"),
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    // Check if a pending request already exists
+    const existing = await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.and(
+        q.eq(q.field("serviceId"), args.serviceId),
+        q.eq(q.field("status"), "pending")
+      ))
+      .first();
+
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("verificationRequests", {
+      userId,
+      serviceId: args.serviceId,
+      churchId: user.churchId,
+      status: "pending",
+      requestedAt: Date.now(),
+      location: args.lat && args.lng ? { lat: args.lat, lng: args.lng } : undefined,
+    });
+  },
+});
+
+export const getPendingVerifications = query({
+  args: { churchId: v.id("churches") },
+  handler: async (ctx, args) => {
+    const requests = await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_church_status", (q) => q.eq("churchId", args.churchId).eq("status", "pending"))
+      .collect();
+
+    // Attach user and service info
+    return await Promise.all(
+      requests.map(async (req) => {
+        const user = await ctx.db.get(req.userId);
+        const service = await ctx.db.get(req.serviceId);
+        return {
+          ...req,
+          userName: user?.name || "Unknown",
+          userRole: user?.role,
+          serviceName: service?.name || "Unknown",
+          serviceStartTime: service?.startTime,
+        };
+      })
+    );
+  },
+});
+
+export const approveVerification = mutation({
+  args: { requestId: v.id("verificationRequests") },
+  handler: async (ctx, args) => {
+    const leadId = await auth.getUserId(ctx);
+    if (!leadId) throw new Error("Not authenticated");
+    
+    const request = await ctx.db.get(args.requestId);
+    if (!request) throw new Error("Request not found");
+    if (request.status !== "pending") throw new Error("Request already processed");
+
+    // Update request status
+    await ctx.db.patch(args.requestId, { status: "approved" });
+
+    // Mark attendance
+    const service = await ctx.db.get(request.serviceId);
+    const now = Date.now();
+    const status = now > (service?.startTime || 0) + 15 * 60 * 1000 ? "Late" : "Present";
+
+    const attendanceId = await ctx.db.insert("attendance", {
+      serviceId: request.serviceId,
+      userId: request.userId,
+      churchId: request.churchId,
+      timestamp: now,
+      method: "Override",
+      verifiedById: leadId,
+      status,
+    });
+
+    await checkMilestonesInternal(ctx, request.userId);
+    return attendanceId;
+  },
+});
+
+export const declineVerification = mutation({
+  args: { requestId: v.id("verificationRequests") },
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId);
+    if (!request) throw new Error("Request not found");
+    await ctx.db.patch(args.requestId, { status: "declined" });
   },
 });
 

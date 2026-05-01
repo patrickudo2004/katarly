@@ -4,11 +4,12 @@ import { api } from "../../convex/_generated/api";
 import { Organogram } from '../components/Organogram';
 import { AdminSettings } from '../components/AdminSettings';
 import { BorrowRequestForm } from '../components/BorrowRequestForm';
-import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase } from 'lucide-react';
+import { VerificationCenter } from '../components/VerificationCenter';
+import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck } from 'lucide-react';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'settings' | 'borrow'>('hierarchy');
+  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
   const activeUser = useQuery(api.users.me);
   const myChurch = useQuery(api.churches.getMyChurch);
   const organogramData = useQuery(api.churches.getOrganogram);
@@ -90,6 +91,9 @@ export const AdminPage: React.FC = () => {
         <div className={styles.tabSwitcher}>
           <button className={activeTab === 'hierarchy' ? styles.activeTab : ''} onClick={() => setActiveTab('hierarchy')}>Hierarchy</button>
           <button className={activeTab === 'users' ? styles.activeTab : ''} onClick={() => setActiveTab('users')}>Users</button>
+          {activeUser?.role !== 'Volunteer' && (
+            <button className={activeTab === 'verifications' ? styles.activeTab : ''} onClick={() => setActiveTab('verifications')}>Verifications</button>
+          )}
           <button className={activeTab === 'borrow' ? styles.activeTab : ''} onClick={() => setActiveTab('borrow')}>Borrow Teams</button>
           <button className={activeTab === 'settings' ? styles.activeTab : ''} onClick={() => setActiveTab('settings')}>Settings</button>
         </div>
@@ -309,6 +313,18 @@ export const AdminPage: React.FC = () => {
                 <h2>Inter-Department Borrowing</h2>
               </div>
               <BorrowRequestForm />
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'verifications' && (
+          <div className={styles.tabPane}>
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <ShieldCheck size={20} />
+                <h2>Manual Verifications</h2>
+              </div>
+              <VerificationCenter />
             </section>
           </div>
         )}
