@@ -13,6 +13,11 @@ export const ChurchNode = ({ data }: any) => (
     <div className={styles.nodeContent}>
       <strong>{data.label}</strong>
     </div>
+    {data.hasChildren && (
+      <div className={styles.expandHint}>
+        {data.isCollapsed ? '+' : '−'}
+      </div>
+    )}
     <Handle type="source" position={Position.Bottom} className={styles.handle} />
   </div>
 );
@@ -26,8 +31,12 @@ export const DeptNode = ({ data }: any) => (
     </div>
     <div className={styles.nodeContent}>
       <strong>{data.label}</strong>
-      {data.headName && <p>Head: {data.headName}</p>}
     </div>
+    {data.hasChildren && (
+      <div className={styles.expandHint}>
+        {data.isCollapsed ? '+' : '−'}
+      </div>
+    )}
     <Handle type="source" position={Position.Bottom} className={styles.handle} />
   </div>
 );
@@ -36,8 +45,13 @@ export const SubunitNode = ({ data }: any) => (
   <div className={styles.subunitNode}>
     <Handle type="target" position={Position.Top} className={styles.handle} />
     <div className={styles.nodeHeader}>
-      <MapPin size={16} />
-      <span>Subunit</span>
+      <div className={styles.headerTitle}>
+        <MapPin size={16} />
+        <span>Subunit</span>
+      </div>
+      {data.readiness && (
+        <div className={`${styles.pulse} ${styles[data.readiness]}`} />
+      )}
     </div>
     <div className={styles.nodeContent}>
       <strong>{data.label}</strong>
@@ -46,6 +60,11 @@ export const SubunitNode = ({ data }: any) => (
         <span>{data.memberCount || 0} Members</span>
       </div>
     </div>
+    {data.hasChildren && (
+      <div className={styles.expandHint}>
+        {data.isCollapsed ? '+' : '−'}
+      </div>
+    )}
     <Handle type="source" position={Position.Bottom} className={styles.handle} />
   </div>
 );

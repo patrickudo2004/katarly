@@ -8,6 +8,7 @@ interface NetworkSummaryCardProps {
     departments: number;
     subunits: number;
     volunteers: number;
+    pendingInvites: number;
   };
 }
 
@@ -60,6 +61,16 @@ export const NetworkSummaryCard: React.FC<NetworkSummaryCardProps> = ({ stats })
           <div className={styles.statInfo}>
             <strong>{stats.volunteers}</strong>
             <span>Total Workforce</span>
+          </div>
+        </div>
+
+        <div className={styles.statItem}>
+          <div className={styles.statIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+            <Users size={16} />
+          </div>
+          <div className={styles.statInfo}>
+            <strong>{stats.pendingInvites}</strong>
+            <span>Pending Invites</span>
           </div>
         </div>
       </div>

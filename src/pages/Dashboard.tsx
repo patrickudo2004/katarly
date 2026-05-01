@@ -209,7 +209,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           <NetworkSummaryCard stats={{
             departments: stats?.totalDepartments || 0,
             subunits: stats?.totalSubunits || 0,
-            volunteers: stats?.totalVolunteers || 0
+            volunteers: stats?.totalVolunteers || 0,
+            pendingInvites: stats?.pendingInvites || 0
           }} />
         </div>
 

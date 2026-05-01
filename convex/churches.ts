@@ -267,14 +267,22 @@ export const getChurchStats = query({
       .withIndex("by_church", (q) => q.eq("churchId", churchId))
       .collect();
 
+    // 7. Total Departments
+    const depts = await ctx.db
+      .query("departments")
+      .withIndex("by_church", (q) => q.eq("churchId", churchId))
+      .collect();
+
     return {
       totalVolunteers: users.length,
       avgAttendance,
       upcomingServices: upcoming.length,
-      pendingRequests: swaps.length + pendingInvites.length,
+      pendingRequests: swaps.length,
+      pendingInvites: pendingInvites.length,
       nextService: upcoming[0] || null,
       totalAttendanceRecords: attendanceRecords.length,
       totalSubunits: subunits.length,
+      totalDepartments: depts.length,
     };
   },
 });
