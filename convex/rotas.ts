@@ -32,16 +32,16 @@ export const removeRotaEntry = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     const entry = await ctx.db.get(args.rotaId);
-    
+
     // Auth: Only Leads or Admins can remove
     if (user?.role === "Volunteer") throw new Error("Unauthorized");
-    
+
     await ctx.db.delete(args.rotaId);
   },
 });
 
 export const getRotaForRange = query({
-  args: { 
+  args: {
     startDate: v.number(), // Timestamp of start of week
     endDate: v.number(),   // Timestamp of end of week
   },
@@ -60,7 +60,7 @@ export const getRotaForRange = query({
         q.lte(q.field("startTime"), args.endDate)
       ))
       .collect();
-    
+
     const serviceIds = services.map(s => s._id);
 
     // 2. Get all rota entries for these services
@@ -70,7 +70,7 @@ export const getRotaForRange = query({
         .query("rotas")
         .withIndex("by_service", (q) => q.eq("serviceId", serviceId))
         .collect();
-      
+
       const serviceDetail = services.find(s => s._id === serviceId);
 
       for (const entry of entries) {
@@ -93,7 +93,7 @@ export const getRotaForRange = query({
 });
 
 export const getCoverageStats = query({
-  args: { 
+  args: {
     year: v.number(),
   },
   handler: async (ctx, args) => {
@@ -121,7 +121,7 @@ export const getCoverageStats = query({
         .query("rotas")
         .withIndex("by_service", (q) => q.eq("serviceId", s._id))
         .collect();
-      
+
       return {
         date: s.startTime,
         serviceId: s._id,
@@ -142,7 +142,7 @@ export const getServiceRota = query({
       .query("rotas")
       .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
       .collect();
-    
+
     return await Promise.all(entries.map(async (e) => {
       const user = await ctx.db.get(e.userId);
       return { ...e, userName: user?.name, userEmail: user?.email };
