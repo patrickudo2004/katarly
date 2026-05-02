@@ -1,6 +1,6 @@
 # The "Zero-Cost, No Domain" Email Setup (Gmail + EmailJS)
 
-Because our backend (Convex) runs in a highly secure, serverless environment, it blocks raw network sockets. This means we cannot use standard SMTP libraries (like `nodemailer`) directly. 
+Because our backend (Convex) runs in a highly secure, serverless environment, it blocks raw network sockets. This means we cannot use standard SMTP libraries (like `nodemailer`) directly.
 
 However, we can bypass this by using **EmailJS**, a free service that acts as a bridge. It connects directly to your Gmail account and provides us with a simple HTTP API URL that Convex can call safely.
 
@@ -9,6 +9,7 @@ This method costs **$0**, requires **no custom domain**, and gives you **200 ema
 ---
 
 ## Step 1: Prepare Your Gmail Account
+
 We highly recommend creating a fresh Gmail account for your app (e.g., `katarlyapp@gmail.com`) so you don't mix personal emails with app traffic.
 
 1. Create a new Gmail account.
@@ -20,6 +21,7 @@ We highly recommend creating a fresh Gmail account for your app (e.g., `katarlya
 ---
 
 ## Step 2: Set Up EmailJS
+
 EmailJS will act as the bridge between Convex and your Gmail account.
 
 1. Sign up for a free account at [emailjs.com](https://www.emailjs.com/).
@@ -35,16 +37,19 @@ EmailJS will act as the bridge between Convex and your Gmail account.
 ---
 
 ## Step 3: Create the Email Template
+
 This tells EmailJS what the Magic Link email should look like.
 
 1. In EmailJS, go to **Email Templates** and click **Create New Template**.
 2. **Subject**: `Sign in to Katarly`
-3. **Content**: 
+3. **Content**:
+
    ```html
    <h2>Welcome to Katarly!</h2>
    <p>Click the link below to securely sign in to your account. This link will expire in 24 hours.</p>
    <a href="{{magic_link}}">Sign In to Katarly</a>
    ```
+
 4. Click the **Settings** tab on the template.
    - **Template ID**: Save this ID! (e.g., `template_xyz789`).
 5. **Save** the template.
@@ -52,12 +57,14 @@ This tells EmailJS what the Magic Link email should look like.
 ---
 
 ## Step 4: Get Your API Keys
+
 1. In EmailJS, click on **Account** (top right corner) > **API Keys**.
 2. Copy your **Public Key** and **Private Key**.
 
 ---
 
 ## Step 5: Configure Convex
+
 Now we give our Convex backend the keys to trigger the emails. Run these commands in your VS Code terminal, replacing the placeholder values with your actual keys:
 
 ```bash
@@ -70,6 +77,7 @@ npx convex env set EMAILJS_PRIVATE_KEY your_private_key
 ---
 
 ## Step 6: Update the Auth Code
+
 Finally, we update our authentication configuration to use EmailJS via a standard `fetch()` request.
 
 Open your `convex/auth.ts` file and replace the `Email({ ... })` section with this:
@@ -123,5 +131,6 @@ export const { auth, signIn, signOut, store } = convexAuth({
 });
 ```
 
-### You're Done!
+### You're Done
+
 When a user requests a magic link, Convex will now securely ping EmailJS, which will log into your Gmail account and send the email directly to the user. No custom domain required, and it completely bypasses the strict spam filters because it originates from a verified Google server.
