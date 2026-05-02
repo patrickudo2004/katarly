@@ -99,9 +99,15 @@ export const sendInviteEmail = action({
     churchName: v.string(),
   },
   handler: async (ctx, args) => {
-    const baseUrl = process.env.VITE_CONVEX_SITE_URL || "https://katarly.vercel.app";
+    // Environment Variable Audit
+    const baseUrl = process.env.SITE_URL || process.env.VITE_CONVEX_SITE_URL || "https://katarly.vercel.app";
     const inviteLink = `${baseUrl}/accept-invite?token=${args.token}`;
     
+    console.log(`[EmailAudit] Attempting to send invite to: ${args.email}`);
+    console.log(`[EmailAudit] Using Base URL: ${baseUrl}`);
+    console.log(`[EmailAudit] Service ID: ${process.env.EMAILJS_SERVICE_ID ? "PRESENT" : "MISSING"}`);
+    console.log(`[EmailAudit] Template ID: ${process.env.EMAILJS_TEMPLATE_ID ? "PRESENT" : "MISSING"}`);
+
     const payload = {
       service_id: process.env.EMAILJS_SERVICE_ID,
       template_id: process.env.EMAILJS_TEMPLATE_ID,
@@ -109,7 +115,7 @@ export const sendInviteEmail = action({
       accessToken: process.env.EMAILJS_PRIVATE_KEY,
       template_params: {
         to_email: args.email,
-        magic_link: inviteLink, // Reusing parameter from magic link template
+        magic_link: inviteLink,
         church_name: args.churchName,
       }
     };
@@ -122,9 +128,11 @@ export const sendInviteEmail = action({
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("EmailJS Error:", errorText);
-      throw new Error("Failed to send invite email.");
+      console.error("[EmailAudit] EmailJS API Error:", errorText);
+      throw new Error(`Failed to send invite email: ${errorText}`);
     }
+    
+    console.log("[EmailAudit] Invite email successfully sent.");
   },
 });
 
@@ -193,7 +201,30 @@ export const revokeInvite = mutation({
   args: { inviteId: v.id("invites") },
   handler: async (ctx, args) => {
     await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
-    await ctx.db.patch(args.inviteId, { status: "revoked" });
+    await ctx.db.delete(args.inviteId);
+  },
+});
+
+export const resendInvite = mutation({
+  args: { inviteId: v.id("invites") },
+  handler: async (ctx, args) => {
+    const user = await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
+    const invite = await ctx.db.get(args.inviteId);
+    if (!invite) throw new Error("Invite not found");
+    
+    const church = await ctx.db.get(user.churchId as Id<"churches">);
+    
+    // Refresh expiration date
+    await ctx.db.patch(args.inviteId, {
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+      status: "pending"
+    });
+
+    await ctx.scheduler.runAfter(0, api.invites.sendInviteEmail, {
+      email: invite.email,
+      token: invite.token,
+      churchName: church?.name || "Katarly App",
+    });
   },
 });
 

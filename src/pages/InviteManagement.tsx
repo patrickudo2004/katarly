@@ -10,6 +10,7 @@ export const InviteManagement: React.FC = () => {
   const me = useQuery(api.users.me);
   const invites = useQuery(api.invites.getInvites);
   const revokeInvite = useMutation(api.invites.revokeInvite);
+  const resendInvite = useMutation(api.invites.resendInvite);
 
   if (!me || (me.role !== 'SuperAdmin' && me.role !== 'DepartmentHead')) {
     return <div>Access Denied</div>;
@@ -69,7 +70,11 @@ export const InviteManagement: React.FC = () => {
                     <div className={styles.actions}>
                       {invite.status === 'pending' && (
                         <>
-                          <button className={styles.iconBtn} title="Resend">
+                          <button 
+                            className={styles.iconBtn} 
+                            title="Resend"
+                            onClick={() => resendInvite({ inviteId: invite._id })}
+                          >
                             <RefreshCw size={14} />
                           </button>
                           <button 
