@@ -24,6 +24,7 @@ import { ServiceManagement } from './pages/ServiceManagement';
 import { PrintAttendance } from './pages/PrintAttendance';
 import { DebugAuth } from './pages/DebugAuth';
 import { NetworkPage } from './pages/NetworkPage';
+import { AcceptInvite } from './pages/AcceptInvite';
 import { Layout } from './components/Layout';
 import { MobileLayout } from './layouts/MobileLayout';
 import { useMediaQuery } from './hooks/useMediaQuery';
@@ -143,6 +144,7 @@ function AppContent() {
         </PageLayout>
       } />
       <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/debug-auth" element={<DebugAuth />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -165,6 +167,7 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/create-church" element={<CreateChurch />} />
+                <Route path="/accept-invite" element={<AcceptInvite />} />
                 <Route path="/debug-auth" element={<DebugAuth />} />
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>

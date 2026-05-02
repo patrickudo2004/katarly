@@ -21,6 +21,7 @@ export const { auth, signIn, signOut, store } = convexAuth({
           accessToken: process.env.EMAILJS_PRIVATE_KEY,
           template_params: {
             to_email: email,
+            email: email,
             magic_link: url,
           }
         };

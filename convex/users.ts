@@ -108,3 +108,38 @@ export const updateUserRole = mutation({
     await ctx.db.patch(userId, updates);
   },
 });
+export const deleteAccount = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.role === "SuperAdmin" && user.churchId) {
+      // Check if there are other SuperAdmins in this church
+      const otherSuperAdmins = await ctx.db
+        .query("users")
+        .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
+        .filter((q) => q.and(
+          q.eq(q.field("role"), "SuperAdmin"),
+          q.neq(q.field("_id"), userId)
+        ))
+        .collect();
+
+      if (otherSuperAdmins.length === 0) {
+        throw new Error("You are the only SuperAdmin. Please promote someone else before deleting your account.");
+      }
+    }
+
+    // Delete the user record
+    await ctx.db.delete(userId);
+    
+    // Note: In a production app, we might also want to clean up:
+    // - Sessions (handled by Convex Auth usually)
+    // - Notifications
+    // - Time off requests
+    // - Rota assignments (might want to set them to unassigned instead of deleting)
+  },
+});

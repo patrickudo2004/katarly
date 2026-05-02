@@ -115,6 +115,7 @@ export const sendInviteEmail = action({
       accessToken: process.env.EMAILJS_PRIVATE_KEY,
       template_params: {
         to_email: args.email,
+        email: args.email, // Fallback variable name
         magic_link: inviteLink,
         church_name: args.churchName,
       }

@@ -57,6 +57,20 @@
 .markReadBtn:hover {
   text-decoration: underline;
 }
+.backBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  padding: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .backBtn {
+    display: block;
+  }
+}
 
 .closeMobileBtn {
   display: none;

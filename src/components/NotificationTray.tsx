@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Bell, ShieldAlert, Award, FileText, CheckCircle, Flame, Gift, ArrowRight } from 'lucide-react';
+import { Bell, ShieldAlert, Award, FileText, CheckCircle, Flame, Gift, ArrowRight, X, ChevronLeft } from 'lucide-react';
 import styles from './NotificationTray.module.css';
 
 interface NotificationTrayProps {
@@ -55,7 +55,12 @@ export const NotificationTray: React.FC<NotificationTrayProps> = ({ onClose }) =
   return (
     <div className={styles.trayContainer}>
       <div className={styles.header}>
-        <h3>Notifications</h3>
+        <div className="flex items-center gap-3">
+          <button className={styles.backBtn} onClick={onClose}>
+            <ChevronLeft size={24} />
+          </button>
+          <h3>Notifications</h3>
+        </div>
         <div>
           {notifications.some(n => !n.read) && (
             <button onClick={handleMarkAllRead} className={styles.markReadBtn}>
@@ -91,11 +96,6 @@ export const NotificationTray: React.FC<NotificationTrayProps> = ({ onClose }) =
         )}
       </div>
       
-      <button className={styles.closeMobileBtn} onClick={onClose}>
-        <div className="flex bg-gray-100 p-4 justify-center items-center gap-2 border-t font-semibold">
-          Close <ArrowRight size={16} />
-        </div>
-      </button>
     </div>
   );
 };

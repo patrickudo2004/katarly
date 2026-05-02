@@ -52,6 +52,7 @@ This tells EmailJS what the Magic Link email should look like.
 
 4. Click the **Settings** tab on the template.
    - **Template ID**: Save this ID! (e.g., `template_xyz789`).
+   - **To Email**: Set this to `{{to_email}}` (This is critical!).
 5. **Save** the template.
 
 ---

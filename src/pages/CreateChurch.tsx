@@ -19,6 +19,27 @@ export const CreateChurch: React.FC = () => {
 
   const autoCompleteRef = React.useRef<any>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const acceptInvite = useMutation(api.invites.acceptInvite);
+  const [isJoining, setIsJoining] = useState(false);
+
+  React.useEffect(() => {
+    const pendingToken = localStorage.getItem('pending_invite_token');
+    if (pendingToken) {
+      const autoAccept = async () => {
+        setIsJoining(true);
+        try {
+          await acceptInvite({ token: pendingToken });
+          localStorage.removeItem('pending_invite_token');
+          window.location.href = '/';
+        } catch (error) {
+          console.error("Auto-accept failed:", error);
+          localStorage.removeItem('pending_invite_token');
+          setIsJoining(false);
+        }
+      };
+      autoAccept();
+    }
+  }, [acceptInvite]);
 
   React.useEffect(() => {
     if (window.google && inputRef.current && !autoCompleteRef.current) {
@@ -78,6 +99,20 @@ export const CreateChurch: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isJoining) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+            <h1>Joining Church</h1>
+            <p>Setting up your membership access...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
