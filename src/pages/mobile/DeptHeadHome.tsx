@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
@@ -13,10 +13,13 @@ export const DeptHeadHome: React.FC = () => {
     me?.departmentId ? { departmentId: me.departmentId } : "skip"
   );
   const subunits = useQuery(api.subunits.getSubunits);
+  const church = useQuery(api.churches.getMyChurch);
+  const pendingVerifications = useQuery(api.attendance.getPendingVerifications, 
+    church ? { churchId: church._id } : "skip"
+  );
 
-  // Loading state: only wait for me and subunits. 
-  // health can be undefined if skipped (which is fine)
-  if (!me || subunits === undefined) {
+  // Loading state
+  if (!me || subunits === undefined || pendingVerifications === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -29,6 +32,22 @@ export const DeptHeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {pendingVerifications.length > 0 && (
+        <div 
+          className={styles.card} 
+          style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1rem' }}
+          onClick={() => setActiveTab('Approvals')}
+        >
+          <div className={styles.sectionHeader}>
+            <h3 style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={20} />
+              {pendingVerifications.length} Verification {pendingVerifications.length === 1 ? 'Request' : 'Requests'}
+            </h3>
+            <ChevronRight size={20} color="#8b5cf6" />
+          </div>
+          <p className={styles.itemSubtitle}>Volunteers waiting for geofence approval</p>
+        </div>
+      )}
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
           <span className={styles.statValue}>{health?.attendanceRate || 0}%</span>
@@ -78,6 +97,23 @@ export const DeptHeadHome: React.FC = () => {
 
         {activeTab === 'Approvals' && (
           <div className={styles.list}>
+            {pendingVerifications.length > 0 && (
+              <div 
+                className={styles.listItem} 
+                onClick={() => navigate('/admin')}
+                style={{ borderLeft: '4px solid #8b5cf6' }}
+              >
+                <div className={styles.itemIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                  <ShieldAlert size={20} />
+                </div>
+                <div className={styles.itemInfo}>
+                  <p className={styles.itemTitle}>Manual Verifications</p>
+                  <p className={styles.itemSubtitle}>{pendingVerifications.length} pending geofence overrides</p>
+                </div>
+                <ChevronRight size={16} color="#8b5cf6" />
+              </div>
+            )}
+            
             <div className={styles.listItem}>
               <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
                 <ArrowRightLeft size={20} />

@@ -57,7 +57,7 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-export const getVisibleUsers = query({
+export const getAllChurchUsers = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
@@ -76,17 +76,17 @@ export const getVisibleUsers = query({
       if (user.departmentId) {
         usersQuery = usersQuery.filter((q) => q.eq(q.field("departmentId"), user.departmentId));
       } else {
-        return []; // Safety fallback
+        return []; // Safety fallback if leader has no department
       }
     } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
       // Sees only their subunit
       if (user.subunitId) {
         usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), user.subunitId));
       } else {
-        return []; // Safety fallback
+        return []; // Safety fallback if lead has no subunit
       }
     } else {
-      // Volunteers and others see no one by default
+      // Volunteers and others see no one by default for privacy
       return [];
     }
 

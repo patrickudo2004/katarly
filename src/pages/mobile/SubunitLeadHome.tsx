@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import styles from './mobile.module.css';
@@ -15,14 +15,13 @@ export const SubunitLeadHome: React.FC = () => {
   // Find the subunit this user leads
   const mySubunitId = me?.subunitId;
   
-  const liveAttendance = useQuery(
-    api.subunits.getLiveAttendance, 
-    nextService && mySubunitId ? { serviceId: nextService._id, subunitId: mySubunitId } : "skip"
+  const church = useQuery(api.churches.getMyChurch);
+  const pendingVerifications = useQuery(api.attendance.getPendingVerifications, 
+    church ? { churchId: church._id } : "skip"
   );
 
-  // Loading state: only wait for me and nextService. 
-  // liveAttendance can be undefined if skipped (which is fine)
-  if (me === undefined || nextService === undefined) {
+  // Loading state
+  if (me === undefined || nextService === undefined || pendingVerifications === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -34,6 +33,23 @@ export const SubunitLeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {pendingVerifications.length > 0 && (
+        <div 
+          className={styles.card} 
+          style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1.5rem' }}
+          onClick={() => navigate('/admin')} // Or a specific mobile verification view if we had one
+        >
+          <div className={styles.sectionHeader}>
+            <h3 style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={20} />
+              {pendingVerifications.length} Verification {pendingVerifications.length === 1 ? 'Request' : 'Requests'}
+            </h3>
+            <ChevronRight size={20} color="#8b5cf6" />
+          </div>
+          <p className={styles.itemSubtitle}>Volunteers waiting for geofence approval</p>
+        </div>
+      )}
+
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
           <span className={styles.statValue}>{presentCount}</span>

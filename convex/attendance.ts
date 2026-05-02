@@ -240,25 +240,43 @@ export const requestVerification = mutation({
 export const getPendingVerifications = query({
   args: { churchId: v.id("churches") },
   handler: async (ctx, args) => {
-    const requests = await ctx.db
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user) return [];
+
+    let requests = await ctx.db
       .query("verificationRequests")
       .withIndex("by_church_status", (q) => q.eq("churchId", args.churchId).eq("status", "pending"))
       .collect();
 
-    // Attach user and service info
-    return await Promise.all(
+    // Attach user and service info first so we can filter by department/subunit
+    const hydratedRequests = await Promise.all(
       requests.map(async (req) => {
-        const user = await ctx.db.get(req.userId);
+        const requester = await ctx.db.get(req.userId);
         const service = await ctx.db.get(req.serviceId);
         return {
           ...req,
-          userName: user?.name || "Unknown",
-          userRole: user?.role,
+          userName: requester?.name || "Unknown",
+          userRole: requester?.role,
+          userDeptId: requester?.departmentId,
+          userSubunitId: requester?.subunitId,
           serviceName: service?.name || "Unknown",
           serviceStartTime: service?.startTime,
         };
       })
     );
+
+    // Apply role-based filtering
+    if (user.role === "SuperAdmin") {
+      return hydratedRequests;
+    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead") {
+      return hydratedRequests.filter(r => r.userDeptId === user.departmentId);
+    } else if (user.role === "SubunitLead") {
+      return hydratedRequests.filter(r => r.userSubunitId === user.subunitId);
+    }
+
+    return []; // Volunteers see nothing
   },
 });
 
