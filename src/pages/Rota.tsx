@@ -68,7 +68,7 @@ export const Rota: React.FC = () => {
   // Queries
   const rotaEntries = useQuery(api.rotas.getRotaForRange, { startDate, endDate });
   const coverageStats = useQuery(api.rotas.getCoverageStats, { year: getYear(currentDate) });
-  const allUsers = useQuery(api.users.getAllChurchUsers);
+  const allUsers = useQuery(api.users.getVisibleUsers);
   const services = useQuery(api.services.getChurchServices);
   const subunits = useQuery(api.subunits.getSubunits);
   const departments = useQuery(api.departments.getDepartments);
@@ -86,6 +86,7 @@ export const Rota: React.FC = () => {
   const [kpiForm, setKpiForm] = useState({ score: 'Good', note: '' });
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [rosterSearch, setRosterSearch] = useState('');
 
   const [newShift, setNewShift] = useState({
     userId: '',
@@ -98,8 +99,17 @@ export const Rota: React.FC = () => {
   const [newService, setNewService] = useState({
     name: '',
     time: '09:00',
+    endTime: '11:00',
     qrType: 'Unique' as 'Unique' | 'Generic'
   });
+
+  const filteredRoster = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(u => 
+      (u.name?.toLowerCase() || '').includes(rosterSearch.toLowerCase()) ||
+      (u.email?.toLowerCase() || '').includes(rosterSearch.toLowerCase())
+    );
+  }, [allUsers, rosterSearch]);
 
   // Handlers
   const handleNav = (dir: 'prev' | 'next') => {
@@ -120,10 +130,11 @@ export const Rota: React.FC = () => {
     e.preventDefault();
     if (!selectedDay) return;
     try {
-      const [hours, minutes] = newService.time.split(':').map(Number);
+      const [endHours, endMinutes] = newService.endTime.split(':').map(Number);
       const startTime = new Date(selectedDay);
       startTime.setHours(hours, minutes, 0, 0);
-      const endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000);
+      const endTime = new Date(selectedDay);
+      endTime.setHours(endHours, endMinutes, 0, 0);
 
       await createService({
         name: newService.name,
@@ -132,7 +143,7 @@ export const Rota: React.FC = () => {
         qrType: newService.qrType
       });
       setIsAddingService(false);
-      setNewService({ name: '', time: '09:00', qrType: 'Unique' });
+      setNewService({ name: '', time: '09:00', endTime: '11:00', qrType: 'Unique' });
     } catch (err) {
       alert("Failed to create service");
     }
@@ -400,9 +411,16 @@ export const Rota: React.FC = () => {
         <aside className={styles.sidebar}>
           <div className={styles.sidebarCard}>
             <div className={styles.sidebarTitle}><Users size={18} /> Volunteer Roster</div>
+            <div className={styles.searchBox}>
+              <input 
+                placeholder="Search volunteers..." 
+                value={rosterSearch}
+                onChange={e => setRosterSearch(e.target.value)}
+              />
+            </div>
             <p className={styles.hint} style={{ marginBottom: '1rem', fontSize: '0.75rem' }}>Drag a volunteer onto an unassigned shift.</p>
             <div className={styles.rosterList}>
-              {allUsers?.map(u => (
+              {filteredRoster?.map(u => (
                 <div 
                   key={u._id} 
                   className={styles.volunteerDraggable}
@@ -450,9 +468,25 @@ export const Rota: React.FC = () => {
                 <label>Service Name</label>
                 <input placeholder="e.g. Sunday Morning" value={newService.name} onChange={e => setNewService({...newService, name: e.target.value})} required />
               </div>
+              <div className={styles.row}>
+                <div className={styles.field}>
+                  <label>Start Time</label>
+                  <input type="time" value={newService.time} onChange={e => setNewService({...newService, time: e.target.value})} required />
+                </div>
+                <div className={styles.field}>
+                  <label>End Time</label>
+                  <input type="time" value={newService.endTime} onChange={e => setNewService({...newService, endTime: e.target.value})} required />
+                </div>
+              </div>
               <div className={styles.field}>
-                <label>Start Time</label>
-                <input type="time" value={newService.time} onChange={e => setNewService({...newService, time: e.target.value})} required />
+                <label>QR Code Security</label>
+                <select 
+                  value={newService.qrType}
+                  onChange={e => setNewService({...newService, qrType: e.target.value as any})}
+                >
+                  <option value="Unique">Unique (Secure)</option>
+                  <option value="Generic">Generic (Fixed)</option>
+                </select>
               </div>
               <button type="submit" className={styles.submitBtn}>Create Service</button>
             </form>

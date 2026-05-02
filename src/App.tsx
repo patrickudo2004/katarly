@@ -22,6 +22,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AdminSettings } from './pages/AdminSettings';
 import { ServiceManagement } from './pages/ServiceManagement';
 import { PrintAttendance } from './pages/PrintAttendance';
+import { PeoplePage } from './pages/PeoplePage';
 import { DebugAuth } from './pages/DebugAuth';
 import { NetworkPage } from './pages/NetworkPage';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -141,6 +142,11 @@ function AppContent() {
       <Route path="/network" element={
         <PageLayout user={me as any}>
           <NetworkPage />
+        </PageLayout>
+      } />
+      <Route path="/people" element={
+        <PageLayout user={me as any}>
+          <PeoplePage />
         </PageLayout>
       } />
       <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />

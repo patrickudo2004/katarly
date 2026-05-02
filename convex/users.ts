@@ -6,14 +6,25 @@ export const me = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    
+    return {
+      ...user,
+      imageUrl: user.image ? await ctx.storage.getUrl(user.image) : null,
+    };
   },
 });
 
 export const getById = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    return {
+      ...user,
+      imageUrl: user.image ? await ctx.storage.getUrl(user.image) : null,
+    };
   },
 });
 
@@ -36,17 +47,40 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-export const getAllChurchUsers = query({
+export const getVisibleUsers = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
     const user = await ctx.db.get(userId);
     if (!user?.churchId) return [];
 
-    const users = await ctx.db
+    let usersQuery = ctx.db
       .query("users")
-      .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
-      .collect();
+      .withIndex("by_church", (q) => q.eq("churchId", user.churchId!));
+
+    // Role-based scoping
+    if (user.role === "SuperAdmin") {
+      // Sees everyone
+    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "PastoralOversight") {
+      // Sees everyone in their department
+      if (user.departmentId) {
+        usersQuery = usersQuery.filter((q) => q.eq(q.field("departmentId"), user.departmentId));
+      } else {
+        return []; // Safety fallback
+      }
+    } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
+      // Sees only their subunit
+      if (user.subunitId) {
+        usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), user.subunitId));
+      } else {
+        return []; // Safety fallback
+      }
+    } else {
+      // Volunteers and others see no one by default
+      return [];
+    }
+
+    const users = await usersQuery.collect();
 
     return Promise.all(users.map(async (u) => {
       const dept = u.departmentId ? await ctx.db.get(u.departmentId) : null;
@@ -55,6 +89,7 @@ export const getAllChurchUsers = query({
         ...u,
         departmentName: dept?.name || "None",
         subunitName: sub?.name || "None",
+        imageUrl: u.image ? await ctx.storage.getUrl(u.image) : null,
       };
     }));
   },

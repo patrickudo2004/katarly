@@ -31,6 +31,11 @@ export const createService = mutation({
     const user = await ctx.db.get(userId);
     if (!user?.churchId) throw new Error("Church not found");
 
+    const allowedRoles = ["SuperAdmin", "DeaconHead", "PastoralOversight"];
+    if (!allowedRoles.includes(user.role)) {
+      throw new Error("Unauthorized: Only SuperAdmin, DeaconHead, or PastoralOversight can create services.");
+    }
+
     const church = await ctx.db.get(user.churchId);
     const resolvedQrType = args.qrType || church?.settings?.defaultQrType || "Unique";
 

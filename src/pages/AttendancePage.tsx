@@ -49,8 +49,12 @@ export const AttendancePage: React.FC = () => {
 
   const handleScan = async (data: string, location: GeolocationPosition) => {
     try {
-      const qrData = JSON.parse(data);
-      setScanData(qrData);
+      // New simplified format: "TYPE:ID:SECRET" or "SERVICE:ID:SECRET"
+      const parts = data.split(':');
+      if (parts.length < 3) throw new Error("Invalid format");
+      
+      const [type, id, secret] = parts;
+      setScanData({ type, id, secret });
       setUserLocation(location);
       setStep('select');
     } catch (e) {
@@ -77,6 +81,7 @@ export const AttendancePage: React.FC = () => {
         setStep('verifying');
       } else {
         // Inside geofence - proceed normally
+        // If it's a daily pass, the id in scanData is churchId, but we mark for a specific service
         await markAttendance({
           serviceId,
           qrSecret: scanData.secret,

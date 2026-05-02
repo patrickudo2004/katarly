@@ -16,8 +16,20 @@ export const createRotaEntry = mutation({
     const user = await ctx.db.get(userId);
     if (!user?.churchId) throw new Error("User has no church");
     
-    // Auth: Only Leads or Admins can assign shifts
-    if (user?.role === "Volunteer") throw new Error("Unauthorized to assign shifts");
+    // Auth: Scoped permissions
+    if (user.role === "SuperAdmin") {
+      // Full access
+    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "PastoralOversight") {
+      if (args.departmentId !== user.departmentId) {
+        throw new Error("Unauthorized: You can only assign shifts within your own department.");
+      }
+    } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
+      if (args.subunitId !== user.subunitId) {
+        throw new Error("Unauthorized: You can only assign shifts within your own subunit.");
+      }
+    } else {
+      throw new Error("Unauthorized to assign shifts");
+    }
 
     if (args.userId) {
       // 1. Conflict Check: Double Booking
@@ -262,8 +274,20 @@ export const assignUserToShift = mutation({
     if (!adminId) throw new Error("Not authenticated");
     const admin = await ctx.db.get(adminId);
     
-    // Auth: Only Leads or Admins can assign shifts
-    if (admin?.role === "Volunteer") throw new Error("Unauthorized");
+    // Auth: Scoped permissions
+    if (admin.role === "SuperAdmin") {
+      // Full access
+    } else if (admin.role === "DeaconHead" || admin.role === "DepartmentHead" || admin.role === "DepartmentAssistant" || admin.role === "PastoralOversight") {
+      if (rota.departmentId !== admin.departmentId) {
+        throw new Error("Unauthorized: You can only assign shifts within your own department.");
+      }
+    } else if (admin.role === "SubunitLead" || admin.role === "SubunitAssistant") {
+      if (rota.subunitId !== admin.subunitId) {
+        throw new Error("Unauthorized: You can only assign shifts within your own subunit.");
+      }
+    } else {
+      throw new Error("Unauthorized");
+    }
 
     const rota = await ctx.db.get(args.rotaId);
     if (!rota) throw new Error("Rota entry not found");

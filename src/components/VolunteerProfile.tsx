@@ -20,7 +20,7 @@ export const VolunteerProfile: React.FC<VolunteerProfileProps> = ({ userId }) =>
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.avatar}>
-          <User size={48} />
+          {user.imageUrl ? <img src={user.imageUrl} alt={user.name} /> : <User size={48} />}
         </div>
         <div className={styles.headerInfo}>
           <h2 className={styles.name}>{user.name}</h2>

@@ -601,8 +601,27 @@
 }
 
 .rosterList::-webkit-scrollbar-thumb {
-  background: var(--border-color);
   border-radius: 10px;
+}
+
+.searchBox {
+  margin-bottom: 1rem;
+}
+
+.searchBox input {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.searchBox input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .volunteerDraggable {
@@ -749,6 +768,12 @@
   gap: 1.5rem;
 }
 
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -766,6 +791,11 @@
   border: 1px solid var(--border-color);
   background: var(--input-bg);
   color: var(--text-primary);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .submitBtn {

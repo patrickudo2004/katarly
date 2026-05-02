@@ -75,9 +75,9 @@ export const OnboardingWizard: React.FC = () => {
             <p>Help your team recognize you. A clear headshot works best.</p>
             
             <div className={styles.uploadArea}>
-              {me?.image ? (
+              {me?.imageUrl ? (
                 <div className={styles.preview}>
-                  <img src={me.image} alt="Profile" />
+                  <img src={me.imageUrl} alt="Profile" />
                   <label className={styles.changeBtn}>
                     Change
                     <input type="file" hidden onChange={handlePhotoUpload} />

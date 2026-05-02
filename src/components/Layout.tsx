@@ -66,6 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     { label: 'Hall of Fame', icon: <Trophy size={20} />, path: '/hall-of-fame', roles: allRoles },
     { label: 'The Network', icon: <Network size={20} />, path: '/network', roles: allRoles },
     { label: 'Invites', icon: <Users size={20} />, path: '/invites', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead'] },
+    { label: 'People', icon: <Users size={20} />, path: '/people', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Profile', icon: <User size={20} />, path: '/profile', roles: allRoles },
   ];
 

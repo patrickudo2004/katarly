@@ -155,7 +155,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.25rem 1rem; /* Slightly larger padding for easier touch */
   width: 100%;
   border-radius: 0.75rem;
   color: var(--text-primary);
@@ -165,10 +165,12 @@
   border: none;
   text-align: left;
   font-size: 1rem;
+  cursor: pointer;
 }
 
 .menuItem:active {
   background-color: var(--bg-secondary);
+  opacity: 0.7;
 }
 
 .menuDivider {

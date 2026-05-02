@@ -226,12 +226,7 @@ export const ServiceManagement: React.FC = () => {
           churchName={church.name}
           services={dailyServices}
           date={new Date()}
-          qrCodeValue={JSON.stringify({
-            churchId: church._id,
-            type: 'daily',
-            date: format(new Date(), 'yyyy-MM-dd'),
-            secret: church.settings?.qrCodeSecret
-          })}
+          qrCodeValue={`DAILY:${church._id}:${church.settings?.qrCodeSecret || 'none'}`}
           onClose={() => setShowDailyPass(false)}
         />
       )}
@@ -242,10 +237,7 @@ export const ServiceManagement: React.FC = () => {
           churchName={church.name}
           services={[selectedService]}
           date={new Date(selectedService.startTime)}
-          qrCodeValue={JSON.stringify({
-            serviceId: selectedService._id,
-            secret: selectedService.qrCodeSecret
-          })}
+          qrCodeValue={`SERVICE:${selectedService._id}:${selectedService.qrCodeSecret}`}
           onClose={() => setSelectedService(null)}
         />
       )}
