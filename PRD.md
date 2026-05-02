@@ -15,6 +15,7 @@
 Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically for churches. It provides a single, secure, real-time platform for managing volunteers across departments and subunits with the **exact hierarchy churches already use**.
 
 ### Key Differentiators
+
 - Real-time QR-code attendance with geofence verification (the "killer feature")
 - Deacon Head role — governing board authority with private board channel and escalation approval
 - Pastoral Oversight role with spiritual covering and escalation authority to the Deacon Board
@@ -39,17 +40,17 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 
 ## 3. User Roles & Personas (with exact permissions and colour badges)
 
-| Role                  | Colour Hex       | Icon                      | Primary Responsibilities                                                                 | Dashboard Access          |
-|-----------------------|------------------|---------------------------|------------------------------------------------------------------------------------------|---------------------------|
-| Super Admin           | #8b5cf6 (Purple) | Crown                     | Church-wide oversight, create departments, final escalation, reports                     | Full church view          |
-| Deacon Head           | #1e3a5f (Deep Navy) | Scale                  | Governing board — approve escalations, assign PastoralOversight in dept, private board chat | Department + Church-wide  |
-| Pastoral Oversight    | #15803d (Deep Green) | Shepherd staff / cross | Spiritual covering, read-only dept visibility, escalate to Deacon Board, post Oversight messages | Department + Oversight tab|
-| Department Head       | #111827 (Black)  | Gold border               | Daily rota management, invite users, approve time-off/borrows, manage probation         | Full department           |
-| Subunit Lead          | #6b7280 (Slate Gray) | —                     | Mark attendance, create subunit rotas, log KPI for probation, offer swaps               | Subunit only              |
-| Volunteer             | #ef4444 (Red)    | —                         | View personal schedule, scan QR, request time-off/swap, view badges                     | Personal only             |
-| Probation             | #3b82f6 (Blue)   | Dashed border             | Same as Volunteer + visible KPI progress                                                 | Personal                  |
-| On Notice             | #f59e0b (Orange) | —                         | Monitored status                                                                         | Personal                  |
-| Borrowed              | Purple outline   | —                         | Temporary cross-dept assignment                                                          | Personal + target subunit |
+| Role | Colour Hex | Icon | Primary Responsibilities | Dashboard Access |
+| :--- | :--- | :--- | :--- | :--- |
+| Super Admin | #8b5cf6 (Purple) | Crown | Church-wide oversight, create departments, final escalation, reports | Full church view |
+| Deacon Head | #1e3a5f (Deep Navy) | Scale | Governing board — approve escalations, assign PastoralOversight in dept, private board chat | Department + Church-wide |
+| Pastoral Oversight | #15803d (Deep Green) | Shepherd staff / cross | Spiritual covering, read-only dept visibility, escalate to Deacon Board, post Oversight messages | Department + Oversight tab |
+| Department Head | #111827 (Black) | Gold border | Daily rota management, invite users, approve time-off/borrows, manage probation | Full department |
+| Subunit Lead | #6b7280 (Slate Gray) | — | Mark attendance, create subunit rotas, log KPI for probation, offer swaps | Subunit only |
+| Volunteer | #ef4444 (Red) | — | View personal schedule, scan QR, request time-off/swap, view badges | Personal only |
+| Probation | #3b82f6 (Blue) | Dashed border | Same as Volunteer + visible KPI progress | Personal |
+| On Notice | #f59e0b (Orange) | — | Monitored status | Personal |
+| Borrowed | Purple outline | — | Temporary cross-dept assignment | Personal + target subunit |
 
 **Rule:** All badges appear on avatars, lists, organogram, chat messages, rotas, and profiles.  
 **Hierarchy:** SuperAdmin → DeaconHead → PastoralOversight → DepartmentHead → SubunitLead → Volunteer
@@ -59,6 +60,7 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 ## 4. Detailed Feature Requirements
 
 ### 4.1 Authentication & Onboarding
+
 - Google One-Tap + Email Magic Link only (no passwords ever)
 - Strict invite-only hierarchy:
   - Super Admin creates church
@@ -70,6 +72,7 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 - Post-invite 3-step wizard: profile photo upload, phone number, availability calendar
 
 ### 4.2 Deacon Head Role (mandatory — added April 2026)
+
 - Multiple users may hold this role; each assigned to one department
 - Approve or reject escalations from Pastoral Oversight
 - Church-wide KPI and health visibility
@@ -79,6 +82,7 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 - Dedicated governance dashboard: escalation queue, dept health, probation summary
 
 ### 4.3 Pastoral Oversight Role (mandatory)
+
 - One per department
 - Full read-only access to entire department
 - Cannot edit rotas or mark attendance
@@ -86,36 +90,42 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 - Special green "Oversight Messages" in chat (pinnable)
 - Dedicated "Oversight View" tab with department health score
 
-### 4.3 Attendance System (Killer Feature)
+### 4.4 Attendance System (Killer Feature)
+
 - Dynamic QR generated per service (display on projector/TV)
 - Volunteer scans via html5-qrcode
 - Automatic checks: geofence (50–100 m radius) + service time window
 - Subunit Leads can manual override/approve
 - Live real-time update to every dashboard and Service Mode screen
 
-### 4.4 Rota & Scheduling
+### 4.5 Rota & Scheduling
+
 - Drag-and-drop calendar per subunit/department
 - Volunteers indicate availability
 - Automatic gap detection and alerts
 
-### 4.5 Shift Swap Marketplace
+### 4.6 Shift Swap Marketplace
+
 - Volunteer marks shift as “Available for Swap”
 - Eligible volunteers (same subunit or borrowed pool) can claim
 - Original owner + Subunit Lead approve
 - Auto-update rota on approval
 
-### 4.6 Probation KPI Tracking
+### 4.7 Probation KPI Tracking
+
 - Dept Head creates probation period (default 4 or 8 weeks)
 - Subunit Lead logs one-tap KPI after each slot (Excellent / Good / Needs Improvement / Disapprove)
 - Auto-generated report at end of period with attendance % + average score
 - Disapprove automatically extends probation + notifies everyone
 
-### 4.7 Borrowing System
+### 4.8 Borrowing System
+
 - Volunteers can serve in multiple subunits inside the same department
 - Formal inter-department borrow requests (Dept Head → Dept Head → Volunteer accept/decline)
 - Temporary “Borrowed” badge and auto-expiry
 
 ### 4.9 Chat & Messaging
+
 - Channels: Department, Subunit, Church-wide Announcements
 - **Private Deacon Board Channel**: accessible only to DeaconHead role; SuperAdmin excluded unless also DeaconHead
 - Real-time with Convex subscriptions
@@ -123,18 +133,21 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 - Pastoral Oversight messages appear in green with pin option
 - Deacon Board messages appear in navy blue and are automatically pinned
 
-### 4.9 Volunteer Recognition & Streaks
+### 4.10 Volunteer Recognition & Streaks
+
 - Automatic badges: 3-month streak, Perfect Attendance 2025, 100 services, Total Hours, Easter Hero, etc.
 - Dept Heads / Oversight can manually award custom badges
 - Church-wide Hall of Fame page (filterable)
 - Personal profile shows all badges + streak counter
 - Confetti animation + notification on badge award
 
-### 4.10 Organogram & Dashboards
+### 4.11 Organogram & Dashboards
+
 - Interactive tree view showing full hierarchy (Super Admin → Oversight → Dept Head → etc.)
 - Role-specific mobile-first dashboards with real-time metrics and charts (Recharts)
 
-### 4.11 Mobile-First PWA Experience
+### 4.12 Mobile-First PWA Experience
+
 - Fixed bottom navigation bar (role-aware tabs)
 - Role-specific home screens:
   - Volunteer: personal calendar + big Scan QR button
@@ -222,6 +235,6 @@ Use high-reasoning mode. Follow the detailed master prompt style from our previo
 
 ---
 
-**End of PRD**
+### End of PRD
 
 This document is exhaustive and self-contained. Paste it directly into Google Antigravity as the project description.

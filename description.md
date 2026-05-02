@@ -30,16 +30,16 @@ Katarly is not just another rota app — it is the **digital nervous system** fo
 3. **Pastoral Oversight Role**  
    A dedicated green-badge role above Department Heads with read-only visibility, escalation authority to the Deacon Board, and special “Oversight Messages” in chat.
 
-3. **Killer Attendance Feature**  
+4. **Killer Attendance Feature**  
    Dynamic QR codes displayed on the projector or at the door. Volunteers scan with their phone. The app checks geofence (inside the church) and service time window. Updates appear live for every leader and Pastoral Oversight.
 
-4. **Volunteer Love Built In**  
+5. **Volunteer Love Built In**  
    Automatic streak badges, perfect attendance awards, Hall of Fame, confetti celebrations, and a personal profile that shows “You’ve served 187 hours this year.”
 
-5. **Smart Flexibility**  
+6. **Smart Flexibility**  
    Shift Swap Marketplace + inter-department borrowing so no more last-minute WhatsApp begging.
 
-6. **Everything in One App**  
+7. **Everything in One App**  
    Rotas, attendance, time-off approvals, probation KPI tracking, chat with file uploads, recognition, organogram — no more switching between 5 different tools.
 
 ---
@@ -47,11 +47,13 @@ Katarly is not just another rota app — it is the **digital nervous system** fo
 ## Detailed Feature Overview
 
 ### Authentication & Onboarding
+
 - Google One-Tap Sign-In + Email Magic Link (zero passwords)
 - Strict invite-only flow that mirrors church authority
 - Quick post-invite wizard (photo, phone, availability)
 
 ### Role-Based Dashboards & Mobile Experience
+
 - Full PWA with fixed bottom navigation (Home, Schedule, QR/Attendance, Requests, Chat)
 - Role-specific home screens:
   - Volunteer: personal calendar + giant “Scan QR” button
@@ -62,30 +64,36 @@ Katarly is not just another rota app — it is the **digital nervous system** fo
 - Mobile-first design (large touch targets, dark mode default, works perfectly on church WiFi)
 
 ### Attendance System
+
 - Dynamic QR per service (new code every Sunday)
 - html5-qrcode scanner + automatic geofence + time validation
 - Real-time live updates across all devices
 - Manual override for leads when needed
 
 ### Rota & Scheduling
+
 - Drag-and-drop calendar per subunit and department
 - Smart availability suggestions
 - Automatic gap alerts
 
 ### Shift Swap Marketplace
+
 - Volunteers can offer a shift for swap
 - Others claim it → approval flow → automatic rota update
 
 ### Probation KPI Tracking
+
 - Structured probation periods with one-tap KPI logging by Subunit Leads
 - Auto-generated reports with attendance % and average score
 - Automatic extension on disapproval
 
 ### Borrowing System
+
 - Volunteers can serve in multiple subunits inside the same department
 - Formal inter-department borrow requests with dual-head approval
 
 ### Real-Time Chat
+
 - Dedicated channels: Department, Subunit, Church-wide Announcements
 - **Private Deacon Board Channel**: Only accessible to users with the DeaconHead role. SuperAdmin does not have access unless they also hold DeaconHead. Designed for confidential governance discussion.
 - File uploads (photos, PDFs, service plans) with beautiful previews
@@ -93,11 +101,13 @@ Katarly is not just another rota app — it is the **digital nervous system** fo
 - Deacon Board messages appear in navy and are automatically pinned
 
 ### Volunteer Recognition & Motivation
+
 - Automatic badges for streaks, total hours, perfect attendance, special events
 - Manual awards by leaders and Pastoral Oversight
 - Church-wide Hall of Fame + personal badge collection with confetti celebrations
 
 ### Organogram & Reporting
+
 - Interactive tree view showing the full hierarchy (including Pastoral Oversight layer)
 - Real-time analytics and one-click reports for pastors
 
@@ -106,7 +116,7 @@ Katarly is not just another rota app — it is the **digital nervous system** fo
 ## Technical Highlights
 
 - **Frontend:** React 19 + TypeScript + Vite + Vanilla CSS + Lucide icons
-- **Backend & Real-time:** Convex (auth, database, file storage, subscriptions)
+- **Backend & Real-time:** Convex (auth, database, file storage, actions, subscriptions)
 - **Mobile:** Full PWA (installable on any phone, works offline for attendance)
 - **Security:** Strict row-level security + invite-only access
 - **Deployment:** Vercel + Convex
@@ -153,6 +163,6 @@ Katarly — where every volunteer is seen, every leader is empowered, and every 
 
 ---
 
-**End of Product Description**
+### End of Product Description
 
 This document is written to give Google Antigravity (or any AI coding agent) a clear, inspiring, and exhaustive understanding of the complete vision for Katarly. It can be used alongside the PRD for maximum context.

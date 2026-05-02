@@ -2,6 +2,16 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 
+async function resolveImageUrl(ctx: any, image: string | undefined) {
+  if (!image) return null;
+  if (image.startsWith("http")) return image;
+  try {
+    return await ctx.storage.getUrl(image);
+  } catch (e) {
+    return null;
+  }
+}
+
 export const me = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
@@ -11,7 +21,7 @@ export const me = query({
     
     return {
       ...user,
-      imageUrl: user.image ? await ctx.storage.getUrl(user.image) : null,
+      imageUrl: await resolveImageUrl(ctx, user.image),
     };
   },
 });
@@ -23,7 +33,7 @@ export const getById = query({
     if (!user) return null;
     return {
       ...user,
-      imageUrl: user.image ? await ctx.storage.getUrl(user.image) : null,
+      imageUrl: await resolveImageUrl(ctx, user.image),
     };
   },
 });
@@ -89,7 +99,7 @@ export const getVisibleUsers = query({
         ...u,
         departmentName: dept?.name || "None",
         subunitName: sub?.name || "None",
-        imageUrl: u.image ? await ctx.storage.getUrl(u.image) : null,
+        imageUrl: await resolveImageUrl(ctx, u.image),
       };
     }));
   },
