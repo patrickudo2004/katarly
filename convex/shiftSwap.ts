@@ -243,3 +243,66 @@ export const getUserSwaps = query({
     return [...requested, ...claimed].sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
+
+// Volunteer claims an open shift (unassigned)
+export const claimOpenShift = mutation({
+  args: {
+    rotaId: v.id("rotas"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const rota = await ctx.db.get(args.rotaId);
+    if (!rota) throw new Error("Rota not found");
+    if (rota.userId) throw new Error("This shift is already assigned to someone else");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    // 1. Conflict Check: Double Booking
+    const existingEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("serviceId"), rota.serviceId))
+      .first();
+
+    if (existingEntry) {
+      throw new Error("You are already scheduled for a role during this service.");
+    }
+
+    // 2. Conflict Check: Time Off
+    const service = await ctx.db.get(rota.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    const timeOffRequests = await ctx.db
+      .query("timeOffRequests")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("status"), "Approved"))
+      .collect();
+
+    const isOnLeave = timeOffRequests.some(
+      (req) => service.startTime >= req.startDate && service.startTime <= req.endDate
+    );
+
+    if (isOnLeave) {
+      throw new Error("You cannot claim a shift during your approved time off.");
+    }
+
+    // Update rota entry to assign to this user
+    await ctx.db.patch(args.rotaId, {
+      userId: userId,
+      status: "Confirmed", // Self-claimed is auto-confirmed
+    });
+
+    // Notify Department Head (we'll notify all admins/leads for simplicity, or just a generic notification logic)
+    // Here we'll skip complex head routing and just send a success to the volunteer for now.
+    await ctx.db.insert("notifications", {
+      userId: userId,
+      title: "Open Shift Claimed! 🤝",
+      message: `You successfully claimed an open shift for ${service.name}.`,
+      type: "shift_claimed",
+      read: false,
+    });
+  },
+});

@@ -7,7 +7,7 @@ export const createRotaEntry = mutation({
     serviceId: v.id("services"),
     departmentId: v.id("departments"),
     subunitId: v.optional(v.id("subunits")),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for open shifts
     role: v.string(),
   },
   handler: async (ctx, args) => {
@@ -19,33 +19,35 @@ export const createRotaEntry = mutation({
     // Auth: Only Leads or Admins can assign shifts
     if (user?.role === "Volunteer") throw new Error("Unauthorized to assign shifts");
 
-    // 1. Conflict Check: Double Booking
-    const existingEntry = await ctx.db
-      .query("rotas")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.eq(q.field("serviceId"), args.serviceId))
-      .first();
+    if (args.userId) {
+      // 1. Conflict Check: Double Booking
+      const existingEntry = await ctx.db
+        .query("rotas")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId as any))
+        .filter((q) => q.eq(q.field("serviceId"), args.serviceId))
+        .first();
 
-    if (existingEntry) {
-      throw new Error("Volunteer is already scheduled for this service.");
-    }
+      if (existingEntry) {
+        throw new Error("Volunteer is already scheduled for this service.");
+      }
 
-    // 2. Conflict Check: Time Off
-    const service = await ctx.db.get(args.serviceId);
-    if (!service) throw new Error("Service not found");
+      // 2. Conflict Check: Time Off
+      const service = await ctx.db.get(args.serviceId);
+      if (!service) throw new Error("Service not found");
 
-    const timeOffRequests = await ctx.db
-      .query("timeOffRequests")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.eq(q.field("status"), "Approved"))
-      .collect();
+      const timeOffRequests = await ctx.db
+        .query("timeOffRequests")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId as any))
+        .filter((q) => q.eq(q.field("status"), "Approved"))
+        .collect();
 
-    const isOnLeave = timeOffRequests.some(
-      (req) => service.startTime >= req.startDate && service.startTime <= req.endDate
-    );
+      const isOnLeave = timeOffRequests.some(
+        (req) => service.startTime >= req.startDate && service.startTime <= req.endDate
+      );
 
-    if (isOnLeave) {
-      throw new Error("Volunteer is on approved leave during this service.");
+      if (isOnLeave) {
+        throw new Error("Volunteer is on approved leave during this service.");
+      }
     }
 
     return await ctx.db.insert("rotas", {
@@ -107,14 +109,14 @@ export const getRotaForRange = query({
       const serviceDetail = services.find(s => s._id === serviceId);
 
       for (const entry of entries) {
-        const attendee = await ctx.db.get(entry.userId);
+        const attendee = entry.userId ? await ctx.db.get(entry.userId) : null;
         const department = await ctx.db.get(entry.departmentId);
         const subunit = entry.subunitId ? await ctx.db.get(entry.subunitId) : null;
         
         results.push({
           ...entry,
-          userName: attendee?.name || attendee?.email || "Unknown",
-          userRole: attendee?.role || "Volunteer",
+          userName: attendee?.name || attendee?.email || "Unassigned",
+          userRole: attendee?.role || "N/A",
           position: entry.role,
           date: serviceDetail?.startTime,
           serviceName: serviceDetail?.name,
@@ -180,7 +182,7 @@ export const getServiceRota = query({
       .collect();
 
     return await Promise.all(entries.map(async (e) => {
-      const user = await ctx.db.get(e.userId);
+      const user = e.userId ? await ctx.db.get(e.userId) : null;
       const department = await ctx.db.get(e.departmentId);
       const subunit = e.subunitId ? await ctx.db.get(e.subunitId) : null;
       return { 
@@ -215,4 +217,39 @@ export const getMyShifts = query({
     );
   },
 });
+
+export const getOpenShifts = query({
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    
+    // We fetch rotas and filter manually because we cannot index on undefined/missing fields easily in convex
+    // In a production app, we would add an explicit `isOpen: boolean` field and index that.
+    const allRotas = await ctx.db.query("rotas").collect();
+    const openRotas = allRotas.filter(r => !r.userId);
+
+    const user = await ctx.db.get(userId);
+    if (!user) return [];
+
+    // Join with services, subunits, and filter by church/department
+    const enriched = await Promise.all(
+      openRotas.map(async (rota) => {
+        const service = await ctx.db.get(rota.serviceId);
+        const department = await ctx.db.get(rota.departmentId);
+        const subunit = rota.subunitId ? await ctx.db.get(rota.subunitId) : null;
+        
+        // Only show if the service belongs to the user's church
+        if (service?.churchId !== user.churchId) return null;
+        
+        return { ...rota, service, department, subunit };
+      })
+    );
+
+    // Filter out nulls and sort by date
+    return enriched
+      .filter(r => r !== null)
+      .sort((a, b) => (a?.service?.startTime || 0) - (b?.service?.startTime || 0));
+  },
+});
+
 

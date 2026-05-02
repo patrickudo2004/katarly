@@ -96,7 +96,7 @@ export default defineSchema({
 
   rotas: defineTable({
     serviceId: v.id("services"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")), // Optional for "Open Shifts"
     departmentId: v.id("departments"),
     subunitId: v.optional(v.id("subunits")),
     role: v.string(),

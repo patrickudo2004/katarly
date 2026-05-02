@@ -139,8 +139,8 @@ export const Rota: React.FC = () => {
     try {
       await createShift({
         serviceId: newShift.serviceId as any,
-        userId: newShift.userId as any,
         departmentId: newShift.departmentId as any,
+        ...(newShift.userId ? { userId: newShift.userId as any } : {}),
         ...(newShift.subunitId ? { subunitId: newShift.subunitId as any } : {}),
         role: newShift.role
       });
@@ -207,7 +207,7 @@ export const Rota: React.FC = () => {
                 {rotaEntries
                   .filter(r => isSameDay(new Date(r.date), day))
                   .map(entry => (
-                    <div key={entry._id} className={`${styles.card} ${entry.status === 'Confirmed' ? styles.confirmed : styles.pending}`}>
+                    <div key={entry._id} className={`${styles.card} ${entry.status === 'Confirmed' ? styles.confirmed : styles.pending}`} style={entry.userName === 'Unassigned' ? { border: '2px dashed var(--accent)', background: 'var(--surface-hover)' } : {}}>
                       <div className={styles.cardHeader}>
                         <span className={styles.position}>{entry.position}</span>
                         <div className={styles.cardActions}>
@@ -225,7 +225,7 @@ export const Rota: React.FC = () => {
                         {entry.serviceName} • {entry.subunitName || entry.departmentName}
                       </div>
                       <div className={styles.cardUser}>
-                        <div className={styles.avatar}>{entry.userName[0]}</div>
+                        <div className={styles.avatar} style={entry.userName === 'Unassigned' ? { background: 'var(--border)' } : {}}>{entry.userName[0]}</div>
                         <div className={styles.userName}>{entry.userName}</div>
                       </div>
                     </div>
@@ -414,9 +414,9 @@ export const Rota: React.FC = () => {
                 </select>
               </div>
               <div className={styles.field}>
-                <label>Volunteer</label>
-                <select value={newShift.userId} onChange={e => setNewShift({...newShift, userId: e.target.value})} required>
-                  <option value="">Select User</option>
+                <label>Volunteer (Optional)</label>
+                <select value={newShift.userId} onChange={e => setNewShift({...newShift, userId: e.target.value})}>
+                  <option value="">Leave Unassigned (Open Shift)</option>
                   {allUsers?.map(u => (
                     <option key={u._id} value={u._id}>{u.name || u.email}</option>
                   ))}
