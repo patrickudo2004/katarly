@@ -15,6 +15,9 @@ export const createRotaEntry = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     if (!user?.churchId) throw new Error("User has no church");
+    
+    // Auth: Only Leads or Admins can assign shifts
+    if (user?.role === "Volunteer") throw new Error("Unauthorized to assign shifts");
 
     // 1. Conflict Check: Double Booking
     const existingEntry = await ctx.db
