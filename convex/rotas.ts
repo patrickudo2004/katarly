@@ -5,7 +5,8 @@ import { auth } from "./auth";
 export const createRotaEntry = mutation({
   args: {
     serviceId: v.id("services"),
-    subunitId: v.id("subunits"),
+    departmentId: v.id("departments"),
+    subunitId: v.optional(v.id("subunits")),
     userId: v.id("users"),
     role: v.string(),
   },
@@ -15,8 +16,38 @@ export const createRotaEntry = mutation({
     const user = await ctx.db.get(userId);
     if (!user?.churchId) throw new Error("User has no church");
 
+    // 1. Conflict Check: Double Booking
+    const existingEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("serviceId"), args.serviceId))
+      .first();
+
+    if (existingEntry) {
+      throw new Error("Volunteer is already scheduled for this service.");
+    }
+
+    // 2. Conflict Check: Time Off
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    const timeOffRequests = await ctx.db
+      .query("timeOffRequests")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "Approved"))
+      .collect();
+
+    const isOnLeave = timeOffRequests.some(
+      (req) => service.startTime >= req.startDate && service.startTime <= req.endDate
+    );
+
+    if (isOnLeave) {
+      throw new Error("Volunteer is on approved leave during this service.");
+    }
+
     return await ctx.db.insert("rotas", {
       serviceId: args.serviceId,
+      departmentId: args.departmentId,
       subunitId: args.subunitId,
       userId: args.userId,
       role: args.role,
@@ -31,8 +62,7 @@ export const removeRotaEntry = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
-    const entry = await ctx.db.get(args.rotaId);
-
+    
     // Auth: Only Leads or Admins can remove
     if (user?.role === "Volunteer") throw new Error("Unauthorized");
 
@@ -75,7 +105,9 @@ export const getRotaForRange = query({
 
       for (const entry of entries) {
         const attendee = await ctx.db.get(entry.userId);
-        const subunit = await ctx.db.get(entry.subunitId);
+        const department = await ctx.db.get(entry.departmentId);
+        const subunit = entry.subunitId ? await ctx.db.get(entry.subunitId) : null;
+        
         results.push({
           ...entry,
           userName: attendee?.name || attendee?.email || "Unknown",
@@ -83,6 +115,7 @@ export const getRotaForRange = query({
           position: entry.role,
           date: serviceDetail?.startTime,
           serviceName: serviceDetail?.name,
+          departmentName: department?.name,
           subunitName: subunit?.name,
         });
       }
@@ -145,7 +178,15 @@ export const getServiceRota = query({
 
     return await Promise.all(entries.map(async (e) => {
       const user = await ctx.db.get(e.userId);
-      return { ...e, userName: user?.name, userEmail: user?.email };
+      const department = await ctx.db.get(e.departmentId);
+      const subunit = e.subunitId ? await ctx.db.get(e.subunitId) : null;
+      return { 
+        ...e, 
+        userName: user?.name, 
+        userEmail: user?.email,
+        departmentName: department?.name,
+        subunitName: subunit?.name
+      };
     }));
   },
 });
@@ -164,9 +205,11 @@ export const getMyShifts = query({
     return await Promise.all(
       shifts.map(async (shift) => {
         const service = await ctx.db.get(shift.serviceId);
-        const subunit = await ctx.db.get(shift.subunitId);
-        return { ...shift, service, subunit };
+        const department = await ctx.db.get(shift.departmentId);
+        const subunit = shift.subunitId ? await ctx.db.get(shift.subunitId) : null;
+        return { ...shift, service, department, subunit };
       })
     );
   },
 });
+

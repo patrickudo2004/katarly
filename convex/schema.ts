@@ -97,7 +97,8 @@ export default defineSchema({
   rotas: defineTable({
     serviceId: v.id("services"),
     userId: v.id("users"),
-    subunitId: v.id("subunits"),
+    departmentId: v.id("departments"),
+    subunitId: v.optional(v.id("subunits")),
     role: v.string(),
     status: v.union(v.literal("Pending"), v.literal("Confirmed"), v.literal("Declined")),
   }).index("by_service", ["serviceId"])

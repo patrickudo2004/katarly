@@ -69,6 +69,7 @@ export const Rota: React.FC = () => {
   const allUsers = useQuery(api.users.getAllChurchUsers);
   const services = useQuery(api.services.getChurchServices);
   const subunits = useQuery(api.subunits.getSubunits);
+  const departments = useQuery(api.departments.getDepartments);
 
   // Mutations
   const createShift = useMutation(api.rotas.createRotaEntry);
@@ -85,6 +86,7 @@ export const Rota: React.FC = () => {
   const [newShift, setNewShift] = useState({
     userId: '',
     serviceId: '',
+    departmentId: '',
     subunitId: '',
     role: ''
   });
@@ -138,13 +140,14 @@ export const Rota: React.FC = () => {
       await createShift({
         serviceId: newShift.serviceId as any,
         userId: newShift.userId as any,
-        subunitId: newShift.subunitId as any,
+        departmentId: newShift.departmentId as any,
+        ...(newShift.subunitId ? { subunitId: newShift.subunitId as any } : {}),
         role: newShift.role
       });
       setIsAssigning(false);
-      setNewShift({ userId: '', serviceId: '', subunitId: '', role: '' });
-    } catch (err) {
-      alert("Failed to assign shift");
+      setNewShift({ userId: '', serviceId: '', departmentId: '', subunitId: '', role: '' });
+    } catch (err: any) {
+      alert(err.message || "Failed to assign shift");
     }
   };
 
@@ -218,7 +221,9 @@ export const Rota: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                      <div className={styles.serviceTag}>{entry.serviceName}</div>
+                      <div className={styles.serviceTag}>
+                        {entry.serviceName} • {entry.subunitName || entry.departmentName}
+                      </div>
                       <div className={styles.cardUser}>
                         <div className={styles.avatar}>{entry.userName[0]}</div>
                         <div className={styles.userName}>{entry.userName}</div>
@@ -418,11 +423,20 @@ export const Rota: React.FC = () => {
                 </select>
               </div>
               <div className={styles.field}>
-                <label>Unit</label>
-                <select value={newShift.subunitId} onChange={e => setNewShift({...newShift, subunitId: e.target.value})} required>
-                  <option value="">Select Unit</option>
-                  {subunits?.map(sub => (
-                    <option key={sub._id} value={sub._id}>{sub.name} ({sub.departmentName})</option>
+                <label>Department</label>
+                <select value={newShift.departmentId} onChange={e => setNewShift({...newShift, departmentId: e.target.value, subunitId: ''})} required>
+                  <option value="">Select Department</option>
+                  {departments?.map(d => (
+                    <option key={d._id} value={d._id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label>Unit (Optional)</label>
+                <select value={newShift.subunitId} onChange={e => setNewShift({...newShift, subunitId: e.target.value})} disabled={!newShift.departmentId}>
+                  <option value="">General (No Subunit)</option>
+                  {subunits?.filter(s => s.departmentId === newShift.departmentId).map(sub => (
+                    <option key={sub._id} value={sub._id}>{sub.name}</option>
                   ))}
                 </select>
               </div>
