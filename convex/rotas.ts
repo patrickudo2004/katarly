@@ -252,4 +252,58 @@ export const getOpenShifts = query({
   },
 });
 
+export const assignUserToShift = mutation({
+  args: {
+    rotaId: v.id("rotas"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const adminId = await auth.getUserId(ctx);
+    if (!adminId) throw new Error("Not authenticated");
+    const admin = await ctx.db.get(adminId);
+    
+    // Auth: Only Leads or Admins can assign shifts
+    if (admin?.role === "Volunteer") throw new Error("Unauthorized");
+
+    const rota = await ctx.db.get(args.rotaId);
+    if (!rota) throw new Error("Rota entry not found");
+
+    // 1. Conflict Check: Double Booking (Is user already scheduled for THIS specific service?)
+    const existingEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("serviceId"), rota.serviceId))
+      .first();
+
+    if (existingEntry && existingEntry._id !== args.rotaId) {
+      throw new Error("Volunteer is already scheduled for this service.");
+    }
+
+    // 2. Conflict Check: Time Off
+    const service = await ctx.db.get(rota.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    const timeOffRequests = await ctx.db
+      .query("timeOffRequests")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "Approved"))
+      .collect();
+
+    const isOnLeave = timeOffRequests.some(
+      (req) => service.startTime >= req.startDate && service.startTime <= req.endDate
+    );
+
+    if (isOnLeave) {
+      throw new Error("Volunteer is on approved leave during this service.");
+    }
+
+    await ctx.db.patch(args.rotaId, {
+      userId: args.userId,
+      status: "Pending", // Reset status to pending when reassigned
+    });
+
+    return args.rotaId;
+  },
+});
+
 

@@ -13,7 +13,9 @@ import {
   TrendingDown,
   CheckCircle2,
   AlertTriangle,
-  ClipboardList
+  ClipboardList,
+  UserPlus,
+  Users
 } from 'lucide-react';
 import { 
   format, 
@@ -73,6 +75,7 @@ export const Rota: React.FC = () => {
 
   // Mutations
   const createShift = useMutation(api.rotas.createRotaEntry);
+  const assignShift = useMutation(api.rotas.assignUserToShift);
   const removeShift = useMutation(api.rotas.removeRotaEntry);
   const createService = useMutation(api.services.createService);
 
@@ -82,6 +85,7 @@ export const Rota: React.FC = () => {
   const [isLoggingKpi, setIsLoggingKpi] = useState<any>(null); // holds the entry
   const [kpiForm, setKpiForm] = useState({ score: 'Good', note: '' });
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const [newShift, setNewShift] = useState({
     userId: '',
@@ -157,6 +161,15 @@ export const Rota: React.FC = () => {
     }
   };
 
+  const handleDrop = async (rotaId: string, userId: string) => {
+    setDragOverId(null);
+    try {
+      await assignShift({ rotaId: rotaId as any, userId: userId as any });
+    } catch (err: any) {
+      alert(err.message || "Conflict detected: Assignment rejected.");
+    }
+  };
+
   const logKPIForUser = useMutation(api.probation.logKPIForUser);
 
   const handleLogKPI = async (e: React.FormEvent) => {
@@ -206,30 +219,57 @@ export const Rota: React.FC = () => {
               <div className={styles.slots}>
                 {rotaEntries
                   .filter(r => isSameDay(new Date(r.date), day))
-                  .map(entry => (
-                    <div key={entry._id} className={`${styles.card} ${entry.status === 'Confirmed' ? styles.confirmed : styles.pending}`} style={entry.userName === 'Unassigned' ? { border: '2px dashed var(--accent)', background: 'var(--surface-hover)' } : {}}>
-                      <div className={styles.cardHeader}>
-                        <span className={styles.position}>{entry.position}</span>
-                        <div className={styles.cardActions}>
-                          {entry.userRole === "Probation" && (
-                            <button onClick={() => setIsLoggingKpi(entry)} className={styles.kpiBtn} title="Log KPI">
-                              <ClipboardList size={12} />
+                  .map(entry => {
+                    const isUnassigned = entry.userName === 'Unassigned';
+                    const isDragOver = dragOverId === entry._id;
+                    
+                    return (
+                      <div 
+                        key={entry._id} 
+                        className={`
+                          ${styles.card} 
+                          ${entry.status === 'Confirmed' ? styles.confirmed : styles.pending}
+                          ${isUnassigned ? styles.dropTarget : ''}
+                          ${isDragOver ? styles.dropTargetActive : ''}
+                        `}
+                        style={isUnassigned ? { border: '2px dashed var(--accent)', background: 'var(--surface-hover)' } : {}}
+                        onDragOver={(e) => {
+                          if (isUnassigned) {
+                            e.preventDefault();
+                            setDragOverId(entry._id);
+                          }
+                        }}
+                        onDragLeave={() => setDragOverId(null)}
+                        onDrop={(e) => {
+                          if (isUnassigned) {
+                            const userId = e.dataTransfer.getData("userId");
+                            if (userId) handleDrop(entry._id, userId);
+                          }
+                        }}
+                      >
+                        <div className={styles.cardHeader}>
+                          <span className={styles.position}>{entry.position}</span>
+                          <div className={styles.cardActions}>
+                            {entry.userRole === "Probation" && (
+                              <button onClick={() => setIsLoggingKpi(entry)} className={styles.kpiBtn} title="Log KPI">
+                                <ClipboardList size={12} />
+                              </button>
+                            )}
+                            <button onClick={() => handleDelete(entry._id)} className={styles.deleteBtn} title="Remove Shift">
+                              <Trash2 size={12} />
                             </button>
-                          )}
-                          <button onClick={() => handleDelete(entry._id)} className={styles.deleteBtn} title="Remove Shift">
-                            <Trash2 size={12} />
-                          </button>
+                          </div>
+                        </div>
+                        <div className={styles.serviceTag}>
+                          {entry.serviceName} • {entry.subunitName || entry.departmentName}
+                        </div>
+                        <div className={styles.cardUser}>
+                          <div className={styles.avatar} style={isUnassigned ? { background: 'var(--border)' } : {}}>{entry.userName[0]}</div>
+                          <div className={styles.userName}>{entry.userName}</div>
                         </div>
                       </div>
-                      <div className={styles.serviceTag}>
-                        {entry.serviceName} • {entry.subunitName || entry.departmentName}
-                      </div>
-                      <div className={styles.cardUser}>
-                        <div className={styles.avatar} style={entry.userName === 'Unassigned' ? { background: 'var(--border)' } : {}}>{entry.userName[0]}</div>
-                        <div className={styles.userName}>{entry.userName}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 <button className={styles.emptySlot} onClick={() => setIsAssigning(true)}>
                   <Plus size={14} /> <span>Assign</span>
                 </button>
@@ -358,6 +398,30 @@ export const Rota: React.FC = () => {
         </main>
 
         <aside className={styles.sidebar}>
+          <div className={styles.sidebarCard}>
+            <div className={styles.sidebarTitle}><Users size={18} /> Volunteer Roster</div>
+            <p className={styles.hint} style={{ marginBottom: '1rem', fontSize: '0.75rem' }}>Drag a volunteer onto an unassigned shift.</p>
+            <div className={styles.rosterList}>
+              {allUsers?.map(u => (
+                <div 
+                  key={u._id} 
+                  className={styles.volunteerDraggable}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("userId", u._id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                >
+                  <div className={styles.avatar}>{u.name?.[0] || u.email?.[0]}</div>
+                  <div className={styles.volunteerInfo}>
+                    <span className={styles.volunteerName}>{u.name || u.email}</span>
+                    <span className={styles.volunteerDept}>{u.departmentName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className={styles.sidebarCard}>
             <div className={styles.sidebarTitle}><AlertCircle size={18} /> Coverage Audit</div>
             <div className={styles.auditItem}>
