@@ -11,9 +11,35 @@ export const { auth, signIn, signOut, store } = convexAuth({
     }),
     Email({
       id: "magic-link",
-      async sendVerificationRequest(params) {
-        console.log(`Magic link requested for ${params.identifier}`);
-        // In a real app, send email here
+      async sendVerificationRequest({ identifier: email, url }) {
+        console.log(`Sending magic link to ${email} via EmailJS...`);
+        
+        const payload = {
+          service_id: process.env.EMAILJS_SERVICE_ID,
+          template_id: process.env.EMAILJS_TEMPLATE_ID,
+          user_id: process.env.EMAILJS_PUBLIC_KEY,
+          accessToken: process.env.EMAILJS_PRIVATE_KEY,
+          template_params: {
+            to_email: email,
+            magic_link: url,
+          }
+        };
+
+        const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("EmailJS Error:", errorText);
+          throw new Error("Failed to send magic link email.");
+        }
+        
+        console.log("Magic link sent successfully!");
       },
     }),
   ],
