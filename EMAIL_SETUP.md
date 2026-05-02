@@ -5,6 +5,7 @@ This guide provides step-by-step instructions for setting up either **Resend** o
 ---
 
 ## Prerequisites
+
 Before starting either setup, you must own a **Custom Domain** (e.g., `pillarflow.com`). Most email providers will not allow sending from a `.vercel.app` or `.gmail.com` address for security reasons.
 
 ---
@@ -13,21 +14,26 @@ Before starting either setup, you must own a **Custom Domain** (e.g., `pillarflo
 
 Resend is known for its incredible developer experience and its integration with **React Email**.
 
-### 1. Account Setup
-1.  Sign up at [resend.com](https://resend.com).
-2.  Go to **Domains** > **Add New Domain**.
-3.  Add your domain (e.g., `pillarflow.com`).
-4.  Add the provided DNS records (DKIM/SPF) to your domain registrar (GoDaddy, Namecheap, etc.).
-5.  Once verified, go to **API Keys** and create a new key.
+### 1. Resend Account Setup
 
-### 2. Configure Convex
+1. Sign up at [resend.com](https://resend.com).
+2. Go to **Domains** > **Add New Domain**.
+3. Add your domain (e.g., `pillarflow.com`).
+4. Add the provided DNS records (DKIM/SPF) to your domain registrar (GoDaddy, Namecheap, etc.).
+5. Once verified, go to **API Keys** and create a new key.
+
+### 2. Configure Convex for Resend
+
 Run the following command in your terminal:
+
 ```bash
 npx convex env set RESEND_API_KEY re_your_key_here
 ```
 
-### 3. Implementation (Magic Link Auth)
+### 3. Resend Implementation (Magic Link Auth)
+
 In `convex/auth.ts`, update your `Email` provider:
+
 ```typescript
 import { Resend } from "resend";
 
@@ -53,20 +59,25 @@ Email({
 
 Plunk is ideal if you want to manage multiple domains or projects on one free tier without strict restrictions.
 
-### 1. Account Setup
-1.  Sign up at [useplunk.com](https://useplunk.com).
-2.  Go to **Domains** > **Add Domain**.
-3.  Follow the DNS verification steps provided.
-4.  Go to **API Keys** and copy your Secret Key.
+### 1. Plunk Account Setup
 
-### 2. Configure Convex
+1. Sign up at [useplunk.com](https://useplunk.com).
+2. Go to **Domains** > **Add Domain**.
+3. Follow the DNS verification steps provided.
+4. Go to **API Keys** and copy your Secret Key.
+
+### 2. Configure Convex for Plunk
+
 Run the following command in your terminal:
+
 ```bash
 npx convex env set PLUNK_API_KEY your_plunk_key_here
 ```
 
-### 3. Implementation (Invites)
+### 3. Plunk Implementation (Invites)
+
 Create a new file `convex/emails.ts` for handling invites:
+
 ```typescript
 import { action } from "./_generated/server";
 import { v } from "convex/values";
