@@ -41,7 +41,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
         </div>
         <div className="flex items-center gap-3">
           <button 
-            className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full"
+            className="relative p-2 rounded-full"
+            style={{ color: 'var(--text-secondary)', transition: 'background-color 0.2s' }}
             onClick={() => setShowNotifications(!showNotifications)}
           >
             <Bell size={20} />
@@ -55,17 +56,16 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
             className={styles.userTrigger}
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            <div className={styles.avatar}>{user.name[0]}</div>
+            <div className={styles.avatar}>{user?.name?.[0] || '?'}</div>
             <ChevronDown size={14} className={styles.chevron} />
           </button>
         </div>
       </header>
-
       {showUserMenu && (
         <div className={styles.menuOverlay} onClick={() => setShowUserMenu(false)}>
           <div className={styles.menuContent} onClick={e => e.stopPropagation()}>
             <div className={styles.menuHeader}>
-              <div className={styles.menuAvatar}>{user.name[0]}</div>
+              <div className={styles.menuAvatar}>{user?.name?.[0] || '?'}</div>
               <div className={styles.menuUserInfo}>
                 <span className={styles.menuUserName}>{user.name}</span>
                 <span className={styles.menuUserRole}>{user.role}</span>

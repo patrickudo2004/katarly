@@ -149,3 +149,13 @@
   border: none;
   z-index: 90;
 }
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border-radius: 1rem;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}

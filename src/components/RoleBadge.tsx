@@ -14,40 +14,40 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, isExtendedProbation,
   const config: Record<UserRole, { color: string; bg: string; icon: React.ReactNode; border?: string }> = {
     Volunteer: {
       color: '#ef4444',
-      bg: '#fef2f2',
+      bg: 'rgba(239, 68, 68, 0.1)',
       icon: <User size={12} />,
     },
     SubunitLead: {
       color: '#6b7280',
-      bg: '#f9fafb',
+      bg: 'rgba(107, 114, 128, 0.1)',
       icon: <Shield size={12} />,
     },
     DepartmentHead: {
-      color: '#111827',
-      bg: '#ffffff',
+      color: '#d4af37',
+      bg: 'rgba(212, 175, 55, 0.1)',
       icon: <ShieldCheck size={12} />,
-      border: '1px solid #d4af37', // Gold border
+      border: '1px solid #d4af37',
     },
     PastoralOversight: {
       color: '#15803d',
-      bg: '#f0fdf4',
+      bg: 'rgba(21, 128, 61, 0.1)',
       icon: <Cross size={12} />,
       border: '1px solid #15803d',
     },
     Probation: {
-      color: isExtendedProbation ? '#1e40af' : '#3b82f6', // Darker blue for extended
-      bg: isExtendedProbation ? '#eff6ff' : 'transparent',
+      color: isExtendedProbation ? '#1e40af' : '#3b82f6',
+      bg: isExtendedProbation ? 'rgba(30, 64, 175, 0.1)' : 'rgba(59, 130, 246, 0.1)',
       icon: <Clock size={12} />,
       border: isExtendedProbation ? '1px solid #1e40af' : '1px dashed #3b82f6',
     },
     OnNotice: {
       color: '#f59e0b',
-      bg: '#fffbeb',
+      bg: 'rgba(245, 158, 11, 0.1)',
       icon: <AlertTriangle size={12} />,
     },
     SuperAdmin: {
       color: '#8b5cf6',
-      bg: '#f5f3ff',
+      bg: 'rgba(139, 92, 246, 0.1)',
       icon: <Crown size={12} />,
     },
   };

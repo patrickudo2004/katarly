@@ -38,7 +38,7 @@ export const VolunteerHome: React.FC = () => {
         </div>
         <div className={styles.list}>
           {myShifts.length === 0 ? (
-            <div className="text-center p-8 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400">
+            <div className={styles.emptyState}>
               No upcoming shifts assigned.
             </div>
           ) : (
