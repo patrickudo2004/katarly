@@ -10,11 +10,13 @@ export const DeptHeadHome: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Subunits');
   const me = useQuery(api.users.me);
   const health = useQuery(api.oversight.getDepartmentHealth, 
-    me?.department ? { department: me.department } : "skip"
+    me?.departmentId ? { departmentId: me.departmentId } : "skip"
   );
   const subunits = useQuery(api.subunits.getSubunits);
 
-  if (!me || health === undefined || subunits === undefined) {
+  // Loading state: only wait for me and subunits. 
+  // health can be undefined if skipped (which is fine)
+  if (!me || subunits === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -23,7 +25,7 @@ export const DeptHeadHome: React.FC = () => {
   }
 
   // Filter subunits for this department
-  const mySubunits = subunits.filter(s => s.departmentName === me.department);
+  const mySubunits = subunits.filter(s => s.departmentId === me.departmentId);
 
   return (
     <div className={styles.page}>

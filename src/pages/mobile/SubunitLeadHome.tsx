@@ -12,15 +12,17 @@ export const SubunitLeadHome: React.FC = () => {
   const nextService = useQuery(api.services.getNextService);
   const subunits = useQuery(api.subunits.getSubunits);
   
-  // Find the subunit this user leads (for demo assuming they have one assigned)
-  const mySubunitId = me?.subunit;
+  // Find the subunit this user leads
+  const mySubunitId = me?.subunitId;
   
   const liveAttendance = useQuery(
     api.subunits.getLiveAttendance, 
-    nextService && mySubunitId ? { serviceId: nextService._id, subunitId: mySubunitId as any } : "skip"
+    nextService && mySubunitId ? { serviceId: nextService._id, subunitId: mySubunitId } : "skip"
   );
 
-  if (me === undefined || nextService === undefined || liveAttendance === undefined) {
+  // Loading state: only wait for me and nextService. 
+  // liveAttendance can be undefined if skipped (which is fine)
+  if (me === undefined || nextService === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />

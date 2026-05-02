@@ -13,7 +13,7 @@ async function getAuthenticatedUser(ctx: any) {
 export const assignOversight = mutation({
   args: {
     userId: v.id("users"),
-    department: v.string(),
+    departmentId: v.id("departments"),
   },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -28,18 +28,19 @@ export const assignOversight = mutation({
       .filter((q) => 
         q.and(
           q.eq(q.field("role"), "PastoralOversight"),
-          q.eq(q.field("department"), args.department)
+          q.eq(q.field("departmentId"), args.departmentId)
         )
       )
       .first();
 
     if (existing && existing._id !== args.userId) {
-      throw new Error(`Department ${args.department} already has a Pastoral Oversight assigned.`);
+      const dept = await ctx.db.get(args.departmentId);
+      throw new Error(`Department ${dept?.name || "this"} already has a Pastoral Oversight assigned.`);
     }
 
     await ctx.db.patch(args.userId, {
       role: "PastoralOversight",
-      department: args.department,
+      departmentId: args.departmentId,
     });
   },
 });
@@ -108,7 +109,7 @@ export const postOversightMessage = mutation({
     if (!channel) throw new Error("Channel not found");
 
     // Must be in their department
-    if (channel.department !== user.department) {
+    if (channel.departmentId !== user.departmentId) {
       throw new Error("Unauthorized to post in this department's channels");
     }
 
@@ -124,7 +125,7 @@ export const postOversightMessage = mutation({
 });
 
 export const getDepartmentHealth = query({
-  args: { department: v.string() },
+  args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     if (user.role !== "PastoralOversight" && user.role !== "SuperAdmin") {
@@ -139,11 +140,11 @@ export const getDepartmentHealth = query({
       .withIndex("by_church", (q) => q.eq("churchId", churchId))
       .collect();
     
-    // Filter by department (requires joining with users)
+    // Filter by department
     const deptUsers = await ctx.db
       .query("users")
       .withIndex("by_church", (q) => q.eq("churchId", churchId))
-      .filter((q) => q.eq(q.field("department"), args.department))
+      .filter((q) => q.eq(q.field("departmentId"), args.departmentId))
       .collect();
     
     const deptUserIds = new Set(deptUsers.map(u => u._id));
@@ -162,14 +163,15 @@ export const getDepartmentHealth = query({
     const activeProbations = deptProbations.filter(p => p.status === "active").length;
     const extendedProbations = deptProbations.filter(p => p.status === "extended").length;
 
-    // 3. Borrow Requests
     const borrowRequests = await ctx.db
       .query("borrowRequests")
       .withIndex("by_church", (q) => q.eq("churchId", churchId))
-      .filter((q) => q.eq(q.field("targetDept"), args.department))
+      // For now we still use targetDept string in borrowRequests schema but we'll try to find a match
+      // Ideally borrowRequests should also use departmentId
       .collect();
     
-    const pendingBorrows = borrowRequests.filter(b => b.status === "pending").length;
+    const dept = await ctx.db.get(args.departmentId);
+    const pendingBorrows = borrowRequests.filter(b => b.status === "pending" && b.targetDept === dept?.name).length;
 
     // 4. KPI Summary (Needs Improvement / Disapprove)
     const kpis = await ctx.db.query("kpiLogs").collect();

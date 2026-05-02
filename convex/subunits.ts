@@ -104,7 +104,7 @@ export const getLiveAttendance = query({
     const results = [];
     for (const record of attendance) {
       const user = await ctx.db.get(record.userId);
-      if (user?.subunit === args.subunitId) {
+      if (user?.subunitId === args.subunitId) {
         results.push({
           ...record,
           user,
