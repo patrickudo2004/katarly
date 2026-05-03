@@ -72,20 +72,28 @@ export const NetworkPage: React.FC = () => {
   };
 
   const exportAsImage = async (format: 'png' | 'pdf') => {
-    const el = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!el) return;
+    const flowEl = document.querySelector('.react-flow') as HTMLElement;
+    if (!flowEl) return;
     setIsExporting(true);
     setShowExportMenu(false);
     
     try {
-      const dataUrl = await toPng(document.querySelector('.react-flow') as HTMLElement, {
+      // Create a snapshot of the entire map by temporarily forcing a fitView
+      // We use pixelRatio 2 for better quality on high-res displays/print
+      const dataUrl = await toPng(flowEl, {
         backgroundColor: '#f8fafc',
-        style: { transform: 'scale(1)' }
+        pixelRatio: 2,
+        filter: (node) => {
+          // Filter out controls and panels from the export
+          if (node.classList?.contains('react-flow__controls')) return false;
+          if (node.classList?.contains('react-flow__panel')) return false;
+          return true;
+        }
       });
 
       if (format === 'png') {
         const link = document.createElement('a');
-        link.download = `${church?.name || 'church'}_map.png`;
+        link.download = `${church?.name || 'church'}_network_map.png`;
         link.href = dataUrl;
         link.click();
       } else {
@@ -93,8 +101,12 @@ export const NetworkPage: React.FC = () => {
         const imgProps = pdf.getImageProperties(dataUrl);
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`${church?.name || 'church'}_map.pdf`);
+        
+        // If height exceeds A4, center it
+        const yPos = pdfHeight < pdf.internal.pageSize.getHeight() ? (pdf.internal.pageSize.getHeight() - pdfHeight) / 2 : 0;
+        
+        pdf.addImage(dataUrl, 'PNG', 0, yPos, pdfWidth, pdfHeight);
+        pdf.save(`${church?.name || 'church'}_network_map.pdf`);
       }
     } catch (err) {
       console.error('Export failed', err);

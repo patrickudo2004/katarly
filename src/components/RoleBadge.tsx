@@ -1,7 +1,18 @@
 import React from 'react';
 import { Crown, ShieldCheck, User, Clock, AlertTriangle, Shield, ArrowRightLeft, Cross } from 'lucide-react';
 
-export type UserRole = 'Volunteer' | 'SubunitLead' | 'DepartmentHead' | 'PastoralOversight' | 'Probation' | 'OnNotice' | 'SuperAdmin';
+export type UserRole = 
+  | 'Volunteer' 
+  | 'SubunitLead' 
+  | 'SubunitAssistant'
+  | 'DepartmentHead' 
+  | 'DepartmentAssistant'
+  | 'DepartmentSecretary'
+  | 'PastoralOversight' 
+  | 'DeaconHead'
+  | 'Probation' 
+  | 'OnNotice' 
+  | 'SuperAdmin';
 
 interface RoleBadgeProps {
   role: UserRole;
@@ -11,7 +22,7 @@ interface RoleBadgeProps {
 }
 
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, isExtendedProbation, isBorrowed, className = "" }) => {
-  const config: Record<UserRole, { color: string; bg: string; icon: React.ReactNode; border?: string }> = {
+  const config: Record<string, { color: string; bg: string; icon: React.ReactNode; border?: string }> = {
     Volunteer: {
       color: '#ef4444',
       bg: 'rgba(239, 68, 68, 0.1)',
@@ -22,17 +33,38 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, isExtendedProbation,
       bg: 'rgba(107, 114, 128, 0.1)',
       icon: <Shield size={12} />,
     },
+    SubunitAssistant: {
+      color: '#6b7280',
+      bg: 'rgba(107, 114, 128, 0.05)',
+      icon: <Shield size={12} strokeWidth={1} />,
+    },
     DepartmentHead: {
       color: '#d4af37',
       bg: 'rgba(212, 175, 55, 0.1)',
       icon: <ShieldCheck size={12} />,
       border: '1px solid #d4af37',
     },
+    DepartmentAssistant: {
+      color: '#d4af37',
+      bg: 'rgba(212, 175, 55, 0.05)',
+      icon: <ShieldCheck size={12} strokeWidth={1} />,
+    },
+    DepartmentSecretary: {
+      color: '#0891b2',
+      bg: 'rgba(8, 145, 178, 0.1)',
+      icon: <Shield size={12} />,
+    },
     PastoralOversight: {
       color: '#15803d',
       bg: 'rgba(21, 128, 61, 0.1)',
       icon: <Cross size={12} />,
       border: '1px solid #15803d',
+    },
+    DeaconHead: {
+      color: '#1e3a5f',
+      bg: 'rgba(30, 58, 95, 0.1)',
+      icon: <ShieldCheck size={12} />,
+      border: '2px solid #1e3a5f',
     },
     Probation: {
       color: isExtendedProbation ? '#1e40af' : '#3b82f6',
@@ -52,7 +84,8 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, isExtendedProbation,
     },
   };
 
-  const { color, bg, icon, border } = config[role];
+  const activeConfig = config[role] || config.Volunteer;
+  const { color, bg, icon, border } = activeConfig;
 
   return (
     <div className="flex items-center gap-1">

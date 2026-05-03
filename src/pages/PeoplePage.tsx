@@ -15,7 +15,8 @@ export const PeoplePage: React.FC = () => {
 
   const roles = [
     'All', 'SuperAdmin', 'DeaconHead', 'PastoralOversight', 
-    'DepartmentHead', 'SubunitLead', 'Volunteer', 'Probation'
+    'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary',
+    'SubunitLead', 'SubunitAssistant', 'Volunteer', 'Probation'
   ];
 
   const filteredUsers = users?.filter(u => {

@@ -353,8 +353,10 @@ export const AdminPage: React.FC = () => {
                             }
                           >
                             <option value="Volunteer">Volunteer</option>
+                            <option value="Probation">Probation</option>
                             <option value="SubunitAssistant">Subunit Assistant</option>
                             <option value="SubunitLead">Subunit Lead</option>
+                            <option value="DepartmentSecretary">Dept. Secretary</option>
                             <option value="DepartmentAssistant">Dept. Assistant</option>
                             <option value="DepartmentHead">Department Head</option>
                             <option value="PastoralOversight">Pastoral Oversight</option>
