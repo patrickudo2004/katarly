@@ -325,9 +325,22 @@ export const declineVerification = mutation({
 export const getServiceAttendance = query({
   args: { serviceId: v.id("services") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const attendance = await ctx.db
       .query("attendance")
       .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
       .collect();
+
+    return await Promise.all(
+      attendance.map(async (record) => {
+        const user = await ctx.db.get(record.userId);
+        return {
+          ...record,
+          user: {
+            name: user?.name || user?.email || "Unknown",
+            image: user?.image,
+          }
+        };
+      })
+    );
   },
 });

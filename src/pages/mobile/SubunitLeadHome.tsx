@@ -19,9 +19,12 @@ export const SubunitLeadHome: React.FC = () => {
   const pendingVerifications = useQuery(api.attendance.getPendingVerifications, 
     church ? { churchId: church._id } : "skip"
   );
+  const liveAttendance = useQuery(api.attendance.getServiceAttendance,
+    nextService ? { serviceId: nextService._id } : "skip"
+  );
 
   // Loading state
-  if (me === undefined || nextService === undefined || pendingVerifications === undefined) {
+  if (me === undefined || nextService === undefined || pendingVerifications === undefined || liveAttendance === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
