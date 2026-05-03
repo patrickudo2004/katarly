@@ -35,9 +35,10 @@ export const getChannels = query({
       
       if (channel.type === "subunit") {
         return (
-          channel.departmentId === user.departmentId &&
-          (channel.subunitId === user.subunitId || 
-           user.additionalSubunits?.includes(channel.subunitId as any))
+          (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
+           user.additionalSubunits?.includes(channel.subunitId as any) ||
+           user.role === "SuperAdmin" ||
+           user.role === "PastoralOversight"
         );
       }
       
@@ -57,8 +58,12 @@ export const getChannelMessages = query({
     const hasAccess = 
       channel.type === "announcement" || 
       user.role === "SuperAdmin" ||
+      user.role === "PastoralOversight" ||
       (channel.type === "department" && channel.departmentId === user.departmentId) ||
-      (channel.type === "subunit" && channel.departmentId === user.departmentId && (channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId as any) || user.role === "PastoralOversight"));
+      (channel.type === "subunit" && (
+        (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
+        user.additionalSubunits?.includes(channel.subunitId as any)
+      ));
 
     if (!hasAccess) throw new Error("Unauthorized access to channel");
 
@@ -114,8 +119,12 @@ export const sendMessage = mutation({
 
     const hasAccess = 
       user.role === "SuperAdmin" ||
+      user.role === "PastoralOversight" ||
       (channel.type === "department" && channel.departmentId === user.departmentId) ||
-      (channel.type === "subunit" && channel.departmentId === user.departmentId && (channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId as any) || user.role === "PastoralOversight"));
+      (channel.type === "subunit" && (
+        (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
+        user.additionalSubunits?.includes(channel.subunitId as any)
+      ));
 
     if (!hasAccess && channel.type !== "announcement") {
       throw new Error("Unauthorized to post in this channel");
