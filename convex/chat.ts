@@ -135,7 +135,7 @@ export const sendMessage = mutation({
       throw new Error("Unauthorized to post in this channel");
     }
 
-    return await ctx.db.insert("messages", {
+    const messageId = await ctx.db.insert("messages", {
       channelId: args.channelId,
       userId: user._id,
       text: args.text,
@@ -143,6 +143,8 @@ export const sendMessage = mutation({
       isPinned: false,
       createdAt: Date.now(),
     });
+
+    return messageId;
   },
 });
 
@@ -187,8 +189,12 @@ export const saveFileMetadata = mutation({
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     return await ctx.db.insert("fileUploads", {
-      ...args,
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+      name: args.name,
+      size: args.size,
       userId: user._id,
+      uploadedAt: Date.now(),
     });
   },
 });
