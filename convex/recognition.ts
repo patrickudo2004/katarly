@@ -145,13 +145,19 @@ export async function checkMilestonesInternal(ctx: any, userId: any) {
     }
   }
 
-  // Calculate total hours (assuming each service is ~2 hours if not specified)
+  // Calculate total hours
+  const serviceIds = [...new Set(attendance.map(r => r.serviceId))];
+  const services = await Promise.all(serviceIds.map(id => ctx.db.get(id)));
+  const serviceMap = new Map(services.filter(s => !!s).map(s => [s!._id, s!]));
+
   let totalHours = 0;
   for (const record of attendance) {
-    const service = await ctx.db.get(record.serviceId);
+    const service = serviceMap.get(record.serviceId);
     if (service) {
       const durationHours = (service.endTime - service.startTime) / (1000 * 60 * 60);
       totalHours += durationHours || 2;
+    } else {
+      totalHours += 2;
     }
   }
 
@@ -234,12 +240,19 @@ export const getUserStats = query({
       }
     }
 
+    // Calculate total hours
+    const serviceIds = [...new Set(attendance.map(r => r.serviceId))];
+    const services = await Promise.all(serviceIds.map(id => ctx.db.get(id)));
+    const serviceMap = new Map(services.filter(s => !!s).map(s => [s!._id, s!]));
+
     let totalHours = 0;
     for (const record of attendance) {
-      const service = await ctx.db.get(record.serviceId);
+      const service = serviceMap.get(record.serviceId);
       if (service) {
         const durationHours = (service.endTime - service.startTime) / (1000 * 60 * 60);
         totalHours += durationHours || 2;
+      } else {
+        totalHours += 2;
       }
     }
 

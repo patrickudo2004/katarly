@@ -43,8 +43,11 @@ async function validateAndMark(
   }
 
   // 3. Verify Geofence (Only if lat/lng provided)
-  if (church.location && args.lat && args.lng) {
-    const distance = calculateDistance(args.lat, args.lng, church.location.lat, church.location.lng);
+  const userLat = typeof args.lat === 'number' ? args.lat : undefined;
+  const userLng = typeof args.lng === 'number' ? args.lng : undefined;
+
+  if (church.location && userLat !== undefined && userLng !== undefined) {
+    const distance = calculateDistance(userLat, userLng, church.location.lat, church.location.lng);
     if (distance > (church.settings?.geofenceRadius || 100)) {
       throw new Error(`You are too far from the church (${Math.round(distance)}m away)`);
     }
@@ -67,8 +70,8 @@ async function validateAndMark(
 
   // Fallback to user's primary dept if no specific rota entry exists for this service
   const user = await ctx.db.get(userId);
-  const departmentId = rotaEntry?.departmentId || user?.departmentId;
-  const subunitId = rotaEntry?.subunitId || user?.subunitId;
+  const departmentId = rotaEntry?.departmentId ?? user?.departmentId ?? undefined;
+  const subunitId = rotaEntry?.subunitId ?? user?.subunitId ?? undefined;
 
   // 6. Determine Status (Late vs Present)
   const status = now > service.startTime + 15 * 60 * 1000 ? "Late" : "Present";
@@ -82,10 +85,10 @@ async function validateAndMark(
     timestamp: now,
     method: "QR",
     markedById: userId,
-    location: args.lat && args.lng ? {
-      lat: args.lat,
-      lng: args.lng,
-      accuracy: args.accuracy || 0,
+    location: (userLat !== undefined && userLng !== undefined) ? {
+      lat: userLat,
+      lng: userLng,
+      accuracy: args.accuracy ?? 0,
     } : undefined,
     status,
   });
@@ -309,10 +312,21 @@ export const approveVerification = mutation({
     const now = Date.now();
     const status = now > (service?.startTime || 0) + 15 * 60 * 1000 ? "Late" : "Present";
 
+    // Determine Dept/Subunit for manual mark
+    const rotaEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_service_user", (q: any) => q.eq("serviceId", request.serviceId).eq("userId", request.userId))
+      .first();
+    const requester = await ctx.db.get(request.userId);
+    const departmentId = rotaEntry?.departmentId ?? requester?.departmentId ?? undefined;
+    const subunitId = rotaEntry?.subunitId ?? requester?.subunitId ?? undefined;
+
     const attendanceId = await ctx.db.insert("attendance", {
       serviceId: request.serviceId,
       userId: request.userId,
       churchId: request.churchId,
+      departmentId,
+      subunitId,
       timestamp: now,
       method: "Override",
       verifiedById: leadId,
