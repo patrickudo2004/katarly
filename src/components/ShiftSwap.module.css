@@ -173,12 +173,12 @@
 }
 
 .noteBox {
-  background: #fffbeb;
-  border: 1px solid #fef3c7;
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid var(--accent);
   padding: 0.75rem;
   border-radius: 12px;
   font-size: 0.8125rem;
-  color: #92400e;
+  color: var(--accent);
   margin-bottom: 1rem;
 }
 

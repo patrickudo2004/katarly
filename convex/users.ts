@@ -105,6 +105,8 @@ export const getAllChurchUsers = query({
   },
 });
 
+export const getVisibleUsers = getAllChurchUsers;
+
 export const updateUserRole = mutation({
   args: {
     userId: v.id("users"),

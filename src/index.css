@@ -15,6 +15,10 @@
   --card-bg: #ffffff;
   --input-bg: #ffffff;
   --input-border: #e5e7eb;
+  --accent: #8b5cf6;
+  --accent-rgb: 139, 92, 246;
+  --surface-hover: #f3f4f6;
+  --text-main: #111827;
 }
 
 .dark {
@@ -27,6 +31,8 @@
   --card-bg: #1f2937;
   --input-bg: #111827;
   --input-border: #374151;
+  --surface-hover: #374151;
+  --text-main: #f9fafb;
 }
 
 body {
