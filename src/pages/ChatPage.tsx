@@ -23,9 +23,13 @@ export const ChatPage: React.FC = () => {
   const messages = useQuery(api.chat.getChannelMessages, selectedChannelId ? { channelId: selectedChannelId } : "skip");
   const sendMessage = useMutation(api.chat.sendMessage);
   const deleteMessage = useMutation(api.chat.deleteMessage);
+  const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
+  const saveFileMetadata = useMutation(api.chat.saveFileMetadata);
   const me = useQuery(api.users.me);
   
   const [inputText, setInputText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,6 +52,45 @@ export const ChatPage: React.FC = () => {
       await sendMessage({ channelId: selectedChannelId, text });
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedChannelId) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Get upload URL
+      const postUrl = await generateUploadUrl();
+
+      // 2. Upload to storage
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+
+      // 3. Save metadata
+      const fileId = await saveFileMetadata({
+        storageId,
+        mimeType: file.type,
+        name: file.name,
+        size: file.size,
+      });
+
+      // 4. Send message with file
+      await sendMessage({
+        channelId: selectedChannelId,
+        text: `Shared a file: ${file.name}`,
+        fileId,
+      });
+    } catch (err: any) {
+      alert("Failed to upload file: " + err.message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -141,6 +184,17 @@ export const ChatPage: React.FC = () => {
                     </button>
                   )}
                 </div>
+                {msg.file && (
+                  <div className={styles.fileAttachment}>
+                    {msg.file.mimeType.startsWith('image/') ? (
+                      <img src={msg.file.url} alt={msg.file.name} className={styles.attachedImage} />
+                    ) : (
+                      <a href={msg.file.url} target="_blank" rel="noreferrer" className={styles.fileLink}>
+                        <Paperclip size={14} /> {msg.file.name}
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -148,14 +202,29 @@ export const ChatPage: React.FC = () => {
         </div>
 
         <form className={styles.inputArea} onSubmit={handleSend}>
-          <button type="button" className={styles.iconBtn}><Paperclip size={20} /></button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+            style={{ display: 'none' }}
+          />
+          <button 
+            type="button" 
+            className={styles.iconBtn} 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Paperclip size={20} />}
+          </button>
           <input 
             type="text" 
             placeholder={`Message ${activeChannel?.name || '...'}`}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            disabled={isUploading}
           />
-          <button type="submit" className={styles.sendBtn} disabled={!inputText.trim()}>
+          <button type="submit" className={styles.sendBtn} disabled={!inputText.trim() || isUploading}>
             <Send size={20} />
           </button>
         </form>
