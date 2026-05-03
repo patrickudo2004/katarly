@@ -35,6 +35,19 @@ export const AttendancePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
 
+  // Live listener for verification status
+  const latestRequest = useQuery(api.attendance.getLatestVerificationStatus);
+
+  useEffect(() => {
+    if (step === 'verifying' && latestRequest?.status === 'approved') {
+      setStep('success');
+      // Subtle haptic if supported
+      if ('vibrate' in navigator) {
+        navigator.vibrate(200);
+      }
+    }
+  }, [latestRequest, step]);
+
   useEffect(() => {
     if (userLocation && church?.location) {
       const d = calculateDistance(

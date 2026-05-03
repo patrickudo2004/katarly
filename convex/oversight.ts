@@ -131,9 +131,9 @@ export const getDepartmentHealth = query({
     
     const isSuperAdmin = user.role === "SuperAdmin";
     const isPastoral = user.role === "PastoralOversight" && user.departmentId === args.departmentId;
-    const isDeptHead = (user.role === "DepartmentHead" || user.role === "DepartmentAssistant") && user.departmentId === args.departmentId;
+    const isDeptManagement = (user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary") && user.departmentId === args.departmentId;
 
-    if (!isSuperAdmin && !isPastoral && !isDeptHead) {
+    if (!isSuperAdmin && !isPastoral && !isDeptManagement) {
       throw new Error("Unauthorized access to department health");
     }
 

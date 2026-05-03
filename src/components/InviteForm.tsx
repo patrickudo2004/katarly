@@ -88,6 +88,7 @@ export const InviteForm: React.FC<InviteFormProps> = ({ userRole, defaultDepartm
                 <>
                   <option value="DepartmentHead">Department Head</option>
                   <option value="DepartmentAssistant">Department Assistant</option>
+                  <option value="DepartmentSecretary">Department Secretary</option>
                   <option value="PastoralOversight">Pastoral Oversight</option>
                   <option value="DeaconHead">Deacon Head</option>
                 </>

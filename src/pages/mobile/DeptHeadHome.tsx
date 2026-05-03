@@ -107,13 +107,18 @@ export const DeptHeadHome: React.FC = () => {
               </div>
             ) : (
               mySubunits.map((unit) => (
-                <div key={unit._id} className={styles.listItem}>
+                <div 
+                  key={unit._id} 
+                  className={styles.listItem}
+                  onClick={() => navigate(`/subunit/${unit._id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className={styles.itemIcon}>
                     <Users size={20} />
                   </div>
                   <div className={styles.itemInfo}>
                     <p className={styles.itemTitle}>{unit.name}</p>
-                    <p className={styles.itemSubtitle}>Lead: {unit.leadId || 'Not Assigned'}</p>
+                    <p className={styles.itemSubtitle}>Lead: {unit.leadId ? 'Assigned' : 'Not Assigned'}</p>
                   </div>
                   <ChevronRight size={16} color="#9ca3af" />
                 </div>

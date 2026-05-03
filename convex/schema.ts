@@ -20,6 +20,7 @@ export default defineSchema({
       v.literal("SubunitAssistant"),
       v.literal("DepartmentHead"),
       v.literal("DepartmentAssistant"),
+      v.literal("DepartmentSecretary"),
       v.literal("PastoralOversight"),
       v.literal("DeaconHead"),
       v.literal("Probation"),

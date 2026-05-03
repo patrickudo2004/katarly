@@ -369,3 +369,23 @@ export const getServiceAttendance = query({
     );
   },
 });
+
+export const getLatestVerificationStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+
+    // Get the most recent request in the last 15 minutes
+    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+    
+    const request = await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .filter((q) => q.gt(q.field("requestedAt"), fifteenMinutesAgo))
+      .first();
+
+    return request;
+  },
+});

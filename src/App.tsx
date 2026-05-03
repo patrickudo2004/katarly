@@ -37,6 +37,7 @@ import { DeptHeadHome } from './pages/mobile/DeptHeadHome';
 import { SuperAdminHome } from './pages/mobile/SuperAdminHome';
 import { DeaconHeadHome } from './pages/mobile/DeaconHeadHome';
 import { TimeOffPage as MobileTimeOff } from './pages/mobile/TimeOffPage';
+import { SubunitDetail } from './pages/mobile/SubunitDetail';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -143,6 +144,11 @@ function AppContent() {
       <Route path="/time-off" element={
         <PageLayout user={me as any}>
           {isMobile ? <MobileTimeOff /> : <TimeOff />}
+        </PageLayout>
+      } />
+      <Route path="/subunit/:subunitId" element={
+        <PageLayout user={me as any}>
+          <SubunitDetail />
         </PageLayout>
       } />
       <Route path="/network" element={
