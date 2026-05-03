@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import styles from './mobile.module.css';
@@ -95,6 +95,33 @@ export const SubunitLeadHome: React.FC = () => {
               </div>
             ))
           )}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Quick Actions</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => navigate('/time-off')}
+            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <Calendar size={20} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Request Time Off</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/marketplace')}
+            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <RefreshCw size={20} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Shift Marketplace</span>
+          </button>
         </div>
       </section>
 

@@ -117,13 +117,18 @@ export const sendMessage = mutation({
       throw new Error("Only SuperAdmins can post in announcements");
     }
 
+    const userRole = user.role || "Volunteer";
+    const userDeptId = user.departmentId;
+    const userSubunitId = user.subunitId;
+    const additionalSubunits = user.additionalSubunits || [];
+
     const hasAccess = 
-      user.role === "SuperAdmin" ||
-      user.role === "PastoralOversight" ||
-      (channel.type === "department" && channel.departmentId === user.departmentId) ||
+      userRole === "SuperAdmin" ||
+      userRole === "PastoralOversight" ||
+      (channel.type === "department" && channel.departmentId === userDeptId) ||
       (channel.type === "subunit" && (
-        (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
-        user.additionalSubunits?.includes(channel.subunitId as any)
+        (channel.departmentId === userDeptId && channel.subunitId === userSubunitId) || 
+        additionalSubunits.includes(channel.subunitId as any)
       ));
 
     if (!hasAccess && channel.type !== "announcement") {
