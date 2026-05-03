@@ -80,8 +80,18 @@ export const InviteForm: React.FC<InviteFormProps> = ({ userRole, defaultDepartm
             <label>Assign Role</label>
             <select value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="Volunteer">Volunteer</option>
+              <option value="Probation">Probation</option>
               <option value="SubunitLead">Subunit Lead</option>
-              {userRole === 'SuperAdmin' && <option value="DepartmentHead">Department Head</option>}
+              <option value="SubunitAssistant">Subunit Assistant</option>
+              
+              {userRole === 'SuperAdmin' && (
+                <>
+                  <option value="DepartmentHead">Department Head</option>
+                  <option value="DepartmentAssistant">Department Assistant</option>
+                  <option value="PastoralOversight">Pastoral Oversight</option>
+                  <option value="DeaconHead">Deacon Head</option>
+                </>
+              )}
             </select>
           </div>
 

@@ -34,6 +34,15 @@ export const SubunitLeadHome: React.FC = () => {
 
   const presentCount = liveAttendance?.length || 0;
 
+  const formatTimeSafe = (timestamp: number | undefined) => {
+    if (!timestamp) return 'TBD';
+    try {
+      return format(timestamp, 'p');
+    } catch (e) {
+      return 'TBD';
+    }
+  };
+
   return (
     <div className={styles.page}>
       {pendingVerifications.length > 0 && (
@@ -83,7 +92,7 @@ export const SubunitLeadHome: React.FC = () => {
                 <div className={styles.itemInfo}>
                   <p className={styles.itemTitle}>{record.user?.name || 'Unknown User'}</p>
                   <p className={styles.itemSubtitle}>
-                    {record.status} • {format(record.timestamp, 'p')}
+                    {record.status} • {formatTimeSafe(record.timestamp)}
                   </p>
                 </div>
                 <div className={styles.badge} style={{ 

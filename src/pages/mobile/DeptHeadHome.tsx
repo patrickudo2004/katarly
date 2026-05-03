@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert } from 'lucide-react';
+import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
@@ -50,14 +50,41 @@ export const DeptHeadHome: React.FC = () => {
       )}
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
-          <span className={styles.statValue}>{health?.attendanceRate || 0}%</span>
+          <span className={styles.statValue}>{health?.attendanceRate ?? 0}%</span>
           <span className={styles.statLabel}>Avg Attendance</span>
         </div>
         <div className={styles.card + ' ' + styles.statCard}>
-          <span className={styles.statValue}>{health?.activeProbations || 0}</span>
+          <span className={styles.statValue}>{health?.activeProbations ?? 0}</span>
           <span className={styles.statLabel}>Active Gaps</span>
         </div>
       </div>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Quick Actions</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => navigate('/chat')}
+            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+              <MessageSquare size={20} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Dept Chat</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/attendance')}
+            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+              <ClipboardList size={20} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Attendance</span>
+          </button>
+        </div>
+      </section>
 
       <div className={styles.tabs}>
         {['Subunits', 'Approvals', 'Reports'].map((tab) => (

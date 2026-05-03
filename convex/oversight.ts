@@ -128,7 +128,12 @@ export const getDepartmentHealth = query({
   args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
-    if (user.role !== "PastoralOversight" && user.role !== "SuperAdmin") {
+    
+    const isSuperAdmin = user.role === "SuperAdmin";
+    const isPastoral = user.role === "PastoralOversight" && user.departmentId === args.departmentId;
+    const isDeptHead = (user.role === "DepartmentHead" || user.role === "DepartmentAssistant") && user.departmentId === args.departmentId;
+
+    if (!isSuperAdmin && !isPastoral && !isDeptHead) {
       throw new Error("Unauthorized access to department health");
     }
 
