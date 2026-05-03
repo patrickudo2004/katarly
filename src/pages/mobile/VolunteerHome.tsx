@@ -20,13 +20,31 @@ export const VolunteerHome: React.FC = () => {
     );
   }
 
+  const formatDistanceSafe = (timestamp: number | undefined) => {
+    if (!timestamp) return 'No upcoming services';
+    try {
+      return formatDistanceToNow(timestamp, { addSuffix: true });
+    } catch (e) {
+      return 'TBD';
+    }
+  };
+
+  const formatTimeSafe = (timestamp: number | undefined) => {
+    if (!timestamp) return 'TBD';
+    try {
+      return format(timestamp, 'EEE, d MMM • p');
+    } catch (e) {
+      return 'TBD';
+    }
+  };
+
   return (
     <div className={styles.page}>
       <section className={styles.section}>
         <div className={styles.card + ' ' + styles.countdownCard}>
-          <span className={styles.countdownLabel}>Next Service In</span>
+          <span className={styles.countdownLabel}>Next Service</span>
           <span className={styles.countdownValue}>
-            {nextService ? formatDistanceToNow(nextService.startTime) : 'No upcoming services'}
+            {formatDistanceSafe(nextService?.startTime)}
           </span>
           <span className={styles.countdownLabel}>{nextService?.name || '---'}</span>
         </div>
@@ -37,7 +55,7 @@ export const VolunteerHome: React.FC = () => {
           <h2 className={styles.sectionTitle}>Upcoming Shifts</h2>
         </div>
         <div className={styles.list}>
-          {myShifts.length === 0 ? (
+          {!myShifts || myShifts.length === 0 ? (
             <div className={styles.emptyState}>
               No upcoming shifts assigned.
             </div>
@@ -48,9 +66,11 @@ export const VolunteerHome: React.FC = () => {
                   <Calendar size={20} />
                 </div>
                 <div className={styles.itemInfo}>
-                  <p className={styles.itemTitle}>{shift.subunit?.name || 'Department'} - {shift.role}</p>
+                  <p className={styles.itemTitle}>
+                    {(shift.subunit?.name || shift.department?.name || 'General')} - {shift.role}
+                  </p>
                   <p className={styles.itemSubtitle}>
-                    {shift.service ? format(shift.service.startTime, 'EEE, d MMM • p') : 'TBD'}
+                    {formatTimeSafe(shift.service?.startTime)}
                   </p>
                 </div>
                 <div className={styles.badge} style={{ 

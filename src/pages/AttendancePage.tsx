@@ -47,7 +47,7 @@ export const AttendancePage: React.FC = () => {
     }
   }, [userLocation, church]);
 
-  const handleScan = async (data: string, location: GeolocationPosition) => {
+  const handleScan = async (data: string, location: GeolocationPosition | null) => {
     try {
       // New simplified format: "TYPE:ID:SECRET" or "SERVICE:ID:SECRET"
       const parts = data.split(':');
@@ -62,32 +62,46 @@ export const AttendancePage: React.FC = () => {
     }
   };
 
+  const handleManualRequest = () => {
+    setScanData({ type: 'MANUAL', id: 'MANUAL', secret: 'MANUAL' });
+    setStep('select');
+  };
+
   const handleCheckIn = async (serviceId: any) => {
-    if (!userLocation || !scanData) return;
-    
     setIsProcessing(true);
     setError(null);
     
     try {
+      // 1. If it's a manual request (no QR scanned)
+      if (scanData?.secret === 'MANUAL') {
+        await requestVerification({
+          serviceId,
+          lat: userLocation?.coords.latitude,
+          lng: userLocation?.coords.longitude
+        });
+        setStep('verifying');
+        return;
+      }
+
+      // 2. If it's a QR scan
       const radius = church?.settings?.geofenceRadius || 100;
       
       if (distance !== null && distance > radius) {
         // Outside geofence - request manual verification instead
         await requestVerification({
           serviceId,
-          lat: userLocation.coords.latitude,
-          lng: userLocation.coords.longitude
+          lat: userLocation?.coords.latitude,
+          lng: userLocation?.coords.longitude
         });
         setStep('verifying');
       } else {
         // Inside geofence - proceed normally
-        // If it's a daily pass, the id in scanData is churchId, but we mark for a specific service
         await markAttendance({
           serviceId,
           qrSecret: scanData.secret,
-          lat: userLocation.coords.latitude,
-          lng: userLocation.coords.longitude,
-          accuracy: userLocation.coords.accuracy,
+          lat: userLocation?.coords.latitude,
+          lng: userLocation?.coords.longitude,
+          accuracy: userLocation?.coords.accuracy,
         });
         setStep('success');
       }
@@ -103,6 +117,17 @@ export const AttendancePage: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.scannerWrapper}>
           <AttendanceScanner onScan={handleScan} isProcessing={isProcessing} />
+          
+          <div className="mt-8 px-4 text-center">
+            <p className="text-gray-500 text-sm mb-4">Having trouble with the scanner or GPS?</p>
+            <button 
+              onClick={handleManualRequest}
+              className="w-full py-3 px-4 bg-white border-2 border-purple-200 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:border-purple-600 transition-colors"
+            >
+              <ShieldCheck size={20} />
+              Request Manual Check-in
+            </button>
+          </div>
         </div>
       </div>
     );

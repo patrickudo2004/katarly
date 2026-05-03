@@ -66,13 +66,10 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
         { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
           if (isProcessing) return;
-          if (!locationRef.current) {
-            setError("Acquiring GPS location... Please wait.");
-            return;
-          }
-
+          
+          // We no longer block on GPS. We pass null if not available.
           try {
-            await onScan(decodedText, locationRef.current);
+            await onScan(decodedText, locationRef.current || undefined as any);
             setSuccess(true);
             stopScanner();
           } catch (err: any) {

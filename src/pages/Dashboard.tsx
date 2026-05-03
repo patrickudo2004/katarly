@@ -69,6 +69,104 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     return <MobileDashboard user={me} church={church} stats={stats} />;
   }
 
+  // Dedicated Volunteer View for Desktop
+  if (userRole === 'Volunteer') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.heroSection}>
+          <div className={styles.heroContent}>
+            <div className={styles.churchIdentity}>
+              <div className={styles.logoWrapper}>
+                {church.logoUrl ? (
+                  <img src={church.logoUrl} alt={church.name} className={styles.logo} />
+                ) : (
+                  <div className={styles.fallbackLogo}>
+                    <Building2 size={32} />
+                  </div>
+                )}
+              </div>
+              <div className={styles.titles}>
+                <div className={styles.badge}>
+                  <Sparkles size={12} />
+                  <span>Volunteer Portal</span>
+                </div>
+                <h1>{church.name}</h1>
+                <p>Welcome back, {me.name || 'Member'}. Your service makes a difference!</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => navigate('/attendance')}
+              className={styles.settingsBtn}
+              style={{ background: 'var(--accent)' }}
+            >
+              <CheckCircle size={18} />
+              Check In Now
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.mainGrid}>
+          <div className={styles.analyticsSection}>
+            <div className={styles.sectionHeader}>
+              <CalendarIcon size={20} />
+              <h2>Your Upcoming Shifts</h2>
+            </div>
+            <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--card-bg)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+              <p style={{ color: 'var(--text-secondary)' }}>You can view and manage your full schedule in the <strong>Rota</strong> tab.</p>
+              <button 
+                onClick={() => navigate('/rota')}
+                className={styles.settingsBtn}
+                style={{ marginTop: '1rem', display: 'inline-flex' }}
+              >
+                Go to Rota
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.orgSection}>
+            <div className={styles.sectionHeader}>
+              <Building2 size={20} />
+              <h2>Church Information</h2>
+            </div>
+            <div className={styles.statCard} style={{ marginTop: '1rem' }}>
+              <p><strong>Address:</strong> {church.address || 'Location not set'}</p>
+              <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                Please ensure you are at the church premises during check-in.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.activitySection}>
+            <div className={styles.sectionHeader}>
+              <Sparkles size={20} />
+              <h2>Quick Actions</h2>
+            </div>
+            <div className={styles.activityList}>
+              <div className={styles.activityItem} onClick={() => navigate('/chat')} style={{ cursor: 'pointer' }}>
+                <div className={styles.activityIndicator} style={{ background: '#8b5cf6' }} />
+                <div className={styles.activityContent}>
+                  <p className={styles.activityTitle}>Open Group Chat</p>
+                  <p className={styles.activityMeta}>Connect with your team</p>
+                </div>
+                <ChevronRight size={16} />
+              </div>
+              <div className={styles.activityItem} onClick={() => navigate('/marketplace')} style={{ cursor: 'pointer' }}>
+                <div className={styles.activityIndicator} style={{ background: '#10b981' }} />
+                <div className={styles.activityContent}>
+                  <p className={styles.activityTitle}>Shift Marketplace</p>
+                  <p className={styles.activityMeta}>Claim open shifts or swap</p>
+                </div>
+                <ChevronRight size={16} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin/Leader View
   return (
     <div className={styles.container}>
       {/* Church Identity Hero */}

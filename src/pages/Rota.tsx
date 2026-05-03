@@ -44,6 +44,8 @@ type ViewMode = 'week' | 'month' | 'year';
 export const Rota: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const me = useQuery(api.users.me);
+  const isVolunteer = me?.role === 'Volunteer';
 
   // Range calculations based on viewMode
   const { startDate, endDate } = useMemo(() => {
@@ -223,9 +225,11 @@ export const Rota: React.FC = () => {
                   <span className={styles.dayName}>{format(day, 'EEE')}</span>
                   <span className={styles.dayNumber}>{format(day, 'd')}</span>
                 </div>
-                <button className={styles.dayAddBtn} onClick={() => { setSelectedDay(day); setIsAddingService(true); }}>
-                  <Plus size={14} />
-                </button>
+                {!isVolunteer && (
+                  <button className={styles.dayAddBtn} onClick={() => { setSelectedDay(day); setIsAddingService(true); }}>
+                    <Plus size={14} />
+                  </button>
+                )}
               </div>
               <div className={styles.slots}>
                 {rotaEntries
@@ -266,9 +270,11 @@ export const Rota: React.FC = () => {
                                 <ClipboardList size={12} />
                               </button>
                             )}
-                            <button onClick={() => handleDelete(entry._id)} className={styles.deleteBtn} title="Remove Shift">
-                              <Trash2 size={12} />
-                            </button>
+                            {!isVolunteer && (
+                              <button onClick={() => handleDelete(entry._id)} className={styles.deleteBtn} title="Remove Shift">
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className={styles.serviceTag}>
@@ -281,9 +287,11 @@ export const Rota: React.FC = () => {
                       </div>
                     );
                   })}
-                <button className={styles.emptySlot} onClick={() => setIsAssigning(true)}>
-                  <Plus size={14} /> <span>Assign</span>
-                </button>
+                {!isVolunteer && (
+                  <button className={styles.emptySlot} onClick={() => setIsAssigning(true)}>
+                    <Plus size={14} /> <span>Assign</span>
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -311,9 +319,11 @@ export const Rota: React.FC = () => {
             `}>
               <div className={styles.monthDayHeader}>
                 <span className={styles.monthDayNumber}>{format(day, 'd')}</span>
-                <button className={styles.dayAddBtn} onClick={() => { setSelectedDay(day); setIsAddingService(true); }}>
-                  <Plus size={12} />
-                </button>
+                {!isVolunteer && (
+                  <button className={styles.dayAddBtn} onClick={() => { setSelectedDay(day); setIsAddingService(true); }}>
+                    <Plus size={12} />
+                  </button>
+                )}
               </div>
               {dayServices.map(s => {
                 const filled = rotaEntries?.filter(r => r.serviceId === s._id).length || 0;
@@ -395,9 +405,11 @@ export const Rota: React.FC = () => {
             </span>
             <button className={styles.navBtn} onClick={() => handleNav('next')}><ChevronRight size={20} /></button>
           </div>
-          <button className={styles.addBtn} onClick={() => setIsAssigning(true)}>
-            <Plus size={18} /> Add Shift
-          </button>
+          {!isVolunteer && (
+            <button className={styles.addBtn} onClick={() => setIsAssigning(true)}>
+              <Plus size={18} /> Add Shift
+            </button>
+          )}
         </div>
       </header>
 

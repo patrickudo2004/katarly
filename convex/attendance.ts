@@ -24,14 +24,12 @@ async function validateAndMark(
   userId: any, 
   churchId: any, 
   service: any, 
-  args: { lat: number; lng: number; accuracy: number; qrSecret: string }
+  args: { lat?: number; lng?: number; accuracy?: number; qrSecret: string }
 ) {
   const church = await ctx.db.get(churchId);
   if (!church) throw new Error("Church not found");
 
   // 1. Verify QR Secret
-  // If it's a specific service secret, it must match.
-  // If it's a church daily secret, it must match church.settings.qrCodeSecret.
   const isMatch = service.qrCodeSecret === args.qrSecret || church.settings?.qrCodeSecret === args.qrSecret;
   if (!isMatch) {
     throw new Error("Invalid or expired QR code");
@@ -44,8 +42,8 @@ async function validateAndMark(
     throw new Error(`Attendance window for "${service.name}" is closed`);
   }
 
-  // 3. Verify Geofence
-  if (church.location) {
+  // 3. Verify Geofence (Only if lat/lng provided)
+  if (church.location && args.lat && args.lng) {
     const distance = calculateDistance(args.lat, args.lng, church.location.lat, church.location.lng);
     if (distance > (church.settings?.geofenceRadius || 100)) {
       throw new Error(`You are too far from the church (${Math.round(distance)}m away)`);
@@ -61,21 +59,34 @@ async function validateAndMark(
 
   if (existing) return existing._id;
 
-  // 5. Determine Status (Late vs Present)
+  // 5. Determine Department/Subunit from Rota (Multi-role support)
+  const rotaEntry = await ctx.db
+    .query("rotas")
+    .withIndex("by_service_user", (q: any) => q.eq("serviceId", service._id).eq("userId", userId))
+    .first();
+
+  // Fallback to user's primary dept if no specific rota entry exists for this service
+  const user = await ctx.db.get(userId);
+  const departmentId = rotaEntry?.departmentId || user?.departmentId;
+  const subunitId = rotaEntry?.subunitId || user?.subunitId;
+
+  // 6. Determine Status (Late vs Present)
   const status = now > service.startTime + 15 * 60 * 1000 ? "Late" : "Present";
 
   const attendanceId = await ctx.db.insert("attendance", {
     serviceId: service._id,
     userId: userId,
     churchId: churchId,
+    departmentId,
+    subunitId,
     timestamp: now,
     method: "QR",
     markedById: userId,
-    location: {
+    location: args.lat && args.lng ? {
       lat: args.lat,
       lng: args.lng,
-      accuracy: args.accuracy,
-    },
+      accuracy: args.accuracy || 0,
+    } : undefined,
     status,
   });
 
@@ -87,9 +98,9 @@ export const markAttendance = mutation({
   args: {
     serviceId: v.id("services"),
     qrSecret: v.string(),
-    lat: v.number(),
-    lng: v.number(),
-    accuracy: v.number(),
+    lat: v.optional(v.number()),
+    lng: v.optional(v.number()),
+    accuracy: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);

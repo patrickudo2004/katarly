@@ -102,12 +102,15 @@ export default defineSchema({
     role: v.string(),
     status: v.union(v.literal("Pending"), v.literal("Confirmed"), v.literal("Declined")),
   }).index("by_service", ["serviceId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_service_user", ["serviceId", "userId"]),
 
   attendance: defineTable({
     serviceId: v.id("services"),
     userId: v.id("users"),
     churchId: v.id("churches"),
+    departmentId: v.optional(v.id("departments")),
+    subunitId: v.optional(v.id("subunits")),
     timestamp: v.number(),
     status: v.union(v.literal("Present"), v.literal("Late"), v.literal("Excused")),
     method: v.string(), // "QR", "Manual", or "Override"
