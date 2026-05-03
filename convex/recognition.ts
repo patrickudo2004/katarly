@@ -156,6 +156,7 @@ export async function checkMilestonesInternal(ctx: any, userId: any) {
   }
 
   // Get all milestone badges for this church
+  if (!user.churchId) return;
   const milestoneBadges = await ctx.db
     .query("badges")
     .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))

@@ -54,11 +54,10 @@ export const getChannelMessages = query({
     if (!channel) throw new Error("Channel not found");
 
     // Permission check (same as getChannels)
-    const hasAccess = 
       channel.type === "announcement" || 
       user.role === "SuperAdmin" ||
-      (channel.type === "department" && channel.department === user.department) ||
-      (channel.type === "subunit" && channel.department === user.department && (channel.subunit === user.subunit || user.additionalSubunits?.includes(channel.subunit!) || user.role === "PastoralOversight"));
+      (channel.type === "department" && channel.departmentId === user.departmentId) ||
+      (channel.type === "subunit" && channel.departmentId === user.departmentId && (channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId as any) || user.role === "PastoralOversight"));
 
     if (!hasAccess) throw new Error("Unauthorized access to channel");
 
@@ -114,8 +113,8 @@ export const sendMessage = mutation({
 
     const hasAccess = 
       user.role === "SuperAdmin" ||
-      (channel.type === "department" && channel.department === user.department) ||
-      (channel.type === "subunit" && channel.department === user.department && (channel.subunit === user.subunit || user.additionalSubunits?.includes(channel.subunit!) || user.role === "PastoralOversight"));
+      (channel.type === "department" && channel.departmentId === user.departmentId) ||
+      (channel.type === "subunit" && channel.departmentId === user.departmentId && (channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId as any) || user.role === "PastoralOversight"));
 
     if (!hasAccess && channel.type !== "announcement") {
       throw new Error("Unauthorized to post in this channel");

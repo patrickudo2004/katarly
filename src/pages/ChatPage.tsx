@@ -89,6 +89,21 @@ export const ChatPage: React.FC = () => {
         </div>
       </aside>
 
+      {/* Mobile Channel Selector */}
+      <div className={styles.mobileNav}>
+        {channels.map(channel => (
+          <button 
+            key={channel._id} 
+            className={`${styles.mobileChannelBtn} ${selectedChannelId === channel._id ? styles.activeMobileChannel : ''}`}
+            onClick={() => setSelectedChannelId(channel._id)}
+          >
+            {channel.type === 'announcement' ? <Megaphone size={16} /> : 
+             channel.type === 'department' ? <Hash size={16} /> : <Users size={16} />}
+            <span>{channel.name.split(' ')[0]}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Main Chat Area */}
       <main className={styles.chatArea}>
         <header className={styles.chatHeader}>

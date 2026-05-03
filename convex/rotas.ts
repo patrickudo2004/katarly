@@ -273,6 +273,10 @@ export const assignUserToShift = mutation({
     const adminId = await auth.getUserId(ctx);
     if (!adminId) throw new Error("Not authenticated");
     const admin = await ctx.db.get(adminId);
+    if (!admin) throw new Error("Admin not found");
+
+    const rota = await ctx.db.get(args.rotaId);
+    if (!rota) throw new Error("Rota entry not found");
     
     // Auth: Scoped permissions
     if (admin.role === "SuperAdmin") {
@@ -288,9 +292,6 @@ export const assignUserToShift = mutation({
     } else {
       throw new Error("Unauthorized");
     }
-
-    const rota = await ctx.db.get(args.rotaId);
-    if (!rota) throw new Error("Rota entry not found");
 
     // 1. Conflict Check: Double Booking (Is user already scheduled for THIS specific service?)
     const existingEntry = await ctx.db

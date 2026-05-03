@@ -13,10 +13,47 @@
   flex-direction: column;
 }
 
+.mobileNav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .sidebar {
-    display: none; /* Hide sidebar on mobile for now, maybe use a drawer later */
+    display: none;
   }
+  .mobileNav {
+    display: flex;
+    overflow-x: auto;
+    padding: 0.5rem;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    scrollbar-width: none;
+  }
+  .mobileNav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.mobileChannelBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.activeMobileChannel {
+  background: #8b5cf6;
+  color: white;
+  border-color: #8b5cf6;
 }
 
 .sidebarHeader {
