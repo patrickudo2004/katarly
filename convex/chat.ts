@@ -54,6 +54,7 @@ export const getChannelMessages = query({
     if (!channel) throw new Error("Channel not found");
 
     // Permission check (same as getChannels)
+    const hasAccess = 
       channel.type === "announcement" || 
       user.role === "SuperAdmin" ||
       (channel.type === "department" && channel.departmentId === user.departmentId) ||
