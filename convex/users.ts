@@ -71,7 +71,7 @@ export const getAllChurchUsers = query({
     // Role-based scoping
     if (user.role === "SuperAdmin") {
       // Sees everyone
-    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "PastoralOversight") {
+    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary" || user.role === "PastoralOversight") {
       // Sees everyone in their department
       if (user.departmentId) {
         usersQuery = usersQuery.filter((q) => q.eq(q.field("departmentId"), user.departmentId));
@@ -112,10 +112,12 @@ export const updateUserRole = mutation({
     userId: v.id("users"),
     role: v.union(
       v.literal("Volunteer"),
+      v.literal("Probation"),
       v.literal("SubunitAssistant"),
       v.literal("SubunitLead"),
       v.literal("DepartmentAssistant"),
       v.literal("DepartmentHead"),
+      v.literal("DepartmentSecretary"),
       v.literal("PastoralOversight"),
       v.literal("DeaconHead"),
       v.literal("SuperAdmin")
