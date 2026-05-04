@@ -5,7 +5,7 @@ import { Organogram } from '../components/Organogram';
 import { AdminSettings } from '../components/AdminSettings';
 import { BorrowRequestForm } from '../components/BorrowRequestForm';
 import { VerificationCenter } from '../components/VerificationCenter';
-import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck } from 'lucide-react';
+import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search } from 'lucide-react';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {

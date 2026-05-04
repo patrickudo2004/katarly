@@ -6,7 +6,6 @@ import { RoleBadge } from '../components/RoleBadge';
 import styles from './PeoplePage.module.css';
 
 export const PeoplePage: React.FC = () => {
-  const users = useQuery(api.users.getVisibleUsers);
   const me = useQuery(api.users.me);
   const updateUserRole = useMutation(api.users.updateUserRole);
   
