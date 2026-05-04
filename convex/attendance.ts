@@ -370,6 +370,126 @@ export const getServiceAttendance = query({
   },
 });
 
+export const getAttendanceInsights = query({
+  args: {
+    serviceId: v.optional(v.id("services")),
+    departmentId: v.optional(v.id("departments")),
+    subunitId: v.optional(v.id("subunits")),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    let query = ctx.db
+      .query("attendance")
+      .withIndex("by_church", (q) => q.eq("churchId", user.churchId!));
+
+    // Time filtering
+    if (args.startDate) query = query.filter((q) => q.gte(q.field("timestamp"), args.startDate!));
+    if (args.endDate) query = query.filter((q) => q.lte(q.field("timestamp"), args.endDate!));
+
+    // Service filtering
+    if (args.serviceId) query = query.filter((q) => q.eq(q.field("serviceId"), args.serviceId));
+
+    // Role-based Scoping + Manual Filtering
+    const scopeDeptId = args.departmentId || user.departmentId;
+    const scopeSubunitId = args.subunitId || user.subunitId;
+
+    if (user.role === "SuperAdmin") {
+      if (args.departmentId) query = query.filter(q => q.eq(q.field("departmentId"), args.departmentId));
+      if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
+    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead") {
+      query = query.filter(q => q.eq(q.field("departmentId"), user.departmentId));
+      if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
+    } else if (user.role === "SubunitLead") {
+      query = query.filter(q => q.eq(q.field("subunitId"), user.subunitId));
+    }
+
+    const records = await query.collect();
+
+    const stats = {
+      total: records.length,
+      present: records.filter(r => r.status === "Present").length,
+      late: records.filter(r => r.status === "Late").length,
+      excused: records.filter(r => r.status === "Excused").length,
+    };
+
+    return stats;
+  },
+});
+
+export const getHistoricalAttendance = query({
+  args: {
+    departmentId: v.optional(v.id("departments")),
+    subunitId: v.optional(v.id("subunits")),
+    serviceId: v.optional(v.id("services")),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user) return [];
+
+    let query = ctx.db
+      .query("attendance")
+      .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
+      .order("desc");
+
+    if (user.role !== "SuperAdmin") {
+      if (user.departmentId) {
+        query = query.filter(q => q.eq(q.field("departmentId"), user.departmentId));
+      }
+      if (user.subunitId) {
+        query = query.filter(q => q.eq(q.field("subunitId"), user.subunitId));
+      }
+    }
+
+    // Apply specific filters from args
+    if (args.serviceId) query = query.filter(q => q.eq(q.field("serviceId"), args.serviceId));
+    if (args.departmentId) query = query.filter(q => q.eq(q.field("departmentId"), args.departmentId));
+    if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
+
+    const records = await query.take(args.limit || 100);
+
+    return Promise.all(records.map(async (r) => {
+      const u = await ctx.db.get(r.userId);
+      const s = await ctx.db.get(r.serviceId);
+      return {
+        ...r,
+        userName: u?.name || u?.email || "Unknown",
+        serviceName: s?.name || "Unknown",
+      };
+    }));
+  },
+});
+
+export const getMyAttendance = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const records = await ctx.db
+      .query("attendance")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(args.limit || 50);
+
+    return Promise.all(records.map(async (r) => {
+      const s = await ctx.db.get(r.serviceId);
+      return {
+        ...r,
+        serviceName: s?.name || "Unknown",
+      };
+    }));
+  },
+});
+
 export const getLatestVerificationStatus = query({
   args: {},
   handler: async (ctx) => {
