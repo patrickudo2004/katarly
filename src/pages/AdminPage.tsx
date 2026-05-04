@@ -15,7 +15,23 @@ export const AdminPage: React.FC = () => {
   const organogramData = useQuery(api.churches.getOrganogram);
   const departments = useQuery(api.departments.getDepartments);
   const subunits = useQuery(api.subunits.getSubunits);
-  const users = useQuery(api.users.getAllChurchUsers);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState<'active' | 'archived'>('active');
+  const [sortBy, setSortBy] = useState<'name' | 'dateJoined' | 'role'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const users = useQuery(api.users.getAllChurchUsers, {
+    searchTerm,
+    roleFilter,
+    statusFilter,
+    sortBy,
+    sortOrder
+  });
+  
+  const archiveUser = useMutation(api.users.archiveUser);
+  const unarchiveUser = useMutation(api.users.unarchiveUser);
   
   const createDept = useMutation(api.departments.createDepartment);
   const updateDept = useMutation(api.departments.updateDepartment);
@@ -42,6 +58,27 @@ export const AdminPage: React.FC = () => {
       await updateUserRole({ userId, role: role as any });
     } catch (err: any) {
       alert(err.message || "Failed to update user role.");
+    }
+  };
+
+  const handleArchive = async (userId: any) => {
+    if (userId === activeUser?._id) {
+      alert("You cannot archive yourself.");
+      return;
+    }
+    if (!confirm("Are you sure you want to archive this user? They will be removed from all active rosters.")) return;
+    try {
+      await archiveUser({ userId });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleUnarchive = async (userId: any) => {
+    try {
+      await unarchiveUser({ userId });
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -328,6 +365,49 @@ export const AdminPage: React.FC = () => {
                 <UserCog size={20} />
                 <h2>Member Directory</h2>
               </div>
+
+              {/* Advanced Filters */}
+              <div className={styles.filterBar}>
+                <div className={styles.searchBox}>
+                  <Search size={16} />
+                  <input 
+                    placeholder="Search name or email..." 
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className={styles.filterGroup}>
+                  <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+                    <option value="All">All Roles</option>
+                    <option value="SuperAdmin">Super Admin</option>
+                    <option value="DeaconHead">Deacon Head</option>
+                    <option value="DepartmentHead">Dept. Head</option>
+                    <option value="SubunitLead">Subunit Lead</option>
+                    <option value="Volunteer">Volunteer</option>
+                    <option value="Probation">Probation</option>
+                  </select>
+
+                  <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+                    <option value="active">Active Members</option>
+                    <option value="archived">Archived Records</option>
+                  </select>
+
+                  <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
+                    <option value="name">Sort by Name</option>
+                    <option value="role">Sort by Role</option>
+                    <option value="dateJoined">Sort by Date Joined</option>
+                  </select>
+
+                  <button 
+                    className={styles.sortOrderBtn}
+                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  >
+                    {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+                  </button>
+                </div>
+              </div>
+
               <div className={styles.userTableWrapper}>
                 <table className={styles.userTable}>
                   <thead>
@@ -339,7 +419,7 @@ export const AdminPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
+                    {users?.map(user => (
                       <tr key={user._id}>
                         <td>{user.name || user.email}</td>
                         <td>
@@ -364,9 +444,48 @@ export const AdminPage: React.FC = () => {
                             <option value="SuperAdmin">Super Admin</option>
                           </select>
                         </td>
-                        <td>{user.departmentName} / {user.subunitName}</td>
                         <td>
-                          <button className={styles.iconBtn}><ChevronRight size={16} /></button>
+                          <div className={styles.assignmentCell}>
+                            <select 
+                              value={user.departmentId || ''}
+                              onChange={(e) => updateUserRole({ userId: user._id, departmentId: e.target.value as any || undefined, role: user.role as any })}
+                              disabled={activeUser?.role !== 'SuperAdmin'}
+                            >
+                              <option value="">No Dept</option>
+                              {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+                            </select>
+                            <select 
+                              value={user.subunitId || ''}
+                              onChange={(e) => updateUserRole({ userId: user._id, subunitId: e.target.value as any || undefined, role: user.role as any })}
+                              disabled={activeUser?.role !== 'SuperAdmin'}
+                            >
+                              <option value="">No Subunit</option>
+                              {subunits.filter(s => !user.departmentId || s.departmentId === user.departmentId).map(s => (
+                                <option key={s._id} value={s._id}>{s.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                        <td>
+                          <div className={styles.rowActions}>
+                            {statusFilter === 'active' ? (
+                              <button 
+                                className={styles.archiveBtn}
+                                onClick={() => handleArchive(user._id)}
+                                title="Archive User"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            ) : (
+                              <button 
+                                className={styles.unarchiveBtn}
+                                onClick={() => handleUnarchive(user._id)}
+                              >
+                                Restore
+                              </button>
+                            )}
+                            <button className={styles.iconBtn}><ChevronRight size={16} /></button>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -40,6 +40,12 @@ export default defineSchema({
     additionalSubunits: v.optional(v.array(v.string())),
     isExtendedProbation: v.optional(v.boolean()),
     isBorrowed: v.optional(v.boolean()),
+    status: v.optional(v.union(v.literal("active"), v.literal("archived"), v.literal("pending_deletion"))),
+    statusMetadata: v.optional(v.object({
+      archivedAt: v.optional(v.number()),
+      archivedBy: v.optional(v.id("users")),
+      reason: v.optional(v.string()),
+    })),
   }).index("email", ["email"])
     .index("by_church", ["churchId"]),
   

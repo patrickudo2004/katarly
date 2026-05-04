@@ -58,7 +58,14 @@ export const generateUploadUrl = mutation(async (ctx) => {
 });
 
 export const getAllChurchUsers = query({
-  handler: async (ctx) => {
+  args: {
+    searchTerm: v.optional(v.string()),
+    roleFilter: v.optional(v.string()),
+    statusFilter: v.optional(v.union(v.literal("active"), v.literal("archived"))),
+    sortBy: v.optional(v.union(v.literal("name"), v.literal("dateJoined"), v.literal("role"))),
+    sortOrder: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  },
+  handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
     const user = await ctx.db.get(userId);
@@ -68,29 +75,68 @@ export const getAllChurchUsers = query({
       .query("users")
       .withIndex("by_church", (q) => q.eq("churchId", user.churchId!));
 
+    // 1. Status Filter (Default to active)
+    const status = args.statusFilter || "active";
+    usersQuery = usersQuery.filter((q) => q.eq(q.field("status"), status));
+
     // Role-based scoping
     if (user.role === "SuperAdmin") {
       // Sees everyone
     } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary" || user.role === "PastoralOversight") {
-      // Sees everyone in their department
       if (user.departmentId) {
         usersQuery = usersQuery.filter((q) => q.eq(q.field("departmentId"), user.departmentId));
       } else {
-        return []; // Safety fallback if leader has no department
+        return [];
       }
     } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
-      // Sees only their subunit
       if (user.subunitId) {
         usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), user.subunitId));
       } else {
-        return []; // Safety fallback if lead has no subunit
+        return [];
       }
     } else {
-      // Volunteers and others see no one by default for privacy
       return [];
     }
 
-    const users = await usersQuery.collect();
+    let users = await usersQuery.collect();
+
+    // 2. Search Filter
+    if (args.searchTerm) {
+      const search = args.searchTerm.toLowerCase();
+      users = users.filter(u => 
+        (u.name?.toLowerCase() || "").includes(search) || 
+        (u.email?.toLowerCase() || "").includes(search)
+      );
+    }
+
+    // 3. Role Filter
+    if (args.roleFilter && args.roleFilter !== "All") {
+      users = users.filter(u => u.role === args.roleFilter);
+    }
+
+    // 4. Sorting
+    const sortBy = args.sortBy || "name";
+    const order = args.sortOrder || "asc";
+
+    users.sort((a, b) => {
+      let valA: any = "";
+      let valB: any = "";
+
+      if (sortBy === "name") {
+        valA = a.name || a.email || "";
+        valB = b.name || b.email || "";
+      } else if (sortBy === "dateJoined") {
+        valA = a._creationTime;
+        valB = b._creationTime;
+      } else if (sortBy === "role") {
+        valA = a.role || "";
+        valB = b.role || "";
+      }
+
+      if (valA < valB) return order === "asc" ? -1 : 1;
+      if (valA > valB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
 
     return Promise.all(users.map(async (u) => {
       const dept = u.departmentId ? await ctx.db.get(u.departmentId) : null;
@@ -148,7 +194,7 @@ export const updateUserRole = mutation({
       }
     }
 
-    // Only SuperAdmin can assign DeaconHead
+    // Only SuperAdmin can assign DeaconHead or move across depts
     if (args.role === "DeaconHead" && !isSuperAdmin) {
       throw new Error("Only SuperAdmin can assign the DeaconHead role");
     }
@@ -157,6 +203,48 @@ export const updateUserRole = mutation({
     await ctx.db.patch(userId, updates);
   },
 });
+
+export const archiveUser = mutation({
+  args: { userId: v.id("users"), reason: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const adminId = await auth.getUserId(ctx);
+    if (!adminId) throw new Error("Not authenticated");
+    const admin = await ctx.db.get(adminId);
+
+    if (admin?.role !== "SuperAdmin" && admin?.role !== "DeaconHead") {
+      throw new Error("Unauthorized to archive users");
+    }
+
+    await ctx.db.patch(args.userId, {
+      status: "archived",
+      statusMetadata: {
+        archivedAt: Date.now(),
+        archivedBy: adminId,
+        reason: args.reason,
+      }
+    });
+
+    // Note: In Phase 2, we should also cancel their future rotas here
+  },
+});
+
+export const unarchiveUser = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const adminId = await auth.getUserId(ctx);
+    if (!adminId) throw new Error("Not authenticated");
+    const admin = await ctx.db.get(adminId);
+
+    if (admin?.role !== "SuperAdmin") {
+      throw new Error("Only SuperAdmins can unarchive users");
+    }
+
+    await ctx.db.patch(args.userId, {
+      status: "active",
+    });
+  },
+});
+
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
@@ -167,7 +255,6 @@ export const deleteAccount = mutation({
     if (!user) throw new Error("User not found");
 
     if (user.role === "SuperAdmin" && user.churchId) {
-      // Check if there are other SuperAdmins in this church
       const otherSuperAdmins = await ctx.db
         .query("users")
         .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
@@ -182,13 +269,6 @@ export const deleteAccount = mutation({
       }
     }
 
-    // Delete the user record
     await ctx.db.delete(userId);
-    
-    // Note: In a production app, we might also want to clean up:
-    // - Sessions (handled by Convex Auth usually)
-    // - Notifications
-    // - Time off requests
-    // - Rota assignments (might want to set them to unassigned instead of deleting)
   },
 });

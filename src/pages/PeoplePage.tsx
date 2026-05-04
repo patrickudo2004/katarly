@@ -12,19 +12,22 @@ export const PeoplePage: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [sortBy, setSortBy] = useState<'name' | 'dateJoined' | 'role'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const users = useQuery(api.users.getVisibleUsers, {
+    searchTerm,
+    roleFilter,
+    statusFilter: 'active',
+    sortBy,
+    sortOrder
+  });
 
   const roles = [
     'All', 'SuperAdmin', 'DeaconHead', 'PastoralOversight', 
     'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary',
     'SubunitLead', 'SubunitAssistant', 'Volunteer', 'Probation'
   ];
-
-  const filteredUsers = users?.filter(u => {
-    const matchesSearch = (u.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-                          (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
 
   const handleRoleUpdate = async (userId: any, newRole: any) => {
     try {
@@ -61,11 +64,22 @@ export const PeoplePage: React.FC = () => {
           <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
             {roles.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
+            <option value="name">Sort by Name</option>
+            <option value="role">Sort by Role</option>
+            <option value="dateJoined">Sort by Date Joined</option>
+          </select>
+          <button 
+            className={styles.sortToggle}
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+          >
+            {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+          </button>
         </div>
       </div>
 
       <div className={styles.userGrid}>
-        {filteredUsers?.map(user => (
+        {users?.map(user => (
           <div key={user._id} className={styles.userCard}>
             <div className={styles.cardHeader}>
               <div className={styles.avatar}>
