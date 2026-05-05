@@ -372,9 +372,9 @@ export const getServiceAttendance = query({
 
 export const getAttendanceInsights = query({
   args: {
-    serviceId: v.optional(v.id("services")),
-    departmentId: v.optional(v.id("departments")),
-    subunitId: v.optional(v.id("subunits")),
+    serviceId: v.optional(v.union(v.id("services"), v.null())),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    subunitId: v.optional(v.union(v.id("subunits"), v.null())),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
   },
@@ -396,9 +396,6 @@ export const getAttendanceInsights = query({
     if (args.serviceId) query = query.filter((q) => q.eq(q.field("serviceId"), args.serviceId));
 
     // Role-based Scoping + Manual Filtering
-    const scopeDeptId = args.departmentId || user.departmentId;
-    const scopeSubunitId = args.subunitId || user.subunitId;
-
     if (user.role === "SuperAdmin") {
       if (args.departmentId) query = query.filter(q => q.eq(q.field("departmentId"), args.departmentId));
       if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
@@ -424,9 +421,9 @@ export const getAttendanceInsights = query({
 
 export const getHistoricalAttendance = query({
   args: {
-    departmentId: v.optional(v.id("departments")),
-    subunitId: v.optional(v.id("subunits")),
-    serviceId: v.optional(v.id("services")),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    subunitId: v.optional(v.union(v.id("subunits"), v.null())),
+    serviceId: v.optional(v.union(v.id("services"), v.null())),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
