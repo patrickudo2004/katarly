@@ -77,7 +77,17 @@ export const getAllChurchUsers = query({
 
     // 1. Status Filter (Default to active)
     const status = args.statusFilter || "active";
-    usersQuery = usersQuery.filter((q) => q.eq(q.field("status"), status));
+    if (status === "active") {
+      // Treat both "active" and undefined as active for backward compatibility
+      usersQuery = usersQuery.filter((q) => 
+        q.or(
+          q.eq(q.field("status"), "active"),
+          q.eq(q.field("status"), undefined)
+        )
+      );
+    } else {
+      usersQuery = usersQuery.filter((q) => q.eq(q.field("status"), status));
+    }
 
     // Role-based scoping
     if (user.role === "SuperAdmin") {
