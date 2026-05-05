@@ -46,7 +46,27 @@ export default defineSchema({
       archivedBy: v.optional(v.id("users")),
       reason: v.optional(v.string()),
     })),
+    // Phase 3: Gamified Probation
+    probationMetadata: v.optional(v.object({
+      startDate: v.number(),
+      endDate: v.optional(v.number()),
+      threshold: v.number(), // Attendance % required
+      targetServiceCount: v.optional(v.number()),
+      promotionStatus: v.union(v.literal("pending"), v.literal("approved"), v.literal("extended")),
+    })),
   }).index("email", ["email"])
+    .index("by_church", ["churchId"])
+    .index("by_status", ["status"]),
+  
+  probationRemarks: defineTable({
+    userId: v.id("users"),
+    authorId: v.id("users"),
+    churchId: v.id("churches"),
+    content: v.string(),
+    sentiment: v.union(v.literal("Good"), v.literal("Fair"), v.literal("Concern")),
+    timestamp: v.number(),
+  })
+    .index("by_user", ["userId"])
     .index("by_church", ["churchId"]),
   
   churches: defineTable({

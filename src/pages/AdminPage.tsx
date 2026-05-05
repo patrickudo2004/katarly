@@ -5,11 +5,12 @@ import { Organogram } from '../components/Organogram';
 import { AdminSettings } from '../components/AdminSettings';
 import { BorrowRequestForm } from '../components/BorrowRequestForm';
 import { VerificationCenter } from '../components/VerificationCenter';
-import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search } from 'lucide-react';
+import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search, Award } from 'lucide-react';
+import { ProbationManager } from '../components/ProbationManager';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
+  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'probations' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
   const activeUser = useQuery(api.users.me);
   const myChurch = useQuery(api.churches.getMyChurch);
   const organogramData = useQuery(api.churches.getOrganogram);
@@ -122,6 +123,13 @@ export const AdminPage: React.FC = () => {
       alert("Failed to update subunit");
     }
   };
+          <button 
+            className={`${styles.tab} ${activeTab === 'probations' ? styles.active : ''}`}
+            onClick={() => setActiveTab('probations')}
+          >
+            <Award size={20} />
+            <span>Probations</span>
+          </button>
 
   const handleCreateSubunit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -528,6 +536,17 @@ export const AdminPage: React.FC = () => {
                 <h2>Manual Verifications</h2>
               </div>
               <VerificationCenter />
+            </section>
+          </div>
+        )}
+        {activeTab === 'probations' && (
+          <div className={styles.tabPane}>
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <Award size={20} />
+                <h2>Probation Monitoring Quest</h2>
+              </div>
+              <ProbationManager churchId={activeUser?.churchId} />
             </section>
           </div>
         )}
