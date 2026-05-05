@@ -33,7 +33,7 @@ export const ReportsPage: React.FC = () => {
 
   const me = useQuery(api.users.me);
   const departments = useQuery(api.departments.getDepartments);
-  const services = useQuery(api.services.getDailyServices) || [];
+  const services = useQuery(api.services.getRecentServices, { limit: 15 }) || [];
   
   const analytics = useQuery(api.churches.getAdvancedAnalytics, {
     rangeDays,

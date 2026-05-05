@@ -87,6 +87,23 @@ export const getDailyServices = query({
   },
 });
 
+export const getRecentServices = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user?.churchId) return [];
+
+    return await ctx.db
+      .query("services")
+      .withIndex("by_church_start_time", (q) => q.eq("churchId", user.churchId!))
+      .order("desc")
+      .take(args.limit || 10);
+  },
+});
+
+
 export const getNextService = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);

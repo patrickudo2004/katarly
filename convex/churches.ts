@@ -376,7 +376,7 @@ export const getAdvancedAnalytics = query({
       if (args.departmentId) {
         const deptUsers = await ctx.db
           .query("users")
-          .withIndex("by_dept", (q) => q.eq("departmentId", args.departmentId as any))
+          .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId as any))
           .collect();
         const deptUserIds = new Set(deptUsers.map(u => u._id));
         present = att.filter(a => a.status === "Present" && deptUserIds.has(a.userId)).length;
