@@ -1,0 +1,369 @@
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerIcon {
+  padding: 0.75rem;
+  background: #f3e8ff;
+  color: #8b5cf6;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+}
+
+.titleGroup h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #1e293b;
+}
+
+.titleGroup p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.filterGroup select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.exportActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exportBtn:hover {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.tabNav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.tabNav button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabNav button:hover {
+  background: #f8fafc;
+}
+
+.tabNav button.activeTab {
+  background: #f3e8ff;
+  color: #8b5cf6;
+}
+
+.contentArea {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  min-height: 600px;
+  padding: 1.5rem;
+}
+
+/* Trends View */
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.kpiCard {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.kpiHeader {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.kpiValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.kpiTrend {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.kpiSelect select {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.chartBox {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.chartTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+/* Services View */
+.servicesView {
+  display: flex;
+  gap: 2rem;
+  height: 600px;
+}
+
+.serviceSidebar {
+  width: 300px;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.serviceSidebar h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #1e293b;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.serviceList {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 1rem;
+}
+
+.serviceBtn {
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.serviceBtn:hover {
+  background: #f1f5f9;
+}
+
+.serviceBtn.activeService {
+  background: white;
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.sName {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.sTime {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.serviceDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  overflow-y: auto;
+  padding-right: 1rem;
+}
+
+.drillTop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.pieCard {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.pieCard h4 {
+  margin: 0 0 1rem;
+}
+
+.statsSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.pillLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.pillValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.pillPresent svg { color: #10b981; }
+.pillLate svg { color: #f59e0b; }
+.pillExcused svg { color: #94a3b8; }
+
+.rawTableCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.tableWrapper {
+  margin-top: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.rawTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rawTable th {
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.rawTable td {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusPresent { background: #d1fae5; color: #065f46; }
+.statusLate { background: #fef3c7; color: #92400e; }
+.statusExcused { background: #f1f5f9; color: #475569; }
+
+.emptyRow {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem !important;
+}
+
+.emptyChart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #94a3b8;
+}

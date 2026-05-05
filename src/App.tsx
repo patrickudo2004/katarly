@@ -23,6 +23,7 @@ import { AdminSettings } from './pages/AdminSettings';
 import { ServiceManagement } from './pages/ServiceManagement';
 import { PrintAttendance } from './pages/PrintAttendance';
 import { PeoplePage } from './pages/PeoplePage';
+import { ReportsPage } from './pages/ReportsPage';
 import { DebugAuth } from './pages/DebugAuth';
 import { NetworkPage } from './pages/NetworkPage';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -134,6 +135,11 @@ function AppContent() {
       <Route path="/hall-of-fame" element={
         <PageLayout user={me as any}>
           <HallOfFamePage />
+        </PageLayout>
+      } />
+      <Route path="/reports" element={
+        <PageLayout user={me as any}>
+          <ReportsPage />
         </PageLayout>
       } />
       <Route path="/profile" element={

@@ -19,7 +19,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate } from "react-router-dom";
 import { NetworkSummaryCard } from '../components/NetworkSummaryCard';
-import { AttendanceAnalytics } from '../components/AttendanceAnalytics';
 import { UserRole } from '../components/RoleBadge';
 import { OversightDashboardTab } from '../components/OversightDashboardTab';
 import { MobileDashboard } from '../components/MobileDashboard';
@@ -252,7 +251,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       <div className={styles.mainGrid}>
         {/* Analytics Section */}
         <div className={styles.analyticsSection}>
-          <AttendanceAnalytics />
+          <div className={styles.statCard} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '3rem 2rem' }}>
+            <div style={{ background: '#f3e8ff', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginBottom: '1rem' }}>
+              <TrendingUp size={32} />
+            </div>
+            <h3 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>Deep-Dive Analytics</h3>
+            <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.875rem' }}>Access detailed growth trends, export high-fidelity charts, and drill down into service-level check-ins.</p>
+            <button 
+              onClick={() => navigate('/reports')}
+              className={styles.settingsBtn}
+              style={{ background: 'var(--accent)', padding: '0.75rem 1.5rem', borderRadius: '8px', color: 'white', fontWeight: 600 }}
+            >
+              Open Reports Dashboard
+            </button>
+          </div>
         </div>
 
         {/* Network Summary Section */}
