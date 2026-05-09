@@ -60,8 +60,51 @@ export const deleteService = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
-    if (user?.role !== "SuperAdmin") throw new Error("Unauthorized");
+    if (!user) throw new Error("User not found");
 
+    const allowedRoles = ["SuperAdmin", "DeaconHead", "PastoralOversight"];
+    if (!allowedRoles.includes(user.role as string)) {
+      throw new Error("Unauthorized: Only SuperAdmin, DeaconHead, or PastoralOversight can delete services.");
+    }
+
+    // Cascade delete rotas and their associated swap requests
+    const rotas = await ctx.db
+      .query("rotas")
+      .withIndex("by_service", (q) => q.eq("serviceId", args.id))
+      .collect();
+    
+    for (const rota of rotas) {
+      const swaps = await ctx.db
+        .query("swapRequests")
+        .withIndex("by_rota", (q) => q.eq("rotaId", rota._id))
+        .collect();
+      for (const swap of swaps) {
+        await ctx.db.delete(swap._id);
+      }
+      await ctx.db.delete(rota._id);
+    }
+
+    // Cascade delete attendance records
+    const attendanceRecords = await ctx.db
+      .query("attendance")
+      .withIndex("by_service", (q) => q.eq("serviceId", args.id))
+      .collect();
+      
+    for (const record of attendanceRecords) {
+      await ctx.db.delete(record._id);
+    }
+
+    // Cascade delete verification requests
+    const verificationReqs = await ctx.db
+      .query("verificationRequests")
+      .filter((q) => q.eq(q.field("serviceId"), args.id))
+      .collect();
+      
+    for (const req of verificationReqs) {
+      await ctx.db.delete(req._id);
+    }
+
+    // Finally, delete the service itself
     await ctx.db.delete(args.id);
   },
 });

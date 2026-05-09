@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Calendar, Plus, QrCode, Clock, MapPin, Loader2, X, Printer, Copy } from 'lucide-react';
+import { Calendar, Plus, QrCode, Clock, MapPin, Loader2, X, Printer, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AttendanceTicket } from '../components/AttendanceTicket';
 import styles from './ServiceManagement.module.css';
@@ -10,6 +10,7 @@ export const ServiceManagement: React.FC = () => {
   const church = useQuery(api.churches.getMyChurch);
   const services = useQuery(api.services.getChurchServices);
   const createService = useMutation(api.services.createService);
+  const deleteService = useMutation(api.services.deleteService);
   
   const [isAdding, setIsAdding] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -75,6 +76,16 @@ export const ServiceManagement: React.FC = () => {
     const dateStr = format(new Date(startTime), 'yyyy-MM-dd');
     const printUrl = `/print/attendance/${church?._id}?secret=${church?.settings?.qrCodeSecret || ''}&date=${dateStr}`;
     window.open(printUrl, '_blank');
+  };
+
+  const handleDelete = async (serviceId: any) => {
+    if (window.confirm("Are you sure? This will permanently delete all rotas, swap requests, and attendance records associated with this service.")) {
+      try {
+        await deleteService({ id: serviceId });
+      } catch (err) {
+        alert("Failed to delete service. You might not have permission.");
+      }
+    }
   };
 
   if (services === undefined || church === undefined) {
@@ -147,6 +158,13 @@ export const ServiceManagement: React.FC = () => {
                   onClick={() => handlePrintPass(service.startTime)}
                 >
                   <Printer size={18} /> Print Pass
+                </button>
+                <button 
+                  className={styles.deleteBtn}
+                  onClick={() => handleDelete(service._id)}
+                  title="Delete this service"
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
