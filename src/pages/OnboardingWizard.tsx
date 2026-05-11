@@ -61,7 +61,7 @@ export const OnboardingWizard: React.FC = () => {
       </div>
       <div className={styles.wizardCard}>
         <div className={styles.progress}>
-          {[1, 2, 3].map(i => (
+          {[1, 2].map(i => (
             <div key={i} className={`${styles.dot} ${step >= i ? styles.active : ''}`} />
           ))}
         </div>
@@ -112,28 +112,6 @@ export const OnboardingWizard: React.FC = () => {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-            </div>
-
-            <button onClick={nextStep} className={styles.nextBtn}>
-              Continue <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className={styles.step}>
-            <div className={styles.iconCircle}>
-              <Calendar size={32} />
-            </div>
-            <h2>Quick Availability</h2>
-            <p>When are you usually available to serve?</p>
-            
-            <div className={styles.availabilityGrid}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <button key={day} className={styles.dayBtn}>
-                  {day}
-                </button>
-              ))}
             </div>
 
             <button onClick={completeOnboarding} className={styles.finishBtn} disabled={isSubmitting}>
