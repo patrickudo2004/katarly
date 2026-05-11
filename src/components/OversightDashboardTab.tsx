@@ -5,11 +5,12 @@ import { Activity, ShieldAlert, Users, Heart, ArrowUpCircle, CheckCircle } from 
 import styles from './OversightDashboardTab.module.css';
 
 interface OversightDashboardTabProps {
-  department: string;
+  departmentName: string;
+  departmentId: string;
 }
 
-export const OversightDashboardTab: React.FC<OversightDashboardTabProps> = ({ department }) => {
-  const health = useQuery(api.oversight.getDepartmentHealth, { department });
+export const OversightDashboardTab: React.FC<OversightDashboardTabProps> = ({ departmentName, departmentId }) => {
+  const health = useQuery(api.oversight.getDepartmentHealth, { departmentId: departmentId as any });
   const escalate = useMutation(api.oversight.escalateItem);
   const [isEscalating, setIsEscalating] = React.useState(false);
 
@@ -32,7 +33,7 @@ export const OversightDashboardTab: React.FC<OversightDashboardTabProps> = ({ de
     <div className={styles.container}>
       <div className={styles.header}>
         <Heart className={styles.headerIcon} />
-        <h2>{department} Department Spiritual Health</h2>
+        <h2>{departmentName} Department Spiritual Health</h2>
       </div>
 
       <div className={styles.metricsGrid}>

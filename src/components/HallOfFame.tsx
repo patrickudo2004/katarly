@@ -11,13 +11,10 @@ interface HallOfFameProps {
 
 export const HallOfFame: React.FC<HallOfFameProps> = ({ churchId }) => {
   const [selectedDept, setSelectedDept] = React.useState<string | undefined>();
-  const subunits = useQuery(api.subunits.getSubunits);
+  const departments = useQuery(api.departments.getDepartments);
   const leaderboard = useQuery(api.recognition.getHallOfFame, { churchId, department: selectedDept });
 
-  // Get unique departments from subunits
-  const departments = subunits ? Array.from(new Set(subunits.map(s => s.departmentName))) : [];
-
-  if (!leaderboard) return <div className={styles.loading}>Loading Hall of Fame...</div>;
+  if (!leaderboard || !departments) return <div className={styles.loading}>Loading Hall of Fame...</div>;
 
   return (
     <div className={styles.container}>
@@ -38,7 +35,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ churchId }) => {
         >
           <option value="">All Departments</option>
           {departments.map(dept => (
-            <option key={dept} value={dept}>{dept}</option>
+            <option key={dept._id} value={dept.name}>{dept.name}</option>
           ))}
         </select>
       </div>

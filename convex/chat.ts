@@ -22,9 +22,9 @@ export const getChannels = query({
 
     // Filter based on permissions
     return channels.filter((channel) => {
-      // Deacon Board channel: only DeaconHead can access (SuperAdmin excluded unless also DeaconHead)
+      // Deacon Board channel: accessible to DeaconHead and SuperAdmin
       if (channel.type === "deaconBoard") {
-        return user.role === "DeaconHead";
+        return user.role === "DeaconHead" || user.role === "SuperAdmin";
       }
       if (channel.type === "announcement") return true;
       if (user.role === "SuperAdmin") return true;
@@ -194,7 +194,6 @@ export const saveFileMetadata = mutation({
       name: args.name,
       size: args.size,
       userId: user._id,
-      uploadedAt: Date.now(),
     });
   },
 });

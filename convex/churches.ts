@@ -349,7 +349,7 @@ export const getAdvancedAnalytics = query({
         if (args.departmentId) {
           const deptUsers = await ctx.db
             .query("users")
-            .withIndex("by_dept", (q) => q.eq("departmentId", args.departmentId as any))
+            .withIndex("by_dept", (q) => q.eq("churchId", churchId).eq("departmentId", args.departmentId as any))
             .collect();
           const deptUserIds = new Set(deptUsers.map(u => u._id));
           count = att.filter(a => deptUserIds.has(a.userId)).length;

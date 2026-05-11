@@ -25,8 +25,10 @@ import {
   Download,
   FileText,
   ImageIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Loader2
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import styles from './AttendanceAnalytics.module.css';

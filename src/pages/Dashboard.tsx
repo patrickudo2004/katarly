@@ -10,7 +10,9 @@ import {
   Settings as SettingsIcon,
   Building2,
   Sparkles,
-  Loader2
+  Loader2,
+  Scale,
+  MessageSquareLock
 } from 'lucide-react';
 import { 
   ResponsiveContainer
@@ -22,6 +24,7 @@ import { NetworkSummaryCard } from '../components/NetworkSummaryCard';
 import { UserRole } from '../components/RoleBadge';
 import { OversightDashboardTab } from '../components/OversightDashboardTab';
 import { MobileDashboard } from '../components/MobileDashboard';
+import { EscalationManager } from '../components/EscalationManager';
 import styles from './Dashboard.module.css';
 
 // Statistics and Organization data will be fetched from Convex
@@ -165,6 +168,116 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
     );
   }
 
+  // Dedicated Deacon Head View for Desktop
+  if (userRole === 'DeaconHead') {
+    return (
+      <div className={styles.container}>
+        <div className={styles.heroSection}>
+          <div className={styles.heroContent}>
+            <div className={styles.churchIdentity}>
+              <div className={styles.logoWrapper}>
+                {church.logoUrl ? (
+                  <img src={church.logoUrl} alt={church.name} className={styles.logo} />
+                ) : (
+                  <div className={styles.fallbackLogo}>
+                    <Scale size={32} />
+                  </div>
+                )}
+              </div>
+              <div className={styles.titles}>
+                <div className={styles.badge} style={{ background: '#1e3a5f', color: 'white' }}>
+                  <Scale size={12} />
+                  <span>Deacon Board Governance</span>
+                </div>
+                <h1>{church.name}</h1>
+                <p>Church-wide oversight and escalation management.</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => navigate('/chat')}
+              className={styles.settingsBtn}
+              style={{ background: '#1e3a5f' }}
+            >
+              <MessageSquareLock size={18} />
+              Board Channel
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.statsGrid}>
+          <div className={styles.statCard}>
+            <div className={styles.statHeader}>
+              <Users className={styles.statIcon} style={{ color: '#1e3a5f' }} />
+              <span className={styles.statLabel}>Total Workforce</span>
+            </div>
+            <div className={styles.statValue}>{stats?.totalVolunteers ?? 0}</div>
+          </div>
+          
+          <div className={styles.statCard}>
+            <div className={styles.statHeader}>
+              <TrendingUp className={styles.statIcon} style={{ color: '#15803d' }} />
+              <span className={styles.statLabel}>Avg. Attendance</span>
+            </div>
+            <div className={styles.statValue}>{stats?.avgAttendance ?? 0}%</div>
+          </div>
+
+          <div className={styles.statCard}>
+            <div className={styles.statHeader}>
+              <AlertTriangle className={styles.statIcon} style={{ color: '#ef4444' }} />
+              <span className={styles.statLabel}>Pending Escalations</span>
+            </div>
+            <div className={styles.statValue}>{stats?.pendingRequests ?? 0}</div>
+          </div>
+        </div>
+
+        <div className={styles.mainGrid}>
+          <div className={styles.analyticsSection}>
+            <div className={styles.sectionHeader}>
+              <AlertTriangle size={20} className="text-red-500" />
+              <h2>Governance Queue</h2>
+            </div>
+            <EscalationManager />
+          </div>
+
+          <div className={styles.orgSection}>
+            <NetworkSummaryCard stats={{
+              departments: stats?.totalDepartments || 0,
+              subunits: stats?.totalSubunits || 0,
+              volunteers: stats?.totalVolunteers || 0,
+              pendingInvites: stats?.pendingInvites || 0
+            }} />
+          </div>
+
+          <div className={styles.activitySection}>
+            <div className={styles.sectionHeader}>
+              <Sparkles size={20} />
+              <h2>Quick Actions</h2>
+            </div>
+            <div className={styles.activityList}>
+              <div className={styles.activityItem} onClick={() => navigate('/admin')} style={{ cursor: 'pointer' }}>
+                <div className={styles.activityIndicator} style={{ background: '#1e3a5f' }} />
+                <div className={styles.activityContent}>
+                  <p className={styles.activityTitle}>Department Management</p>
+                  <p className={styles.activityMeta}>Assign roles & oversee structure</p>
+                </div>
+                <ChevronRight size={16} />
+              </div>
+              <div className={styles.activityItem} onClick={() => navigate('/reports')} style={{ cursor: 'pointer' }}>
+                <div className={styles.activityIndicator} style={{ background: '#15803d' }} />
+                <div className={styles.activityContent}>
+                  <p className={styles.activityTitle}>Global Reports</p>
+                  <p className={styles.activityMeta}>Full church growth analytics</p>
+                </div>
+                <ChevronRight size={16} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Admin/Leader View
   return (
     <div className={styles.container}>
@@ -204,8 +317,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       </div>
 
       {/* Oversight View - Only for Pastoral Oversight and Super Admins */}
-      {(userRole === 'PastoralOversight' || userRole === 'SuperAdmin') && me?.department && (
-        <OversightDashboardTab department={me.department} />
+      {(userRole === 'PastoralOversight' || userRole === 'SuperAdmin') && me?.departmentId && (
+        <OversightDashboardTab departmentName={me.department || 'Your'} departmentId={me.departmentId} />
       )}
 
       <div className={styles.statsGrid}>
@@ -249,22 +362,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       </div>
 
       <div className={styles.mainGrid}>
-        {/* Analytics Section */}
+        {/* Analytics & Escalations Section */}
         <div className={styles.analyticsSection}>
-          <div className={styles.statCard} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '3rem 2rem' }}>
-            <div style={{ background: '#f3e8ff', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginBottom: '1rem' }}>
-              <TrendingUp size={32} />
+          {stats?.pendingRequests ? (
+            <div className={styles.statCard} style={{ height: '100%', padding: '1.5rem' }}>
+              <div className={styles.sectionHeader} style={{ marginBottom: '1rem' }}>
+                <AlertTriangle size={20} className="text-red-500" />
+                <h2>Governance Queue</h2>
+              </div>
+              <EscalationManager />
             </div>
-            <h3 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>Deep-Dive Analytics</h3>
-            <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.875rem' }}>Access detailed growth trends, export high-fidelity charts, and drill down into service-level check-ins.</p>
-            <button 
-              onClick={() => navigate('/reports')}
-              className={styles.settingsBtn}
-              style={{ background: 'var(--accent)', padding: '0.75rem 1.5rem', borderRadius: '8px', color: 'white', fontWeight: 600 }}
-            >
-              Open Reports Dashboard
-            </button>
-          </div>
+          ) : (
+            <div className={styles.statCard} style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ background: '#f3e8ff', color: '#8b5cf6', padding: '1rem', borderRadius: '50%', marginBottom: '1rem' }}>
+                <TrendingUp size={32} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', color: '#1e293b', marginBottom: '0.5rem' }}>Deep-Dive Analytics</h3>
+              <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.875rem' }}>Access detailed growth trends, export high-fidelity charts, and drill down into service-level check-ins.</p>
+              <button 
+                onClick={() => navigate('/reports')}
+                className={styles.settingsBtn}
+                style={{ background: 'var(--accent)', padding: '0.75rem 1.5rem', borderRadius: '8px', color: 'white', fontWeight: 600 }}
+              >
+                Open Reports Dashboard
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Network Summary Section */}

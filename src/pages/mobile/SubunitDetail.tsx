@@ -12,7 +12,7 @@ export const SubunitDetail: React.FC = () => {
   const { subunitId } = useParams();
   const navigate = useNavigate();
   
-  const subunit = useQuery(api.subunits.getSubunit, { subunitId: subunitId as any });
+  const subunit = useQuery(api.subunits.getSubunit, { id: subunitId as any });
   const nextService = useQuery(api.services.getNextService);
   const liveAttendance = useQuery(api.attendance.getServiceAttendance, 
     nextService ? { serviceId: nextService._id } : "skip"

@@ -77,7 +77,7 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 - Approve or reject escalations from Pastoral Oversight
 - Church-wide KPI and health visibility
 - Can assign PastoralOversight within their assigned department
-- Access to the private Deacon Board channel (SuperAdmin excluded unless also DeaconHead)
+- Access to the private Deacon Board channel (SuperAdmin included)
 - Deacon Board messages appear in navy blue and are automatically pinned
 - Dedicated governance dashboard: escalation queue, dept health, probation summary
 
@@ -127,7 +127,7 @@ Katarly is a modern, mobile-first Progressive Web App (PWA) built specifically f
 ### 4.9 Chat & Messaging
 
 - Channels: Department, Subunit, Church-wide Announcements
-- **Private Deacon Board Channel**: accessible only to DeaconHead role; SuperAdmin excluded unless also DeaconHead
+- **Private Deacon Board Channel**: accessible to DeaconHead and SuperAdmin roles
 - Real-time with Convex subscriptions
 - File uploads (images, PDF, short video ≤50 MB) stored in Convex File Storage with previews
 - Pastoral Oversight messages appear in green with pin option

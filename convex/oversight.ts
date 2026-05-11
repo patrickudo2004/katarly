@@ -57,28 +57,40 @@ export const escalateItem = mutation({
       throw new Error("Unauthorized to escalate items");
     }
 
-    // In a real app, we'd update the specific item status or add an escalation record
-    // For now, we'll send a notification to relevant parties
     const churchId = user.churchId!;
-    
-    // Notify SuperAdmin
-    const superAdmin = await ctx.db
+
+    // Create a formal escalation record
+    await ctx.db.insert("escalations", {
+      churchId,
+      initiatorId: user._id,
+      type: args.type,
+      itemId: args.itemId,
+      note: args.note,
+      status: "pending",
+      createdAt: Date.now(),
+    });
+
+    // Notify SuperAdmin (as a backup) and relevant DeaconHeads
+    const admins = await ctx.db
       .query("users")
       .withIndex("by_church", (q) => q.eq("churchId", churchId))
-      .filter((q) => q.eq(q.field("role"), "SuperAdmin"))
-      .first();
+      .filter((q) => q.or(
+        q.eq(q.field("role"), "SuperAdmin"),
+        q.eq(q.field("role"), "DeaconHead")
+      ))
+      .collect();
 
-    if (superAdmin) {
+    for (const admin of admins) {
       await ctx.db.insert("notifications", {
-        userId: superAdmin._id,
-        title: `Escalation: ${args.type.toUpperCase()}`,
+        userId: admin._id,
+        title: `New Escalation: ${args.type.toUpperCase()}`,
         message: `Pastoral Oversight ${user.name} has escalated a ${args.type} item: ${args.note}`,
         type: "escalation",
         read: false,
       });
     }
 
-    // If it's probation, we might extend it automatically
+    // If it's probation, we might extend it automatically as an interim measure
     if (args.type === "probation") {
       const probationId = ctx.db.normalizeId("probationPeriods", args.itemId);
       if (probationId) {
@@ -101,15 +113,15 @@ export const postOversightMessage = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
-    if (user.role !== "PastoralOversight") {
-      throw new Error("Only Pastoral Oversight can post oversight messages");
+    if (user.role !== "PastoralOversight" && user.role !== "SuperAdmin") {
+      throw new Error("Only Pastoral Oversight and SuperAdmins can post oversight messages");
     }
 
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    // Must be in their department
-    if (channel.departmentId !== user.departmentId) {
+    // Must be in their department (SuperAdmin bypasses this)
+    if (user.role !== "SuperAdmin" && channel.departmentId !== user.departmentId) {
       throw new Error("Unauthorized to post in this department's channels");
     }
 

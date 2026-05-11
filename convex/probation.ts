@@ -117,3 +117,127 @@ export const listProbationers = query({
     }));
   },
 });
+
+export const logKPIForUser = mutation({
+  args: {
+    userId: v.id("users"),
+    score: v.union(v.literal("Excellent"), v.literal("Good"), v.literal("Needs Improvement"), v.literal("Disapprove")),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const loggerId = await auth.getUserId(ctx);
+    if (!loggerId) throw new Error("Not authenticated");
+    const logger = await ctx.db.get(loggerId);
+    if (!logger) throw new Error("Logger not found");
+
+    // Check if user is on probation
+    const probation = await ctx.db
+      .query("probationPeriods")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .first();
+
+    if (!probation) {
+      throw new Error("User is not currently on an active probation period");
+    }
+
+    // Insert KPI log
+    await ctx.db.insert("kpiLogs", {
+      probationId: probation._id,
+      userId: args.userId,
+      loggerId,
+      date: Date.now(),
+      score: args.score,
+      note: args.note,
+    });
+
+    // If score is Disapprove, automatically extend probation
+    if (args.score === "Disapprove") {
+      await ctx.db.patch(probation._id, {
+        status: "extended",
+        endDate: probation.endDate + (30 * 24 * 60 * 60 * 1000), // Extend by 30 days
+      });
+    }
+  },
+});
+
+export const logKPI = mutation({
+  args: {
+    probationId: v.id("probationPeriods"),
+    score: v.union(v.literal("Excellent"), v.literal("Good"), v.literal("Needs Improvement"), v.literal("Disapprove")),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const loggerId = await auth.getUserId(ctx);
+    if (!loggerId) throw new Error("Not authenticated");
+
+    const probation = await ctx.db.get(args.probationId);
+    if (!probation) throw new Error("Probation period not found");
+
+    await ctx.db.insert("kpiLogs", {
+      probationId: args.probationId,
+      userId: probation.userId,
+      loggerId,
+      date: Date.now(),
+      score: args.score,
+      note: args.note,
+    });
+
+    if (args.score === "Disapprove") {
+      await ctx.db.patch(args.probationId, {
+        status: "extended",
+        endDate: probation.endDate + (30 * 24 * 60 * 60 * 1000),
+      });
+    }
+  },
+});
+
+export const getProbationReport = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const probation = await ctx.db
+      .query("probationPeriods")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.neq(q.field("status"), "ended"))
+      .first();
+
+    if (!probation) return null;
+
+    const logs = await ctx.db
+      .query("kpiLogs")
+      .withIndex("by_probation", (q) => q.eq("probationId", probation._id))
+      .order("desc")
+      .collect();
+
+    // Calculate stats
+    const scoreMap: Record<string, number> = {
+      "Excellent": 4,
+      "Good": 3,
+      "Needs Improvement": 2,
+      "Disapprove": 1,
+    };
+
+    const totalScore = logs.reduce((sum, log) => sum + (scoreMap[log.score] || 0), 0);
+    const avgScore = logs.length > 0 ? totalScore / logs.length : 0;
+
+    // Attendance rate since probation start
+    const attendance = await ctx.db
+      .query("attendance")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.gte(q.field("timestamp"), probation.startDate))
+      .collect();
+
+    const presentCount = attendance.filter(a => a.status === "Present").length;
+    const attendanceRate = attendance.length > 0 ? presentCount / attendance.length : 0;
+
+    return {
+      probation,
+      logs,
+      stats: {
+        attendanceRate,
+        avgScore,
+        totalLogs: logs.length,
+      },
+    };
+  },
+});

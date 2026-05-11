@@ -25,6 +25,25 @@ export const getSubunits = query({
   },
 });
 
+export const getSubunit = query({
+  args: { id: v.id("subunits") },
+  handler: async (ctx, args) => {
+    const subunit = await ctx.db.get(args.id);
+    if (!subunit) return null;
+
+    const dept = await ctx.db.get(subunit.departmentId);
+    const lead = subunit.leadId ? await ctx.db.get(subunit.leadId) : null;
+    const assistant = subunit.assistantId ? await ctx.db.get(subunit.assistantId) : null;
+
+    return {
+      ...subunit,
+      departmentName: dept?.name || "Unknown",
+      leadName: lead?.name || "None",
+      assistantName: assistant?.name || "None",
+    };
+  },
+});
+
 export const createSubunit = mutation({
   args: {
     name: v.string(),

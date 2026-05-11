@@ -70,7 +70,7 @@ export const Rota: React.FC = () => {
   // Queries
   const rotaEntries = useQuery(api.rotas.getRotaForRange, { startDate, endDate });
   const coverageStats = useQuery(api.rotas.getCoverageStats, { year: getYear(currentDate) });
-  const allUsers = useQuery(api.users.getVisibleUsers);
+  const allUsers = useQuery(api.users.getVisibleUsers, {});
   const services = useQuery(api.services.getChurchServices);
   const subunits = useQuery(api.subunits.getSubunits);
   const departments = useQuery(api.departments.getDepartments);
@@ -132,6 +132,7 @@ export const Rota: React.FC = () => {
     e.preventDefault();
     if (!selectedDay) return;
     try {
+      const [hours, minutes] = newService.time.split(':').map(Number);
       const [endHours, endMinutes] = newService.endTime.split(':').map(Number);
       const startTime = new Date(selectedDay);
       startTime.setHours(hours, minutes, 0, 0);

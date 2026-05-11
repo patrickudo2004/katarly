@@ -56,7 +56,8 @@ export default defineSchema({
     })),
   }).index("email", ["email"])
     .index("by_church", ["churchId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_dept", ["churchId", "departmentId"]),
   
   probationRemarks: defineTable({
     userId: v.id("users"),
@@ -331,4 +332,17 @@ export default defineSchema({
   }).index("by_user", ["userId"])
     .index("by_church", ["churchId"])
     .index("by_church_status", ["churchId", "status"]),
+
+  escalations: defineTable({
+    churchId: v.id("churches"),
+    initiatorId: v.id("users"), // Pastoral Oversight
+    type: v.union(v.literal("probation"), v.literal("borrow"), v.literal("timeOff"), v.literal("other")),
+    itemId: v.optional(v.string()), // Reference to original record ID
+    note: v.string(),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined")),
+    resolvedBy: v.optional(v.id("users")), // DeaconHead
+    resolvedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_church_status", ["churchId", "status"])
+    .index("by_initiator", ["initiatorId"]),
 });
