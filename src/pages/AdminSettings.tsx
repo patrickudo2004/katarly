@@ -18,6 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AdminNfcManager } from '../components/AdminNfcManager';
 import styles from './AdminSettings.module.css';
 
 declare global {
@@ -33,7 +34,7 @@ export const AdminSettings: React.FC = () => {
   const generateUploadUrl = useMutation(api.churches.generateLogoUploadUrl);
   const updateLogo = useMutation(api.churches.updateLogo);
   
-  const [activeTab, setActiveTab] = useState<'general' | 'geofence' | 'rules'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'geofence' | 'rules' | 'nfc'>('general');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -247,6 +248,12 @@ export const AdminSettings: React.FC = () => {
           onClick={() => setActiveTab('rules')}
         >
           <ShieldCheck size={18} /> Operational Rules
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'nfc' ? styles.activeTab : ''}`}
+          onClick={() => setActiveTab('nfc')}
+        >
+          <Layers size={18} /> NFC & QR Toolkit
         </button>
       </nav>
 
@@ -495,6 +502,10 @@ export const AdminSettings: React.FC = () => {
               </label>
             </section>
           </div>
+        )}
+
+        {activeTab === 'nfc' && (
+          <AdminNfcManager />
         )}
       </main>
     </div>

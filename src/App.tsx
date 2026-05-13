@@ -27,6 +27,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { DebugAuth } from './pages/DebugAuth';
 import { NetworkPage } from './pages/NetworkPage';
 import { AcceptInvite } from './pages/AcceptInvite';
+import { NfcGateway } from './pages/NfcGateway';
 import { Layout } from './components/Layout';
 import { MobileLayout } from './layouts/MobileLayout';
 import { useMediaQuery } from './hooks/useMediaQuery';
@@ -169,6 +170,7 @@ function AppContent() {
       } />
       <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/tap" element={<NfcGateway />} />
       <Route path="/debug-auth" element={<DebugAuth />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

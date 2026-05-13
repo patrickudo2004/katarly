@@ -173,6 +173,7 @@ export const updateExtendedSettings = mutation({
     defaultQrType: v.optional(v.union(v.literal("Unique"), v.literal("Generic"))),
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),
+    nfcAutoCheckinEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);

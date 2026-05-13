@@ -87,6 +87,8 @@ export default defineSchema({
       requireLeadApprovalForSwaps: v.optional(v.boolean()),
       defaultQrType: v.optional(v.union(v.literal("Unique"), v.literal("Generic"))),
       qrCodeSecret: v.optional(v.string()), // Church-wide secret for daily passes
+      nfcSecret: v.optional(v.string()), // 4-byte hex for tag password protection
+      nfcAutoCheckinEnabled: v.optional(v.boolean()),
       lateThresholdMinutes: v.optional(v.number()),
       autoCheckoutHours: v.optional(v.number()),
       burnoutLimitShiftsPerMonth: v.optional(v.number()),
