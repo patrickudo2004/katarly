@@ -49,7 +49,7 @@ export const SubunitDetail: React.FC = () => {
           </div>
           <div className={styles.card + ' ' + styles.statCard}>
             <span className={styles.statValue} style={{ color: '#ef4444' }}>
-              {nextService.name ? 'Live' : 'No Service'}
+              {nextService?.name ? 'Live' : 'No Service'}
             </span>
             <span className={styles.statLabel}>Service Status</span>
           </div>
@@ -59,9 +59,11 @@ export const SubunitDetail: React.FC = () => {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Attendance Roster</h2>
-          <div className={styles.badge} style={{ background: '#f0f9ff', color: '#0369a1' }}>
-            {nextService.name}
-          </div>
+          {nextService?.name && (
+            <div className={styles.badge} style={{ background: '#f0f9ff', color: '#0369a1' }}>
+              {nextService.name}
+            </div>
+          )}
         </div>
         
         <div className={styles.list}>

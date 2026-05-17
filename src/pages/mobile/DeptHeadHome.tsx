@@ -19,7 +19,12 @@ export const DeptHeadHome: React.FC = () => {
   );
 
   // Loading state
-  if (me === undefined || (me?.churchId && (subunits === undefined || pendingVerifications === undefined))) {
+  const isMeLoading = me === undefined;
+  const isSubunitsLoading = subunits === undefined;
+  const isChurchLoading = church === undefined;
+  const isPendingVerificationsLoading = church !== undefined && church !== null && pendingVerifications === undefined;
+
+  if (isMeLoading || (me?.churchId && (isSubunitsLoading || isChurchLoading || isPendingVerificationsLoading))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />

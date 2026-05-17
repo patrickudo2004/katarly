@@ -24,8 +24,14 @@ export const SubunitLeadHome: React.FC = () => {
   );
 
   // Loading state
-  // Only block if 'me' is loading. Other queries might be skipped (undefined) if church data is missing.
-  if (me === undefined || (me?.churchId && (nextService === undefined || pendingVerifications === undefined || liveAttendance === undefined))) {
+  const isMeLoading = me === undefined;
+  const isNextServiceLoading = nextService === undefined;
+  const isSubunitsLoading = subunits === undefined;
+  const isChurchLoading = church === undefined;
+  const isPendingVerificationsLoading = church !== undefined && church !== null && pendingVerifications === undefined;
+  const isLiveAttendanceLoading = nextService !== undefined && nextService !== null && liveAttendance === undefined;
+
+  if (isMeLoading || (me?.churchId && (isNextServiceLoading || isSubunitsLoading || isChurchLoading || isPendingVerificationsLoading || isLiveAttendanceLoading))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
