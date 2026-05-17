@@ -30,8 +30,9 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({ user, church, 
   const myStats = useQuery(api.recognition.getUserStats, { userId: user._id });
   const pendingVerifications = useQuery(api.attendance.getPendingVerifications, { churchId: church._id });
   
-  const nextShift = myShifts?.filter(s => s.service && s.service.startTime > Date.now())
-    .sort((a, b) => a.service.startTime - b.service.startTime)[0];
+  const nextShift = myShifts
+    ?.filter(s => s.service && s.service.startTime > Date.now())
+    .sort((a, b) => (a.service?.startTime || 0) - (b.service?.startTime || 0))[0];
 
   const role = user.role;
 

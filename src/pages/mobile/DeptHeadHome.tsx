@@ -19,7 +19,7 @@ export const DeptHeadHome: React.FC = () => {
   );
 
   // Loading state
-  if (!me || subunits === undefined || pendingVerifications === undefined) {
+  if (me === undefined || (me?.churchId && (subunits === undefined || pendingVerifications === undefined))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -27,12 +27,16 @@ export const DeptHeadHome: React.FC = () => {
     );
   }
 
+  // Safe checks for arrays
+  const safeSubunits = subunits || [];
+  const safePendingVerifications = pendingVerifications || [];
+
   // Filter subunits for this department
-  const mySubunits = subunits.filter(s => s.departmentId === me.departmentId);
+  const mySubunits = safeSubunits.filter(s => s.departmentId === me.departmentId);
 
   return (
     <div className={styles.page}>
-      {pendingVerifications.length > 0 && (
+      {safePendingVerifications.length > 0 && (
         <div 
           className={styles.card} 
           style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1rem' }}
@@ -41,7 +45,7 @@ export const DeptHeadHome: React.FC = () => {
           <div className={styles.sectionHeader}>
             <h3 style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={20} />
-              {pendingVerifications.length} Verification {pendingVerifications.length === 1 ? 'Request' : 'Requests'}
+              {safePendingVerifications.length} Verification {safePendingVerifications.length === 1 ? 'Request' : 'Requests'}
             </h3>
             <ChevronRight size={20} color="#8b5cf6" />
           </div>
@@ -129,7 +133,7 @@ export const DeptHeadHome: React.FC = () => {
 
         {activeTab === 'Approvals' && (
           <div className={styles.list}>
-            {pendingVerifications.length > 0 && (
+            {safePendingVerifications.length > 0 && (
               <div 
                 className={styles.listItem} 
                 onClick={() => navigate('/admin')}
@@ -140,7 +144,7 @@ export const DeptHeadHome: React.FC = () => {
                 </div>
                 <div className={styles.itemInfo}>
                   <p className={styles.itemTitle}>Manual Verifications</p>
-                  <p className={styles.itemSubtitle}>{pendingVerifications.length} pending geofence overrides</p>
+                  <p className={styles.itemSubtitle}>{safePendingVerifications.length} pending geofence overrides</p>
                 </div>
                 <ChevronRight size={16} color="#8b5cf6" />
               </div>

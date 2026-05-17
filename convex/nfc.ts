@@ -20,7 +20,7 @@ export const getNfcConfig = query({
 
     // Only management can see the full config
     const isManagement = ["SuperAdmin", "DeaconHead", "DepartmentHead", "PastoralOversight"].includes(user.role || "");
-    if (!isManagement) throw new Error("Unauthorized");
+    if (!isManagement) return null;
 
     return {
       churchId: church._id,

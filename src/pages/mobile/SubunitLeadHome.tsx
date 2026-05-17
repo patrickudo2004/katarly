@@ -24,7 +24,8 @@ export const SubunitLeadHome: React.FC = () => {
   );
 
   // Loading state
-  if (me === undefined || nextService === undefined || pendingVerifications === undefined || liveAttendance === undefined) {
+  // Only block if 'me' is loading. Other queries might be skipped (undefined) if church data is missing.
+  if (me === undefined || (me?.churchId && (nextService === undefined || pendingVerifications === undefined || liveAttendance === undefined))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -32,7 +33,10 @@ export const SubunitLeadHome: React.FC = () => {
     );
   }
 
-  const presentCount = liveAttendance?.length || 0;
+  // Safe checks for arrays
+  const safePendingVerifications = pendingVerifications || [];
+  const safeLiveAttendance = liveAttendance || [];
+  const presentCount = safeLiveAttendance.length;
 
   const formatTimeSafe = (timestamp: number | undefined) => {
     if (!timestamp) return 'TBD';
@@ -45,7 +49,7 @@ export const SubunitLeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      {pendingVerifications.length > 0 && (
+      {safePendingVerifications.length > 0 && (
         <div 
           className={styles.card} 
           style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1.5rem' }}
@@ -54,7 +58,7 @@ export const SubunitLeadHome: React.FC = () => {
           <div className={styles.sectionHeader}>
             <h3 style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={20} />
-              {pendingVerifications.length} Verification {pendingVerifications.length === 1 ? 'Request' : 'Requests'}
+              {safePendingVerifications.length} Verification {safePendingVerifications.length === 1 ? 'Request' : 'Requests'}
             </h3>
             <ChevronRight size={20} color="#8b5cf6" />
           </div>
@@ -79,12 +83,12 @@ export const SubunitLeadHome: React.FC = () => {
           {nextService && <div className={styles.badge} style={{ background: '#fef2f2', color: '#ef4444' }}>Live</div>}
         </div>
         <div className={styles.list}>
-          {!liveAttendance || liveAttendance.length === 0 ? (
+          {safeLiveAttendance.length === 0 ? (
             <div className={styles.emptyState}>
               No one has checked in yet.
             </div>
           ) : (
-            liveAttendance.map((record: any) => (
+            safeLiveAttendance.map((record: any) => (
               <div key={record._id} className={styles.listItem}>
                 <div className={styles.avatar} style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
                   {record.user?.name?.[0] || '?'}

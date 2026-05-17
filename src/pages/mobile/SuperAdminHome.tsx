@@ -8,10 +8,11 @@ import styles from './mobile.module.css';
 
 export const SuperAdminHome: React.FC = () => {
   const navigate = useNavigate();
+  const me = useQuery(api.users.me);
   const stats = useQuery(api.churches.getChurchStats);
   const subunits = useQuery(api.subunits.getSubunits);
 
-  if (stats === undefined || subunits === undefined) {
+  if (me === undefined || (me?.churchId && (stats === undefined || subunits === undefined))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -61,7 +62,7 @@ export const SuperAdminHome: React.FC = () => {
           <button className={styles.linkBtn} onClick={() => navigate('/admin')}>Manage</button>
         </div>
         <div className={styles.list}>
-          {subunits.length === 0 ? (
+          {(!subunits || subunits.length === 0) ? (
             <div className={styles.emptyState}>
               No departments created yet.
             </div>

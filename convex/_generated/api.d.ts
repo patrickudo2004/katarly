@@ -18,6 +18,7 @@ import type * as debug from "../debug.js";
 import type * as departments from "../departments.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
+import type * as nfc from "../nfc.js";
 import type * as notifications from "../notifications.js";
 import type * as oversight from "../oversight.js";
 import type * as probation from "../probation.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   departments: typeof departments;
   http: typeof http;
   invites: typeof invites;
+  nfc: typeof nfc;
   notifications: typeof notifications;
   oversight: typeof oversight;
   probation: typeof probation;
