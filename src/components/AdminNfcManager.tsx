@@ -25,6 +25,8 @@ export const AdminNfcManager: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [nfcSupported, setNfcSupported] = useState<boolean | null>(null);
 
+  const me = useQuery(api.users.me);
+
   useEffect(() => {
     // Check if Web NFC is supported
     if ('NDEFReader' in window) {
@@ -34,13 +36,27 @@ export const AdminNfcManager: React.FC = () => {
     }
   }, []);
 
-  if (!nfcConfig) {
+  if (!nfcConfig || !nfcConfig.nfcSecret) {
     return (
       <div className={styles.container}>
         <div className={styles.section}>
-          <button className={styles.writeBtn} onClick={() => initializeNfc()}>
-            Initialize NFC Settings
-          </button>
+          <div className={styles.header} style={{ marginBottom: '1rem' }}>
+            <Nfc className={styles.icon} size={24} />
+            <h3>NFC Settings Not Initialized</h3>
+          </div>
+          <p className={styles.subText} style={{ marginBottom: '1.5rem' }}>
+            To start using NFC check-ins, your church must first generate a secure secret key. 
+            This key is used to password-protect your physical NFC tags and prevent unauthorized overwriting.
+          </p>
+          {me?.role === "SuperAdmin" ? (
+            <button className={styles.writeBtn} onClick={() => initializeNfc()}>
+              Initialize NFC Settings
+            </button>
+          ) : (
+            <p style={{ color: '#ef4444', fontWeight: 500 }}>
+              Please ask a Super Admin to initialize the NFC settings for your church.
+            </p>
+          )}
         </div>
       </div>
     );
