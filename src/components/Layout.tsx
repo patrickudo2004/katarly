@@ -65,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     ] : []),
     { label: 'Admin', icon: <Shield size={20} />, path: '/admin', roles: ['SuperAdmin', 'DeaconHead'] },
     { label: 'Church Settings', icon: <Settings size={20} />, path: '/admin/settings', roles: ['SuperAdmin'] },
-    { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
+    { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'PastoralOversight', 'SubunitLead', 'SubunitAssistant'] },
     { label: 'Services', icon: <Calendar size={20} />, path: '/services', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Attendance', icon: <UserCheck size={20} />, path: '/attendance', roles: allRoles },
     { label: 'Rota', icon: <Calendar size={20} />, path: '/rota', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead', 'Volunteer'] },

@@ -312,6 +312,7 @@ export const getAdvancedAnalytics = query({
   args: {
     rangeDays: v.number(),
     departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    subunitId: v.optional(v.union(v.id("subunits"), v.null())),
     showComparison: v.boolean(),
     showForecast: v.boolean(),
   },
@@ -322,6 +323,40 @@ export const getAdvancedAnalytics = query({
     if (!user?.churchId) return null;
 
     const churchId = user.churchId;
+    const userRole = user.role || "";
+
+    // Define role categories
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+    const allowedRoles = ["SuperAdmin", ...deptRoles, ...subunitRoles];
+
+    if (!allowedRoles.includes(userRole)) {
+      throw new Error("Unauthorized: You do not have permission to view reports.");
+    }
+
+    let finalDeptId: string | null = args.departmentId || null;
+    let finalSubunitId: string | null = args.subunitId || null;
+
+    if (deptRoles.includes(userRole)) {
+      if (!user.departmentId) {
+        throw new Error("Configuration Error: Your account is not associated with a department.");
+      }
+      finalDeptId = user.departmentId;
+      // Scoped role can drill down into their own subunits, but verify department match
+      if (finalSubunitId) {
+        const subunit = await ctx.db.get(finalSubunitId as any);
+        if (!subunit || subunit.departmentId !== finalDeptId) {
+          finalSubunitId = null;
+        }
+      }
+    } else if (subunitRoles.includes(userRole)) {
+      if (!user.subunitId) {
+        throw new Error("Configuration Error: Your account is not associated with a subunit.");
+      }
+      finalSubunitId = user.subunitId;
+      finalDeptId = user.departmentId || null;
+    }
+
     const now = Date.now();
     const startTime = now - (args.rangeDays * 24 * 60 * 60 * 1000);
     
@@ -352,15 +387,11 @@ export const getAdvancedAnalytics = query({
           .withIndex("by_service", (q) => q.eq("serviceId", s._id))
           .collect();
         
-        // Filter by dept if needed
         let count = att.length;
-        if (args.departmentId) {
-          const deptUsers = await ctx.db
-            .query("users")
-            .withIndex("by_dept", (q) => q.eq("churchId", churchId).eq("departmentId", args.departmentId as any))
-            .collect();
-          const deptUserIds = new Set(deptUsers.map(u => u._id));
-          count = att.filter(a => deptUserIds.has(a.userId)).length;
+        if (finalSubunitId) {
+          count = att.filter(a => a.subunitId === finalSubunitId).length;
+        } else if (finalDeptId) {
+          count = att.filter(a => a.departmentId === finalDeptId).length;
         }
 
         comparisonData.push({ time: s.startTime + yearMs, count });
@@ -380,16 +411,12 @@ export const getAdvancedAnalytics = query({
       let present = att.filter(a => a.status === "Present").length;
       let late = att.filter(a => a.status === "Late").length;
       
-      // Dept filtering
-      if (args.departmentId) {
-        const deptUsers = await ctx.db
-          .query("users")
-          .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
-          .filter(q => q.eq(q.field("departmentId"), args.departmentId as any))
-          .collect();
-        const deptUserIds = new Set(deptUsers.map(u => u._id));
-        present = att.filter(a => a.status === "Present" && deptUserIds.has(a.userId)).length;
-        late = att.filter(a => a.status === "Late" && deptUserIds.has(a.userId)).length;
+      if (finalSubunitId) {
+        present = att.filter(a => a.status === "Present" && a.subunitId === finalSubunitId).length;
+        late = att.filter(a => a.status === "Late" && a.subunitId === finalSubunitId).length;
+      } else if (finalDeptId) {
+        present = att.filter(a => a.status === "Present" && a.departmentId === finalDeptId).length;
+        late = att.filter(a => a.status === "Late" && a.departmentId === finalDeptId).length;
       }
 
       const total = present + late;
@@ -412,11 +439,13 @@ export const getAdvancedAnalytics = query({
       .withIndex("by_church", q => q.eq("churchId", churchId))
       .collect();
     
-    const targetUsers = args.departmentId 
-      ? allChurchUsers.filter(u => u.departmentId === args.departmentId)
-      : allChurchUsers;
+    const targetUsers = finalSubunitId
+      ? allChurchUsers.filter(u => u.subunitId === finalSubunitId)
+      : finalDeptId
+        ? allChurchUsers.filter(u => u.departmentId === finalDeptId)
+        : allChurchUsers;
 
-    const consistencyScore = services.length > 0 
+    const consistencyScore = services.length > 0 && targetUsers.length > 0
       ? Math.round((totalAttendancePoints / (services.length * targetUsers.length)) * 100)
       : 0;
 
@@ -429,7 +458,14 @@ export const getAdvancedAnalytics = query({
     const lateAttendees = new Set();
 
     for (const service of services) {
-      const att = await ctx.db.query("attendance").withIndex("by_service", q => q.eq("serviceId", service._id)).collect();
+      let att = await ctx.db.query("attendance").withIndex("by_service", q => q.eq("serviceId", service._id)).collect();
+      
+      if (finalSubunitId) {
+        att = att.filter(a => a.subunitId === finalSubunitId);
+      } else if (finalDeptId) {
+        att = att.filter(a => a.departmentId === finalDeptId);
+      }
+
       if (service.startTime < startWindow) att.forEach(a => earlyAttendees.add(a.userId));
       if (service.startTime > endWindow) att.forEach(a => lateAttendees.add(a.userId));
     }

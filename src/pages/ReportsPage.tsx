@@ -29,21 +29,42 @@ export const ReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'trends' | 'services'>('trends');
   const [rangeDays, setRangeDays] = useState(28); // 4 weeks default
   const [deptId, setDeptId] = useState<string | null>(null);
+  const [subunitId, setSubunitId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   const me = useQuery(api.users.me);
+
+  const isSuperAdmin = me?.role === 'SuperAdmin';
+  const isDeptLevel = ['DeaconHead', 'PastoralOversight', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary'].includes(me?.role || '');
+  const isSubunitLevel = ['SubunitLead', 'SubunitAssistant'].includes(me?.role || '');
+
+  // Automatically lock/initialize state based on role
+  React.useEffect(() => {
+    if (me) {
+      if (isDeptLevel) {
+        setDeptId(me.departmentId || null);
+        setSubunitId(null);
+      } else if (isSubunitLevel) {
+        setDeptId(me.departmentId || null);
+        setSubunitId(me.subunitId || null);
+      }
+    }
+  }, [me, isDeptLevel, isSubunitLevel]);
+
   const departments = useQuery(api.departments.getDepartments);
   const services = useQuery(api.services.getRecentServices, { limit: 15 }) || [];
   
   const analytics = useQuery(api.churches.getAdvancedAnalytics, {
     rangeDays,
     departmentId: deptId as any,
+    subunitId: subunitId as any,
     showComparison: true,
     showForecast: true
   });
 
   const rawAttendance = useQuery(api.attendance.getHistoricalAttendance, {
     departmentId: deptId as any,
+    subunitId: subunitId as any,
     serviceId: selectedServiceId as any,
     limit: 500
   });
@@ -135,13 +156,22 @@ export const ReportsPage: React.FC = () => {
         </div>
         
         <div className={styles.headerControls}>
-          <div className={styles.filterGroup}>
-            <Filter size={16} />
-            <select value={deptId || ''} onChange={e => setDeptId(e.target.value || null)}>
-              <option value="">All Departments</option>
-              {departments?.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-            </select>
-          </div>
+          {isSuperAdmin ? (
+            <div className={styles.filterGroup}>
+              <Filter size={16} />
+              <select value={deptId || ''} onChange={e => { setDeptId(e.target.value || null); setSubunitId(null); }}>
+                <option value="">All Departments</option>
+                {departments?.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div className={styles.filterGroup} style={{ opacity: 0.85 }}>
+              <Filter size={16} />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Scoped: {isSubunitLevel ? 'Subunit' : 'Department'}
+              </span>
+            </div>
+          )}
           
           <div className={styles.exportActions}>
             <button onClick={exportAsImage} title="Export PNG" className={styles.exportBtn}><ImageIcon size={18} /> PNG</button>

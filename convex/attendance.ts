@@ -399,14 +399,27 @@ export const getAttendanceInsights = query({
     if (args.serviceId) query = query.filter((q) => q.eq(q.field("serviceId"), args.serviceId));
 
     // Role-based Scoping + Manual Filtering
-    if (user.role === "SuperAdmin") {
+    const userRole = user.role || "";
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+
+    if (userRole === "SuperAdmin") {
       if (args.departmentId) query = query.filter(q => q.eq(q.field("departmentId"), args.departmentId));
       if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
-    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead") {
+    } else if (deptRoles.includes(userRole)) {
       query = query.filter(q => q.eq(q.field("departmentId"), user.departmentId));
-      if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
-    } else if (user.role === "SubunitLead") {
+      if (args.subunitId) {
+        const subunit = await ctx.db.get(args.subunitId as any);
+        if (subunit && subunit.departmentId === user.departmentId) {
+          query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
+        } else {
+          query = query.filter(q => q.eq(q.field("subunitId"), "unauthorized_subunit" as any));
+        }
+      }
+    } else if (subunitRoles.includes(userRole)) {
       query = query.filter(q => q.eq(q.field("subunitId"), user.subunitId));
+    } else {
+      throw new Error("Unauthorized");
     }
 
     const records = await query.collect();
@@ -435,24 +448,41 @@ export const getHistoricalAttendance = query({
     const user = await ctx.db.get(userId);
     if (!user) return [];
 
+    const userRole = user.role || "";
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+
+    let finalDeptId: string | null = args.departmentId || null;
+    let finalSubunitId: string | null = args.subunitId || null;
+
+    if (userRole !== "SuperAdmin") {
+      if (deptRoles.includes(userRole)) {
+        if (!user.departmentId) return [];
+        finalDeptId = user.departmentId;
+        // Verify subunit belongs to their department
+        if (finalSubunitId) {
+          const subunit = await ctx.db.get(finalSubunitId as any);
+          if (!subunit || subunit.departmentId !== finalDeptId) {
+            finalSubunitId = null;
+          }
+        }
+      } else if (subunitRoles.includes(userRole)) {
+        if (!user.subunitId) return [];
+        finalSubunitId = user.subunitId;
+        finalDeptId = user.departmentId || null;
+      } else {
+        return [];
+      }
+    }
+
     let query = ctx.db
       .query("attendance")
       .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
       .order("desc");
 
-    if (user.role !== "SuperAdmin") {
-      if (user.departmentId) {
-        query = query.filter(q => q.eq(q.field("departmentId"), user.departmentId));
-      }
-      if (user.subunitId) {
-        query = query.filter(q => q.eq(q.field("subunitId"), user.subunitId));
-      }
-    }
-
-    // Apply specific filters from args
+    if (finalDeptId) query = query.filter(q => q.eq(q.field("departmentId"), finalDeptId));
+    if (finalSubunitId) query = query.filter(q => q.eq(q.field("subunitId"), finalSubunitId));
     if (args.serviceId) query = query.filter(q => q.eq(q.field("serviceId"), args.serviceId));
-    if (args.departmentId) query = query.filter(q => q.eq(q.field("departmentId"), args.departmentId));
-    if (args.subunitId) query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
 
     const records = await query.take(args.limit || 100);
 
