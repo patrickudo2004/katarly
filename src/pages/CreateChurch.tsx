@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Church, MapPin, Globe, Loader2, Check } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useAuthActions } from "@convex-dev/auth/react";
+import { useNavigate } from 'react-router-dom';
 import styles from './CreateChurch.module.css';
 
 export const CreateChurch: React.FC = () => {
+  const { signOut } = useAuthActions();
+  const navigate = useNavigate();
+  const me = useQuery(api.users.me);
   const createChurch = useMutation(api.churches.createChurch);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   
@@ -100,6 +105,15 @@ export const CreateChurch: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    }
+  };
+
   if (isJoining) {
     return (
       <div className={styles.container}>
@@ -125,7 +139,7 @@ export const CreateChurch: React.FC = () => {
             <Church size={32} />
           </div>
           <h1>Create your church</h1>
-          <p>Set up your ServeSync tenant in seconds.</p>
+          <p>Set up your Katarly tenant in seconds.</p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -146,7 +160,7 @@ export const CreateChurch: React.FC = () => {
           <div className={styles.field}>
             <label>Church URL</label>
             <div className={styles.slugInput}>
-              <span>servesync.app/</span>
+              <span>katarly.app/</span>
               <input 
                 type="text" 
                 value={slug}
@@ -184,6 +198,21 @@ export const CreateChurch: React.FC = () => {
             {isSubmitting ? <Loader2 className={styles.spinner} /> : "Create Church"}
           </button>
         </form>
+
+        {me && (
+          <div className={styles.switchAccountZone}>
+            <span className={styles.loggedInAs}>
+              Signed in as <strong>{me.email}</strong>
+            </span>
+            <button 
+              type="button" 
+              onClick={handleSignOut} 
+              className={styles.signOutBtn}
+            >
+              Sign Out & Switch Account
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
