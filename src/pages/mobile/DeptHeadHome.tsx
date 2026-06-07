@@ -22,9 +22,8 @@ export const DeptHeadHome: React.FC = () => {
   const isMeLoading = me === undefined;
   const isSubunitsLoading = subunits === undefined;
   const isChurchLoading = church === undefined;
-  const isPendingVerificationsLoading = church !== undefined && church !== null && pendingVerifications === undefined;
 
-  if (isMeLoading || (me?.churchId && (isSubunitsLoading || isChurchLoading || isPendingVerificationsLoading))) {
+  if (isMeLoading || (me?.churchId && (isSubunitsLoading || isChurchLoading))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -41,7 +40,14 @@ export const DeptHeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      {safePendingVerifications.length > 0 && (
+      {pendingVerifications === undefined ? (
+        <div 
+          className={styles.card} 
+          style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px dashed rgba(139, 92, 246, 0.3)', marginBottom: '1rem', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}
+        >
+          <Loader2 className="animate-spin text-purple-600" size={20} />
+        </div>
+      ) : safePendingVerifications.length > 0 ? (
         <div 
           className={styles.card} 
           style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1rem' }}
@@ -56,14 +62,22 @@ export const DeptHeadHome: React.FC = () => {
           </div>
           <p className={styles.itemSubtitle}>Volunteers waiting for geofence approval</p>
         </div>
-      )}
+      ) : null}
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
-          <span className={styles.statValue}>{health?.attendanceRate ?? 0}%</span>
+          {health === undefined ? (
+            <Loader2 className="animate-spin text-purple-600" size={20} />
+          ) : (
+            <span className={styles.statValue}>{health?.attendanceRate ?? 0}%</span>
+          )}
           <span className={styles.statLabel}>Avg Attendance</span>
         </div>
         <div className={styles.card + ' ' + styles.statCard}>
-          <span className={styles.statValue}>{health?.activeProbations ?? 0}</span>
+          {health === undefined ? (
+            <Loader2 className="animate-spin text-purple-600" size={20} />
+          ) : (
+            <span className={styles.statValue}>{health?.activeProbations ?? 0}</span>
+          )}
           <span className={styles.statLabel}>Active Gaps</span>
         </div>
       </div>
@@ -138,7 +152,11 @@ export const DeptHeadHome: React.FC = () => {
 
         {activeTab === 'Approvals' && (
           <div className={styles.list}>
-            {safePendingVerifications.length > 0 && (
+            {pendingVerifications === undefined ? (
+              <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
+                <Loader2 className="animate-spin text-purple-600" size={24} />
+              </div>
+            ) : safePendingVerifications.length > 0 ? (
               <div 
                 className={styles.listItem} 
                 onClick={() => navigate('/admin')}
@@ -153,7 +171,7 @@ export const DeptHeadHome: React.FC = () => {
                 </div>
                 <ChevronRight size={16} color="#8b5cf6" />
               </div>
-            )}
+            ) : null}
             
             <div className={styles.listItem}>
               <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>

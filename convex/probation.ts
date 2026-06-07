@@ -130,6 +130,21 @@ export const logKPIForUser = mutation({
     const logger = await ctx.db.get(loggerId);
     if (!logger) throw new Error("Logger not found");
 
+    const allowedRoles = ["SuperAdmin", "DepartmentHead", "SubunitLead"];
+    if (!logger.role || !allowedRoles.includes(logger.role)) {
+      throw new Error("Unauthorized: Only SuperAdmins, DepartmentHeads, and SubunitLeads can log KPIs.");
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) throw new Error("Target user not found");
+
+    if (logger.role === "DepartmentHead" && targetUser.departmentId !== logger.departmentId) {
+      throw new Error("Unauthorized: You can only log KPIs for members in your department.");
+    }
+    if (logger.role === "SubunitLead" && targetUser.subunitId !== logger.subunitId) {
+      throw new Error("Unauthorized: You can only log KPIs for members in your subunit.");
+    }
+
     // Check if user is on probation
     const probation = await ctx.db
       .query("probationPeriods")
@@ -170,9 +185,26 @@ export const logKPI = mutation({
   handler: async (ctx, args) => {
     const loggerId = await auth.getUserId(ctx);
     if (!loggerId) throw new Error("Not authenticated");
+    const logger = await ctx.db.get(loggerId);
+    if (!logger) throw new Error("Logger not found");
 
     const probation = await ctx.db.get(args.probationId);
     if (!probation) throw new Error("Probation period not found");
+
+    const allowedRoles = ["SuperAdmin", "DepartmentHead", "SubunitLead"];
+    if (!logger.role || !allowedRoles.includes(logger.role)) {
+      throw new Error("Unauthorized: Only SuperAdmins, DepartmentHeads, and SubunitLeads can log KPIs.");
+    }
+
+    const targetUser = await ctx.db.get(probation.userId);
+    if (!targetUser) throw new Error("Target user not found");
+
+    if (logger.role === "DepartmentHead" && targetUser.departmentId !== logger.departmentId) {
+      throw new Error("Unauthorized: You can only log KPIs for members in your department.");
+    }
+    if (logger.role === "SubunitLead" && targetUser.subunitId !== logger.subunitId) {
+      throw new Error("Unauthorized: You can only log KPIs for members in your subunit.");
+    }
 
     await ctx.db.insert("kpiLogs", {
       probationId: args.probationId,

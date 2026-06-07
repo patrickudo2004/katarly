@@ -12,13 +12,15 @@ export const VolunteerHome: React.FC = () => {
   const myShifts = useQuery(api.rotas.getMyShifts);
   const church = useQuery(api.churches.getMyChurch);
 
-  if (nextService === undefined || myShifts === undefined) {
+  if (nextService === undefined || church === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
       </div>
     );
   }
+
+  const safeMyShifts = myShifts || [];
 
   const formatDistanceSafe = (timestamp: number | undefined) => {
     if (!timestamp) return 'No upcoming services';
@@ -55,12 +57,16 @@ export const VolunteerHome: React.FC = () => {
           <h2 className={styles.sectionTitle}>Upcoming Shifts</h2>
         </div>
         <div className={styles.list}>
-          {!myShifts || myShifts.length === 0 ? (
+          {myShifts === undefined ? (
+            <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
+              <Loader2 className="animate-spin text-purple-600" size={24} />
+            </div>
+          ) : safeMyShifts.length === 0 ? (
             <div className={styles.emptyState}>
               No upcoming shifts assigned.
             </div>
           ) : (
-            myShifts.map((shift: any) => (
+            safeMyShifts.map((shift: any) => (
               <div key={shift._id} className={styles.listItem}>
                 <div className={styles.itemIcon}>
                   <Calendar size={20} />

@@ -12,13 +12,15 @@ export const SuperAdminHome: React.FC = () => {
   const stats = useQuery(api.churches.getChurchStats);
   const subunits = useQuery(api.subunits.getSubunits);
 
-  if (me === undefined || (me?.churchId && (stats === undefined || subunits === undefined))) {
+  if (me === undefined || (me?.churchId && stats === undefined)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
       </div>
     );
   }
+
+  const safeSubunits = subunits || [];
 
   const chartData = [
     { name: 'Total', value: stats?.totalVolunteers || 0 },
@@ -62,12 +64,16 @@ export const SuperAdminHome: React.FC = () => {
           <button className={styles.linkBtn} onClick={() => navigate('/admin')}>Manage</button>
         </div>
         <div className={styles.list}>
-          {(!subunits || subunits.length === 0) ? (
+          {subunits === undefined ? (
+            <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
+              <Loader2 className="animate-spin text-purple-600" size={24} />
+            </div>
+          ) : safeSubunits.length === 0 ? (
             <div className={styles.emptyState}>
               No departments created yet.
             </div>
           ) : (
-            subunits.map((subunit) => (
+            safeSubunits.map((subunit) => (
               <div key={subunit._id} className={styles.listItem}>
                 <div className={styles.itemIcon} style={{ background: '#8b5cf615', color: '#8b5cf6' }}>
                   <Users size={20} />

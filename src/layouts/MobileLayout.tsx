@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { BottomNav } from '../components/BottomNav';
 import { NotificationTray } from '../components/NotificationTray';
-import { Bell, LogOut, User, Moon, Sun, ChevronDown, X } from 'lucide-react';
+import { Bell, LogOut, User, Moon, Sun, ChevronDown, X, Church } from 'lucide-react';
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -23,6 +23,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const unreadCount = useQuery(api.notifications.getUnreadCount) || 0;
+  const memberships = useQuery(api.users.getMyMemberships);
   const { signOut } = useAuthActions();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -80,6 +81,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
                 <User size={20} />
                 <span>My Profile</span>
               </Link>
+
+              {memberships && memberships.length > 1 && (
+                <Link to="/select-church" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
+                  <Church size={20} />
+                  <span>Switch Campus</span>
+                </Link>
+              )}
               
               <button className={styles.menuItem} onClick={toggleTheme}>
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}

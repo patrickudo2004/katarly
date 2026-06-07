@@ -55,15 +55,20 @@ export const getChannelMessages = query({
     if (!channel) throw new Error("Channel not found");
 
     // Permission check (same as getChannels)
-    const hasAccess = 
-      channel.type === "announcement" || 
-      user.role === "SuperAdmin" ||
-      user.role === "PastoralOversight" ||
-      (channel.type === "department" && channel.departmentId === user.departmentId) ||
-      (channel.type === "subunit" && (
-        (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
-        user.additionalSubunits?.includes(channel.subunitId as any)
-      ));
+    let hasAccess = false;
+    if (channel.type === "deaconBoard") {
+      hasAccess = user.role === "DeaconHead" || user.role === "SuperAdmin";
+    } else {
+      hasAccess = 
+        channel.type === "announcement" || 
+        user.role === "SuperAdmin" ||
+        user.role === "PastoralOversight" ||
+        (channel.type === "department" && channel.departmentId === user.departmentId) ||
+        (channel.type === "subunit" && (
+          (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
+          user.additionalSubunits?.includes(channel.subunitId as any)
+        ));
+    }
 
     if (!hasAccess) throw new Error("Unauthorized access to channel");
 
@@ -122,14 +127,19 @@ export const sendMessage = mutation({
     const userSubunitId = user.subunitId;
     const additionalSubunits = user.additionalSubunits || [];
 
-    const hasAccess = 
-      userRole === "SuperAdmin" ||
-      userRole === "PastoralOversight" ||
-      (channel.type === "department" && channel.departmentId === userDeptId) ||
-      (channel.type === "subunit" && (
-        (channel.departmentId === userDeptId && channel.subunitId === userSubunitId) || 
-        additionalSubunits.includes(channel.subunitId as any)
-      ));
+    let hasAccess = false;
+    if (channel.type === "deaconBoard") {
+      hasAccess = userRole === "DeaconHead" || userRole === "SuperAdmin";
+    } else {
+      hasAccess = 
+        userRole === "SuperAdmin" ||
+        userRole === "PastoralOversight" ||
+        (channel.type === "department" && channel.departmentId === userDeptId) ||
+        (channel.type === "subunit" && (
+          (channel.departmentId === userDeptId && channel.subunitId === userSubunitId) || 
+          additionalSubunits.includes(channel.subunitId as any)
+        ));
+    }
 
     if (!hasAccess && channel.type !== "announcement") {
       throw new Error("Unauthorized to post in this channel");

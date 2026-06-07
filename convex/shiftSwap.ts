@@ -62,7 +62,7 @@ export const claimSwap = mutation({
     if (!rota) throw new Error("Rota not found");
 
     // Verify eligibility (same subunit)
-    if (user.subunit !== requester.subunit) {
+    if (!user.subunitId || !requester.subunitId || user.subunitId !== requester.subunitId) {
       throw new Error("You must be in the same subunit to claim this swap");
     }
 
@@ -198,7 +198,7 @@ export const declineSwap = mutation({
 
 // Query for the marketplace
 export const getAvailableSwaps = query({
-  args: { churchId: v.id("churches"), subunit: v.optional(v.string()) },
+  args: { churchId: v.id("churches"), subunitId: v.optional(v.id("subunits")) },
   handler: async (ctx, args) => {
     const swaps = await ctx.db
       .query("swapRequests")
@@ -211,7 +211,7 @@ export const getAvailableSwaps = query({
         const requester = await ctx.db.get(swap.requesterId);
         const service = rota ? await ctx.db.get(rota.serviceId) : null;
         
-        if (args.subunit && requester?.subunit !== args.subunit) return null;
+        if (args.subunitId && requester?.subunitId !== args.subunitId) return null;
 
         return {
           ...swap,

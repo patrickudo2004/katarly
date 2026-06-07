@@ -47,7 +47,7 @@ export const getDeaconDashboard = query({
     // Active probations
     const probations = await ctx.db
       .query("probationPeriods")
-      .withIndex("by_user")
+      .withIndex("by_church", (q) => q.eq("churchId", churchId))
       .collect();
     const activeProbations = probations.filter(
       (p) => p.status === "active" || p.status === "extended"

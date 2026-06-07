@@ -6,11 +6,11 @@ import styles from './ShiftSwap.module.css';
 
 interface ShiftSwapMarketplaceProps {
   churchId: any;
-  userSubunit?: string;
+  userSubunitId?: string;
 }
 
-export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ churchId, userSubunit }) => {
-  const availableSwaps = useQuery(api.shiftSwap.getAvailableSwaps, { churchId, subunit: userSubunit });
+export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ churchId, userSubunitId }) => {
+  const availableSwaps = useQuery(api.shiftSwap.getAvailableSwaps, { churchId, subunitId: userSubunitId });
   const openShifts = useQuery(api.rotas.getOpenShifts);
   const claimSwap = useMutation(api.shiftSwap.claimSwap);
   const claimOpenShift = useMutation(api.shiftSwap.claimOpenShift);

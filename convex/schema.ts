@@ -212,7 +212,8 @@ export default defineSchema({
     endDate: v.number(),
     status: v.union(v.literal("active"), v.literal("completed"), v.literal("extended"), v.literal("ended")),
     createdBy: v.id("users"), // Dept Head
-  }).index("by_user", ["userId"]),
+  }).index("by_user", ["userId"])
+    .index("by_church", ["churchId"]),
 
   kpiLogs: defineTable({
     probationId: v.id("probationPeriods"),
@@ -244,7 +245,8 @@ export default defineSchema({
     startDate: v.number(),
     endDate: v.number(),
     status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("active"), v.literal("expired")),
-  }).index("by_user", ["userId"]),
+  }).index("by_user", ["userId"])
+    .index("by_church", ["churchId"]),
 
   invites: defineTable({
     email: v.string(),
@@ -347,4 +349,28 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_church_status", ["churchId", "status"])
     .index("by_initiator", ["initiatorId"]),
+
+  memberships: defineTable({
+    userId: v.id("users"),
+    churchId: v.id("churches"),
+    role: v.union(
+      v.literal("Volunteer"),
+      v.literal("SubunitLead"),
+      v.literal("SubunitAssistant"),
+      v.literal("DepartmentHead"),
+      v.literal("DepartmentAssistant"),
+      v.literal("DepartmentSecretary"),
+      v.literal("PastoralOversight"),
+      v.literal("DeaconHead"),
+      v.literal("Probation"),
+      v.literal("OnNotice"),
+      v.literal("SuperAdmin")
+    ),
+    departmentId: v.optional(v.id("departments")),
+    subunitId: v.optional(v.id("subunits")),
+    onboardingCompleted: v.optional(v.boolean()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_church", ["churchId"])
+    .index("by_user_church", ["userId", "churchId"]),
 });

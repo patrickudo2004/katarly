@@ -220,7 +220,11 @@ export const DeaconHeadHome: React.FC = () => {
 
           {/* Messages */}
           <div className={styles.list}>
-            {!boardMessages || boardMessages.length === 0 ? (
+            {boardMessages === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="animate-spin text-purple-600" size={24} />
+              </div>
+            ) : boardMessages.length === 0 ? (
               <div className={styles.card} style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                 No board messages yet. Be the first to post.
               </div>

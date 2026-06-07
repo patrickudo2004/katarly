@@ -318,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
 
       {/* Oversight View - Only for Pastoral Oversight and Super Admins */}
       {(userRole === 'PastoralOversight' || userRole === 'SuperAdmin') && me?.departmentId && (
-        <OversightDashboardTab departmentName={me.department || 'Your'} departmentId={me.departmentId} />
+        <OversightDashboardTab departmentName={me.departmentName || 'Your'} departmentId={me.departmentId} />
       )}
 
       <div className={styles.statsGrid}>

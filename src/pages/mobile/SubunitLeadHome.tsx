@@ -10,7 +10,6 @@ export const SubunitLeadHome: React.FC = () => {
   const navigate = useNavigate();
   const me = useQuery(api.users.me);
   const nextService = useQuery(api.services.getNextService);
-  const subunits = useQuery(api.subunits.getSubunits);
   
   // Find the subunit this user leads
   const mySubunitId = me?.subunitId;
@@ -19,19 +18,18 @@ export const SubunitLeadHome: React.FC = () => {
   const pendingVerifications = useQuery(api.attendance.getPendingVerifications, 
     church ? { churchId: church._id } : "skip"
   );
-  const liveAttendance = useQuery(api.attendance.getServiceAttendance,
-    nextService ? { serviceId: nextService._id } : "skip"
+  
+  // Scope live attendance specifically to the subunit being led
+  const liveAttendance = useQuery(api.subunits.getLiveAttendance,
+    nextService && mySubunitId ? { serviceId: nextService._id, subunitId: mySubunitId } : "skip"
   );
 
-  // Loading state
+  // Critical loading state (block main layout only on basic user & church/service context)
   const isMeLoading = me === undefined;
-  const isNextServiceLoading = nextService === undefined;
-  const isSubunitsLoading = subunits === undefined;
   const isChurchLoading = church === undefined;
-  const isPendingVerificationsLoading = church !== undefined && church !== null && pendingVerifications === undefined;
-  const isLiveAttendanceLoading = nextService !== undefined && nextService !== null && liveAttendance === undefined;
+  const isNextServiceLoading = nextService === undefined;
 
-  if (isMeLoading || (me?.churchId && (isNextServiceLoading || isSubunitsLoading || isChurchLoading || isPendingVerificationsLoading || isLiveAttendanceLoading))) {
+  if (isMeLoading || (me?.churchId && (isChurchLoading || isNextServiceLoading))) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -55,7 +53,14 @@ export const SubunitLeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      {safePendingVerifications.length > 0 && (
+      {pendingVerifications === undefined ? (
+        <div 
+          className={styles.card} 
+          style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px dashed rgba(139, 92, 246, 0.3)', marginBottom: '1.5rem', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}
+        >
+          <Loader2 className="animate-spin text-purple-600" size={20} />
+        </div>
+      ) : safePendingVerifications.length > 0 ? (
         <div 
           className={styles.card} 
           style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6', marginBottom: '1.5rem' }}
@@ -70,11 +75,15 @@ export const SubunitLeadHome: React.FC = () => {
           </div>
           <p className={styles.itemSubtitle}>Volunteers waiting for geofence approval</p>
         </div>
-      )}
+      ) : null}
 
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
-          <span className={styles.statValue}>{presentCount}</span>
+          {liveAttendance === undefined ? (
+            <Loader2 className="animate-spin text-purple-600" size={20} />
+          ) : (
+            <span className={styles.statValue}>{presentCount}</span>
+          )}
           <span className={styles.statLabel}>Checked In</span>
         </div>
         <div className={styles.card + ' ' + styles.statCard}>
@@ -89,14 +98,18 @@ export const SubunitLeadHome: React.FC = () => {
           {nextService && <div className={styles.badge} style={{ background: '#fef2f2', color: '#ef4444' }}>Live</div>}
         </div>
         <div className={styles.list}>
-          {safeLiveAttendance.length === 0 ? (
+          {liveAttendance === undefined ? (
+            <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
+              <Loader2 className="animate-spin text-purple-600" size={24} />
+            </div>
+          ) : safeLiveAttendance.length === 0 ? (
             <div className={styles.emptyState}>
               No one has checked in yet.
             </div>
           ) : (
             safeLiveAttendance.map((record: any) => (
               <div key={record._id} className={styles.listItem}>
-                <div className={styles.avatar} style={{ width: 32, height: 32, fontSize: '0.75rem' }}>
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-600 font-bold text-xs">
                   {record.user?.name?.[0] || '?'}
                 </div>
                 <div className={styles.itemInfo}>

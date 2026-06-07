@@ -59,10 +59,23 @@ export const updateRequestStatus = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     
-    // Check if user has permission (SuperAdmin, DeptHead, or SubunitLead)
     const allowedRoles = ["SuperAdmin", "DepartmentHead", "SubunitLead"];
     if (!user?.role || !allowedRoles.includes(user.role)) {
       throw new Error("Unauthorized to review time off requests");
+    }
+
+    const request = await ctx.db.get(args.id);
+    if (!request) throw new Error("Time off request not found");
+
+    const requester = await ctx.db.get(request.userId);
+    if (!requester) throw new Error("Requester not found");
+
+    if (user.role === "DepartmentHead" && requester.departmentId !== user.departmentId) {
+      throw new Error("Unauthorized: You can only review requests in your department");
+    }
+
+    if (user.role === "SubunitLead" && requester.subunitId !== user.subunitId) {
+      throw new Error("Unauthorized: You can only review requests in your subunit");
     }
 
     await ctx.db.patch(args.id, {

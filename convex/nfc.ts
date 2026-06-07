@@ -27,7 +27,7 @@ export const getNfcConfig = query({
       churchName: church.name,
       nfcSecret: church.settings?.nfcSecret,
       autoCheckin: church.settings?.nfcAutoCheckinEnabled ?? true,
-      baseUrl: process.env.VITE_APP_URL || "https://servesync.app",
+      baseUrl: process.env.VITE_APP_URL || "https://katarly.app",
     };
   },
 });

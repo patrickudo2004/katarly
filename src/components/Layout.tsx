@@ -18,13 +18,16 @@ import {
   Menu,
   Users,
   Network,
-  BarChart3
+  BarChart3,
+  Church
 } from 'lucide-react';
 import { RoleBadge, UserRole } from './RoleBadge';
 import { ThemeToggle } from './ThemeToggle';
 import styles from './Layout.module.css';
 
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -39,6 +42,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuthActions();
+  const memberships = useQuery(api.users.getMyMemberships);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     return saved === 'true';
@@ -56,6 +60,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
 
   const navItems = [
     { label: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', roles: allRoles },
+    ...(memberships && memberships.length > 1 ? [
+      { label: 'Switch Campus', icon: <Church size={20} />, path: '/select-church', roles: allRoles }
+    ] : []),
     { label: 'Admin', icon: <Shield size={20} />, path: '/admin', roles: ['SuperAdmin', 'DeaconHead'] },
     { label: 'Church Settings', icon: <Settings size={20} />, path: '/admin/settings', roles: ['SuperAdmin'] },
     { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },

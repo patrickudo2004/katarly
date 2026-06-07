@@ -51,6 +51,13 @@ export const createChurch = mutation({
       onboardingCompleted: true,
     });
 
+    await ctx.db.insert("memberships", {
+      userId,
+      churchId,
+      role: "SuperAdmin",
+      onboardingCompleted: true,
+    });
+
     return churchId;
   },
 });

@@ -42,11 +42,14 @@ async function validateAndMark(
     throw new Error(`Attendance window for "${service.name}" is closed`);
   }
 
-  // 3. Verify Geofence (Only if lat/lng provided)
+  // 3. Verify Geofence
   const userLat = typeof args.lat === 'number' ? args.lat : undefined;
   const userLng = typeof args.lng === 'number' ? args.lng : undefined;
 
-  if (church.location && userLat !== undefined && userLng !== undefined) {
+  if (church.location) {
+    if (userLat === undefined || userLng === undefined) {
+      throw new Error("GPS coordinates are required to check in at this church.");
+    }
     const distance = calculateDistance(userLat, userLng, church.location.lat, church.location.lng);
     if (distance > (church.settings?.geofenceRadius || 100)) {
       throw new Error(`You are too far from the church (${Math.round(distance)}m away)`);

@@ -112,7 +112,7 @@ export const PrintAttendance: React.FC = () => {
                 <span>{church.address || 'Church Location'}</span>
               </div>
               <div className={styles.brandingSmall}>
-                <span>Powered by ServeSync</span>
+                <span>Powered by Katarly</span>
               </div>
             </div>
           </div>

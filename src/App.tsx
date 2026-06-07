@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 
 import { Dashboard } from './pages/Dashboard';
@@ -40,6 +40,8 @@ import { SuperAdminHome } from './pages/mobile/SuperAdminHome';
 import { DeaconHeadHome } from './pages/mobile/DeaconHeadHome';
 import { TimeOffPage as MobileTimeOff } from './pages/mobile/TimeOffPage';
 import { SubunitDetail } from './pages/mobile/SubunitDetail';
+import { ChurchSelector } from './pages/ChurchSelector';
+import { LandingPage } from './pages/LandingPage';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -50,9 +52,28 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const me = useQuery(api.users.me);
+  const memberships = useQuery(api.users.getMyMemberships);
+  const switchChurch = useMutation(api.users.switchActiveChurch);
+  const [isSwitching, setIsSwitching] = React.useState(false);
   const isMobile = useMediaQuery('(max-width: 1024px)');
 
-  if (me === undefined) {
+  React.useEffect(() => {
+    if (me && !me.churchId && memberships && memberships.length === 1) {
+      const autoSelect = async () => {
+        setIsSwitching(true);
+        try {
+          await switchChurch({ churchId: memberships[0].churchId });
+        } catch (e) {
+          console.error("Auto switch failed:", e);
+        } finally {
+          setIsSwitching(false);
+        }
+      };
+      autoSelect();
+    }
+  }, [me, memberships, switchChurch]);
+
+  if (me === undefined || memberships === undefined || isSwitching) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -60,8 +81,18 @@ function AppContent() {
     );
   }
 
-  // Phase 1: If user has no church, they must create or join one
-  if (!me || !me.churchId) {
+  // If user has no memberships, they must create/join one
+  if (memberships.length === 0) {
+    return <CreateChurch />;
+  }
+
+  // If user has multiple memberships but no active church context, show selector
+  if (!me.churchId && memberships.length > 1) {
+    return <ChurchSelector />;
+  }
+
+  // Fallback safety check
+  if (!me.churchId) {
     return <CreateChurch />;
   }
 
@@ -168,6 +199,7 @@ function AppContent() {
           <PeoplePage />
         </PageLayout>
       } />
+      <Route path="/select-church" element={<ChurchSelector />} />
       <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/tap" element={<NfcGateway />} />
@@ -191,6 +223,7 @@ export default function App() {
             
             <Unauthenticated>
               <Routes>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/create-church" element={<CreateChurch />} />
                 <Route path="/accept-invite" element={<AcceptInvite />} />

@@ -19,8 +19,15 @@ export const me = query({
     const user = await ctx.db.get(userId);
     if (!user) return null;
     
+    const dept = user.departmentId ? await ctx.db.get(user.departmentId) : null;
+    const sub = user.subunitId ? await ctx.db.get(user.subunitId) : null;
+    const church = user.churchId ? await ctx.db.get(user.churchId) : null;
+
     return {
       ...user,
+      departmentName: dept?.name || "None",
+      subunitName: sub?.name || "None",
+      churchName: church?.name || "Katarly",
       imageUrl: await resolveImageUrl(ctx, user.image),
     };
   },
@@ -50,6 +57,55 @@ export const updateProfile = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     await ctx.db.patch(userId, args);
+  },
+});
+
+export const getMyMemberships = query({
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
+    const memberships = await ctx.db
+      .query("memberships")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    return Promise.all(
+      memberships.map(async (m) => {
+        const church = await ctx.db.get(m.churchId);
+        return {
+          ...m,
+          churchName: church?.name || "Unknown Church",
+          churchLogoUrl: church ? await resolveImageUrl(ctx, church.logoUrl) : null,
+          churchSlug: church?.slug || "",
+        };
+      })
+    );
+  },
+});
+
+export const switchActiveChurch = mutation({
+  args: { churchId: v.id("churches") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_church", (q) => q.eq("userId", userId).eq("churchId", args.churchId))
+      .unique();
+
+    if (!membership) throw new Error("You do not belong to this church");
+
+    await ctx.db.patch(userId, {
+      churchId: membership.churchId,
+      role: membership.role as any,
+      departmentId: membership.departmentId,
+      subunitId: membership.subunitId,
+      onboardingCompleted: membership.onboardingCompleted ?? false,
+    });
+
+    return { success: true };
   },
 });
 
@@ -210,7 +266,38 @@ export const updateUserRole = mutation({
     }
 
     const { userId, ...updates } = args;
-    await ctx.db.patch(userId, updates);
+    const churchId = admin.churchId!;
+
+    let membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_church", (q) => q.eq("userId", userId).eq("churchId", churchId))
+      .unique();
+
+    if (membership) {
+      await ctx.db.patch(membership._id, {
+        role: args.role as any,
+        departmentId: args.departmentId,
+        subunitId: args.subunitId,
+      });
+    } else {
+      await ctx.db.insert("memberships", {
+        userId,
+        churchId,
+        role: args.role as any,
+        departmentId: args.departmentId,
+        subunitId: args.subunitId,
+        onboardingCompleted: true,
+      });
+    }
+
+    const targetUser = await ctx.db.get(userId);
+    if (targetUser && targetUser.churchId === churchId) {
+      await ctx.db.patch(userId, {
+        role: args.role as any,
+        departmentId: args.departmentId,
+        subunitId: args.subunitId,
+      });
+    }
   },
 });
 

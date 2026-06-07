@@ -32,7 +32,7 @@ export const MarketplacePage: React.FC = () => {
         {activeTab === 'swaps' ? (
           <ShiftSwapMarketplace 
             churchId={me.churchId!} 
-            userSubunit={me.subunit} 
+            userSubunitId={me.subunitId} 
           />
         ) : (
           <RewardsMarketplace 

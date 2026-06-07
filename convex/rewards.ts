@@ -80,7 +80,7 @@ export const seedDefaultRewards = mutation({
   handler: async (ctx, args) => {
     const defaults = [
       { name: "Free Coffee", description: "A hot cup of coffee from the church cafe.", cost: 50, category: "Food" as const, stock: 999 },
-      { name: "ServeSync T-Shirt", description: "Official ServeSync volunteer team shirt.", cost: 500, category: "Merch" as const, stock: 50 },
+      { name: "Katarly T-Shirt", description: "Official Katarly volunteer team shirt.", cost: 500, category: "Merch" as const, stock: 50 },
       { name: "Front Row Parking", description: "Reserved parking spot for next Sunday.", cost: 200, category: "Experience" as const, stock: 1 },
     ];
 

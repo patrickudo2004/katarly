@@ -187,7 +187,7 @@ export const AdminNfcManager: React.FC = () => {
               <div className={styles.successState}>
                 <Check className={styles.successIcon} size={48} />
                 <h4>Tag Programmed Successfully!</h4>
-                <p className={styles.subText}>This sticker is now a ServeSync Check-In point.</p>
+                <p className={styles.subText}>This sticker is now a Katarly Check-In point.</p>
               </div>
             )}
 

@@ -157,11 +157,28 @@ export const acceptInvite = mutation({
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
+    const existingMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_church", (q) => q.eq("userId", userId).eq("churchId", invite.churchId))
+      .unique();
+
+    if (!existingMembership) {
+      await ctx.db.insert("memberships", {
+        userId,
+        churchId: invite.churchId,
+        role: invite.role as any,
+        departmentId: invite.departmentId,
+        subunitId: invite.subunitId,
+        onboardingCompleted: false,
+      });
+    }
+
     await ctx.db.patch(userId, {
       churchId: invite.churchId,
       role: invite.role as any,
       departmentId: invite.departmentId,
       subunitId: invite.subunitId,
+      onboardingCompleted: existingMembership?.onboardingCompleted ?? false,
     });
 
     await ctx.db.patch(invite._id, { status: "accepted" });
@@ -170,33 +187,6 @@ export const acceptInvite = mutation({
   },
 });
 
-export const promoteUser = mutation({
-  args: {
-    userId: v.id("users"),
-    newRole: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const admin = await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
-    const targetUser = await ctx.db.get(args.userId);
-    if (!targetUser) throw new Error("User not found");
-
-    // Hierarchy check
-    const roles = ["Volunteer", "SubunitLead", "DepartmentHead", "SuperAdmin"];
-    if (roles.indexOf(admin.role) <= roles.indexOf(targetUser.role) && admin.role !== "SuperAdmin") {
-      throw new Error("You cannot promote someone of equal or higher rank");
-    }
-
-    await ctx.db.patch(args.userId, { role: args.newRole as any });
-
-    await ctx.db.insert("notifications", {
-      userId: args.userId,
-      title: "Promotion!",
-      message: `You have been promoted to ${args.newRole}`,
-      type: "promotion",
-      read: false,
-    });
-  },
-});
 
 export const revokeInvite = mutation({
   args: { inviteId: v.id("invites") },

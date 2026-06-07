@@ -22,12 +22,12 @@ export default defineConfig(({mode}) => {
           theme_color: '#8b5cf6',
           icons: [
             {
-              src: 'https://picsum.photos/seed/servesync/192/192',
+              src: 'https://picsum.photos/seed/katarly/192/192',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'https://picsum.photos/seed/servesync/512/512',
+              src: 'https://picsum.photos/seed/katarly/512/512',
               sizes: '512x512',
               type: 'image/png'
             }
