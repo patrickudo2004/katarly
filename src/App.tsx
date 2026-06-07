@@ -54,8 +54,26 @@ function AppContent() {
   const me = useQuery(api.users.me);
   const memberships = useQuery(api.users.getMyMemberships);
   const switchChurch = useMutation(api.users.switchActiveChurch);
+  const syncLegacy = useMutation(api.users.syncLegacyMembership);
   const [isSwitching, setIsSwitching] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
   const isMobile = useMediaQuery('(max-width: 1024px)');
+
+  React.useEffect(() => {
+    if (me && me.churchId && memberships && memberships.length === 0 && !isSyncing) {
+      const runSync = async () => {
+        setIsSyncing(true);
+        try {
+          await syncLegacy();
+        } catch (e) {
+          console.error("Legacy sync failed:", e);
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+      runSync();
+    }
+  }, [me, memberships, syncLegacy, isSyncing]);
 
   React.useEffect(() => {
     if (me && !me.churchId && memberships && memberships.length === 1) {
@@ -73,7 +91,7 @@ function AppContent() {
     }
   }, [me, memberships, switchChurch]);
 
-  if (me === undefined || memberships === undefined || isSwitching) {
+  if (me === undefined || memberships === undefined || isSwitching || isSyncing) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>

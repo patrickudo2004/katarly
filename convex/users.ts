@@ -109,6 +109,35 @@ export const switchActiveChurch = mutation({
   },
 });
 
+export const syncLegacyMembership = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || !user.churchId) return { success: false };
+
+    const existing = await ctx.db
+      .query("memberships")
+      .withIndex("by_user_church", (q) => q.eq("userId", userId).eq("churchId", user.churchId!))
+      .unique();
+
+    if (!existing) {
+      await ctx.db.insert("memberships", {
+        userId,
+        churchId: user.churchId,
+        role: user.role || "Volunteer",
+        departmentId: user.departmentId,
+        subunitId: user.subunitId,
+        onboardingCompleted: user.onboardingCompleted ?? false,
+      });
+      return { success: true, synced: true };
+    }
+
+    return { success: true, synced: false };
+  },
+});
+
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
