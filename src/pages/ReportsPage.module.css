@@ -29,12 +29,12 @@
 .titleGroup h1 {
   margin: 0;
   font-size: 1.75rem;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .titleGroup p {
   margin: 0.25rem 0 0;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -48,10 +48,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
+  background: var(--card-bg);
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
 }
 
 .filterGroup select {
@@ -59,7 +59,7 @@
   background: transparent;
   outline: none;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .exportActions {
@@ -72,10 +72,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -83,16 +83,16 @@
 }
 
 .exportBtn:hover {
-  border-color: #8b5cf6;
-  color: #8b5cf6;
-  background: #faf5ff;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .tabNav {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
 }
 
@@ -106,24 +106,24 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tabNav button:hover {
-  background: #f8fafc;
+  background: var(--surface-hover);
 }
 
 .tabNav button.activeTab {
-  background: #f3e8ff;
-  color: #8b5cf6;
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
 }
 
 .contentArea {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   min-height: 600px;
   padding: 1.5rem;
 }
@@ -137,15 +137,15 @@
 }
 
 .kpiCard {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 1.5rem;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
 }
 
 .kpiHeader {
   font-size: 0.875rem;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
@@ -153,26 +153,28 @@
 .kpiValue {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .kpiTrend {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .kpiSelect select {
   width: 100%;
   padding: 0.75rem;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 1rem;
   margin-top: 0.5rem;
 }
 
 .chartBox {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
 }
@@ -180,7 +182,7 @@
 .chartTitle {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 1.5rem;
 }
 
@@ -193,7 +195,7 @@
 
 .serviceSidebar {
   width: 300px;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
 }
@@ -201,9 +203,9 @@
 .serviceSidebar h3 {
   margin: 0 0 1rem 0;
   font-size: 1rem;
-  color: #1e293b;
+  color: var(--text-primary);
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .serviceList {
@@ -220,30 +222,30 @@
   padding: 1rem;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .serviceBtn:hover {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 
 .serviceBtn.activeService {
-  background: white;
-  border-color: #8b5cf6;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+  background: var(--card-bg);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.15);
 }
 
 .sName {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .sTime {
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .serviceDetails {
@@ -262,14 +264,16 @@
 }
 
 .pieCard {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .pieCard h4 {
   margin: 0 0 1rem;
+  color: var(--text-primary);
 }
 
 .statsSummary {
@@ -284,14 +288,14 @@
   gap: 1rem;
   padding: 1.25rem;
   border-radius: 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
 }
 
 .pillLabel {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
   letter-spacing: 0.05em;
 }
@@ -299,7 +303,7 @@
 .pillValue {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .pillPresent svg { color: #10b981; }
@@ -307,15 +311,21 @@
 .pillExcused svg { color: #94a3b8; }
 
 .rawTableCard {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
+  color: var(--text-primary);
+}
+
+.rawTableCard h4 {
+  margin: 0;
+  color: var(--text-primary);
 }
 
 .tableWrapper {
   margin-top: 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -326,20 +336,20 @@
 }
 
 .rawTable th {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 0.75rem 1rem;
   text-align: left;
   font-size: 0.75rem;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .rawTable td {
   padding: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   font-size: 0.875rem;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .statusBadge {
@@ -365,5 +375,9 @@
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: #94a3b8;
+  color: var(--text-secondary);
+}
+
+:global(.recharts-legend-item-text) {
+  color: var(--text-primary) !important;
 }

@@ -199,30 +199,55 @@ export const ReportsPage: React.FC = () => {
               {analytics?.trends && analytics.trends.length > 0 ? (
                 <div className={styles.chartWrapper}>
                   <ResponsiveContainer width="100%" height={400}>
-                    <ComposedChart data={analytics.trends} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                    <ComposedChart data={analytics.trends} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
                       <defs>
                         <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
                           <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                       <XAxis 
                         dataKey="date" 
-                        stroke="#94a3b8" 
+                        stroke="var(--text-secondary)" 
                         fontSize={12}
                         tickMargin={10}
-                        axisLine={{ stroke: '#cbd5e1' }}
+                        axisLine={{ stroke: 'var(--border-color)' }}
+                        label={{ 
+                          value: 'Timeline', 
+                          position: 'insideBottom', 
+                          offset: -5, 
+                          fill: 'var(--text-secondary)', 
+                          fontSize: 12, 
+                          fontWeight: 500 
+                        }}
                       />
                       <YAxis 
-                        stroke="#94a3b8" 
+                        stroke="var(--text-secondary)" 
                         fontSize={12}
                         tickMargin={10}
-                        axisLine={{ stroke: '#cbd5e1' }}
+                        axisLine={{ stroke: 'var(--border-color)' }}
                         tickFormatter={(value) => `${value}`}
+                        label={{ 
+                          value: 'Volunteers Checked In', 
+                          angle: -90, 
+                          position: 'insideLeft', 
+                          offset: 15, 
+                          style: { textAnchor: 'middle' }, 
+                          fill: 'var(--text-secondary)', 
+                          fontSize: 12, 
+                          fontWeight: 500 
+                        }}
                       />
                       <RechartsTooltip 
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                        contentStyle={{ 
+                          backgroundColor: 'var(--card-bg)', 
+                          borderColor: 'var(--border-color)', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+                        }}
+                        itemStyle={{ color: 'var(--text-primary)' }}
+                        labelStyle={{ color: 'var(--text-secondary)' }}
                       />
                       <Legend verticalAlign="top" height={36}/>
                       <Area 
@@ -296,7 +321,15 @@ export const ReportsPage: React.FC = () => {
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
-                            <RechartsTooltip />
+                            <RechartsTooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'var(--card-bg)', 
+                                borderColor: 'var(--border-color)', 
+                                borderRadius: '12px', 
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.1)' 
+                              }}
+                              itemStyle={{ color: 'var(--text-primary)' }}
+                            />
                             <Legend />
                           </PieChart>
                         </ResponsiveContainer>
