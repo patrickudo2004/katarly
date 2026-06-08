@@ -11,7 +11,8 @@ import {
   LayoutGrid,
   RefreshCw,
   Trophy,
-  Heart
+  Heart,
+  Video
 } from 'lucide-react';
 import { UserRole } from './RoleBadge';
 import styles from './BottomNav.module.css';
@@ -34,7 +35,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <BarChart3 size={24} />, label: 'Overview', path: '/' },
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
-        { icon: <Trophy size={24} />, label: 'Hall', path: '/hall-of-fame' },
+        { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
         { icon: <LayoutGrid size={24} />, label: 'Admin', path: '/admin' },
       ];
     }
@@ -44,8 +45,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <Home size={24} />, label: 'Home', path: '/' },
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
+        { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
         { icon: <Heart size={24} />, label: 'Oversight', path: '/' },
-        { icon: <Trophy size={24} />, label: 'Hall', path: '/hall-of-fame' },
       ];
     }
 
@@ -54,7 +55,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <Home size={24} />, label: 'Home', path: '/' },
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
-        { icon: <Trophy size={24} />, label: 'Hall', path: '/hall-of-fame' },
+        { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
         { icon: <User size={24} />, label: 'Profile', path: '/profile' },
       ];
     }
@@ -64,7 +65,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <Users size={24} />, label: 'Team', path: '/' },
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
-        { icon: <RefreshCw size={24} />, label: 'Swaps', path: '/marketplace' },
+        { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
         { icon: <User size={24} />, label: 'Profile', path: '/profile' },
       ];
     }
@@ -74,7 +75,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
       { icon: <Home size={24} />, label: 'Home', path: '/' },
       { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
       { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
-      { icon: <RefreshCw size={24} />, label: 'Market', path: '/marketplace' },
+      { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
       { icon: <User size={24} />, label: 'Profile', path: '/profile' },
     ];
   };

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList } from 'lucide-react';
+import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
+import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
 
 export const DeptHeadHome: React.FC = () => {
@@ -17,6 +18,7 @@ export const DeptHeadHome: React.FC = () => {
   const pendingVerifications = useQuery(api.attendance.getPendingVerifications, 
     church ? { churchId: church._id } : "skip"
   );
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
 
   // Loading state
   const isMeLoading = me === undefined;
@@ -38,8 +40,23 @@ export const DeptHeadHome: React.FC = () => {
   // Filter subunits for this department
   const mySubunits = safeSubunits.filter(s => s.departmentId === me.departmentId);
 
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
+
   return (
     <div className={styles.page}>
+      {activeMeetings.length > 0 && (
+        <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle}>Active Gatherings</h2>
+          {activeMeetings.map((meeting: any) => (
+            <MeetingCard key={meeting._id} meeting={meeting} />
+          ))}
+        </section>
+      )}
+
       {pendingVerifications === undefined ? (
         <div 
           className={styles.card} 
@@ -105,6 +122,16 @@ export const DeptHeadHome: React.FC = () => {
               <ClipboardList size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Attendance</span>
+          </button>
+
+          <button 
+            onClick={() => navigate('/meetings?create=true')}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+              <Video size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Schedule Department Meeting</span>
           </button>
         </div>
       </section>

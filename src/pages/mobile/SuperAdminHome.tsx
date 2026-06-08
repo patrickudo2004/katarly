@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
 import { LayoutGrid, Users, TrendingUp, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
 
 export const SuperAdminHome: React.FC = () => {
@@ -11,6 +12,7 @@ export const SuperAdminHome: React.FC = () => {
   const me = useQuery(api.users.me);
   const stats = useQuery(api.churches.getChurchStats);
   const subunits = useQuery(api.subunits.getSubunits);
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
 
   if (me === undefined || (me?.churchId && stats === undefined)) {
     return (
@@ -27,8 +29,22 @@ export const SuperAdminHome: React.FC = () => {
     { name: 'Records', value: stats?.totalAttendanceRecords || 0 },
   ];
 
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
+
   return (
     <div className={styles.page}>
+      {activeMeetings.length > 0 && (
+        <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle}>Active Gatherings</h2>
+          {activeMeetings.map((meeting: any) => (
+            <MeetingCard key={meeting._id} meeting={meeting} />
+          ))}
+        </section>
+      )}
       <section className={styles.section}>
         <div className={styles.card}>
           <div className={styles.sectionHeader}>

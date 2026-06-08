@@ -1,15 +1,17 @@
 import React from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
 
 export const SubunitLeadHome: React.FC = () => {
   const navigate = useNavigate();
   const me = useQuery(api.users.me);
   const nextService = useQuery(api.services.getNextService);
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
   
   // Find the subunit this user leads
   const mySubunitId = me?.subunitId;
@@ -44,6 +46,12 @@ export const SubunitLeadHome: React.FC = () => {
   const safeLiveAttendance = shouldSkip ? [] : (liveAttendance || []);
   const presentCount = safeLiveAttendance.length;
 
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
+
   const formatTimeSafe = (timestamp: number | undefined) => {
     if (!timestamp) return 'TBD';
     try {
@@ -55,6 +63,15 @@ export const SubunitLeadHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {activeMeetings.length > 0 && (
+        <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle}>Active Gatherings</h2>
+          {activeMeetings.map((meeting: any) => (
+            <MeetingCard key={meeting._id} meeting={meeting} />
+          ))}
+        </section>
+      )}
+
       {pendingVerifications === undefined ? (
         <div 
           className={styles.card} 
@@ -155,6 +172,16 @@ export const SubunitLeadHome: React.FC = () => {
               <RefreshCw size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Shift Marketplace</span>
+          </button>
+
+          <button 
+            onClick={() => navigate('/meetings?create=true')}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+          >
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+              <Video size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Schedule Subunit Meeting</span>
           </button>
         </div>
       </section>

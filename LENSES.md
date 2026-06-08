@@ -43,3 +43,15 @@ To ensure Katarly is built to the highest architectural, security, visual, opera
 *   **Perspective**: Compliance, GDPR, data privacy, and safeguarding protocols.
 *   **Key Focus**: Do we have consent to fetch location? Are high-risk departments (e.g. Children's Ministry) blocked unless volunteers have verified background checks?
 *   **Impact**: Enforcing that GPS tracking is strictly active-only and never stored, and checking safeguarding clearance values during audit trails.
+
+---
+
+## 📱 The Mobile View Audit (Crucial Checklist)
+
+Before concluding any feature design or implementation, it must be audited against these mobile-first requirements:
+
+1. **Viewport & Layout**: Verify layout behavior on standard mobile viewports (375px–412px). Ensure zero horizontal scroll leaks, clean vertical wrapping, and logical component stacking.
+2. **Touch Targets**: Enforce a minimum interactive touch target size of `44x44px` with sufficient padding to prevent accidental mis-taps.
+3. **Role-Scoped Dashboard Shortcuts**: Confirm that quick actions (e.g., check-in triggers, scheduling modals) are prominently placed directly within the role's mobile dashboard rather than hidden inside desktop-only panels.
+4. **Transient Network Handling**: Ensure loaders, fallback skeletons, and skipped query guards are optimized for mobile volunteers operating on cellular connections.
+

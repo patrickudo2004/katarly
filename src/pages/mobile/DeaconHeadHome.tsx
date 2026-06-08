@@ -6,6 +6,7 @@ import {
   Scale, AlertTriangle, BarChart2, MessageSquareLock,
   ChevronRight, Loader2, CheckCircle, Users, ClipboardList
 } from 'lucide-react';
+import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
 
 export const DeaconHeadHome: React.FC = () => {
@@ -17,6 +18,7 @@ export const DeaconHeadHome: React.FC = () => {
 
   const [newMessage, setNewMessage] = useState('');
   const [posting, setPosting] = useState(false);
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
 
   if (dashboard === undefined) {
     return (
@@ -44,6 +46,12 @@ export const DeaconHeadHome: React.FC = () => {
     { icon: ClipboardList, label: 'Pending Escalations', value: dashboard?.pendingEscalations ?? 0, color: '#ef4444' },
   ];
 
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
+
   return (
     <div className={styles.page}>
       {/* Header Banner */}
@@ -68,6 +76,15 @@ export const DeaconHeadHome: React.FC = () => {
           <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>Governance Dashboard</p>
         </div>
       </div>
+
+      {activeMeetings.length > 0 && (
+        <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <h2 className={styles.sectionTitle}>Active Gatherings</h2>
+          {activeMeetings.map((meeting: any) => (
+            <MeetingCard key={meeting._id} meeting={meeting} />
+          ))}
+        </section>
+      )}
 
       {/* Stat Grid */}
       <div className={styles.grid} style={{ gridTemplateColumns: '1fr 1fr' }}>

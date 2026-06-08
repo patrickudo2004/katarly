@@ -42,6 +42,7 @@ import { TimeOffPage as MobileTimeOff } from './pages/mobile/TimeOffPage';
 import { SubunitDetail } from './pages/mobile/SubunitDetail';
 import { ChurchSelector } from './pages/ChurchSelector';
 import { LandingPage } from './pages/LandingPage';
+import { MeetingsPage } from './pages/MeetingsPage';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -150,6 +151,11 @@ function AppContent() {
       <Route path="/attendance" element={
         <PageLayout user={me as any}>
           <AttendancePage />
+        </PageLayout>
+      } />
+      <Route path="/meetings" element={
+        <PageLayout user={me as any}>
+          <MeetingsPage />
         </PageLayout>
       } />
       <Route path="/rota" element={

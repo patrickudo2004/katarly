@@ -398,4 +398,44 @@ export default defineSchema({
     timestamp: v.number(),
     details: v.string(),
   }).index("by_church", ["churchId"]),
+
+  meetings: defineTable({
+    churchId: v.id("churches"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    scope: v.union(v.literal("ChurchWide"), v.literal("Departmental"), v.literal("Subunit")),
+    departmentId: v.optional(v.id("departments")),
+    subunitId: v.optional(v.id("subunits")),
+    startTime: v.number(),
+    endTime: v.number(),
+    format: v.union(v.literal("Physical"), v.literal("Online"), v.literal("Hybrid")),
+    platform: v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom")),
+    meetingUrl: v.optional(v.string()),
+    locationName: v.optional(v.string()),
+    qrCodeSecret: v.optional(v.string()),
+    createdBy: v.id("users"),
+  })
+    .index("by_church", ["churchId"])
+    .index("by_church_start_time", ["churchId", "startTime"])
+    .index("by_department_start_time", ["departmentId", "startTime"])
+    .index("by_subunit_start_time", ["subunitId", "startTime"]),
+
+  meetingAttendance: defineTable({
+    meetingId: v.id("meetings"),
+    userId: v.id("users"),
+    churchId: v.id("churches"),
+    timestamp: v.number(),
+    attendanceType: v.union(v.literal("physical"), v.literal("online")),
+    status: v.union(v.literal("Present"), v.literal("Late"), v.literal("Excused")),
+    markedById: v.optional(v.id("users")),
+    method: v.union(v.literal("QR"), v.literal("WebJoin"), v.literal("Manual")),
+    location: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      accuracy: v.number(),
+    })),
+  })
+    .index("by_meeting", ["meetingId"])
+    .index("by_user", ["userId"])
+    .index("by_meeting_user", ["meetingId", "userId"]),
 });

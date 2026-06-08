@@ -25,6 +25,7 @@ import { UserRole } from '../components/RoleBadge';
 import { OversightDashboardTab } from '../components/OversightDashboardTab';
 import { MobileDashboard } from '../components/MobileDashboard';
 import { EscalationManager } from '../components/EscalationManager';
+import { MeetingCard } from '../components/MeetingCard';
 import styles from './Dashboard.module.css';
 
 // Statistics and Organization data will be fetched from Convex
@@ -40,6 +41,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
   const stats = useQuery(api.churches.getChurchStats);
   const organogramData = useQuery(api.churches.getOrganogram);
   const activities = useQuery(api.churches.getRecentActivities);
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
   
   const ensureChannels = useMutation(api.chat.ensureChannels);
   const seedBadges = useMutation(api.recognition.seedBadges);
@@ -66,6 +68,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
       </div>
     );
   }
+
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
 
   if (isMobile) {
     return <MobileDashboard user={me} church={church} stats={stats} />;
@@ -107,6 +115,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             </button>
           </div>
         </div>
+
+        {activeMeetings.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Active Gatherings</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {activeMeetings.map(meeting => (
+                <MeetingCard key={meeting._id} meeting={meeting as any} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.mainGrid}>
           <div className={styles.analyticsSection}>
@@ -204,6 +223,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
             </button>
           </div>
         </div>
+
+        {activeMeetings.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Active Gatherings</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {activeMeetings.map(meeting => (
+                <MeetingCard key={meeting._id} meeting={meeting as any} />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
@@ -315,6 +345,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ userRole }) => {
           )}
         </div>
       </div>
+
+      {activeMeetings.length > 0 && (
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '1rem' }}>Active Gatherings</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {activeMeetings.map(meeting => (
+              <MeetingCard key={meeting._id} meeting={meeting as any} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Oversight View - Only for Pastoral Oversight and Super Admins */}
       {(userRole === 'PastoralOversight' || userRole === 'SuperAdmin') && me?.departmentId && (

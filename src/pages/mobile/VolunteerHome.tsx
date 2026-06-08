@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { Calendar, MapPin, QrCode, Loader2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
+import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
 
 export const VolunteerHome: React.FC = () => {
@@ -11,6 +12,7 @@ export const VolunteerHome: React.FC = () => {
   const nextService = useQuery(api.services.getNextService);
   const myShifts = useQuery(api.rotas.getMyShifts);
   const church = useQuery(api.churches.getMyChurch);
+  const meetings = useQuery(api.meetings.getMeetingsForUser);
 
   if (nextService === undefined || church === undefined) {
     return (
@@ -21,6 +23,11 @@ export const VolunteerHome: React.FC = () => {
   }
 
   const safeMyShifts = myShifts || [];
+  const now = Date.now();
+  const activeMeetings = (meetings || []).filter((meeting: any) => 
+    now >= meeting.startTime - 15 * 60 * 1000 && 
+    now <= meeting.endTime + 30 * 60 * 1000
+  );
 
   const formatDistanceSafe = (timestamp: number | undefined) => {
     if (!timestamp) return 'No upcoming services';
@@ -42,6 +49,15 @@ export const VolunteerHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {activeMeetings.length > 0 && (
+        <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle}>Active Gatherings</h2>
+          {activeMeetings.map((meeting: any) => (
+            <MeetingCard key={meeting._id} meeting={meeting} />
+          ))}
+        </section>
+      )}
+
       <section className={styles.section}>
         <div className={styles.card + ' ' + styles.countdownCard}>
           <span className={styles.countdownLabel}>Next Service</span>
