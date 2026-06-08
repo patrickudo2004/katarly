@@ -171,6 +171,8 @@ export const updateExtendedSettings = mutation({
     lateThresholdMinutes: v.optional(v.number()),
     autoCheckoutHours: v.optional(v.number()),
     burnoutLimitShiftsPerMonth: v.optional(v.number()),
+    burnoutLimitConsecutiveSundays: v.optional(v.number()),
+    enableBurnoutAlerts: v.optional(v.boolean()),
     swapDeadlineHours: v.optional(v.number()),
     radiusUnit: v.optional(v.union(v.literal("meters"), v.literal("miles"))),
     accentColor: v.optional(v.string()),
@@ -319,7 +321,7 @@ export const getAdvancedAnalytics = query({
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return null;
-    const user = await ctx.db.get(userId);
+    const user = (await ctx.db.get(userId)) as any;
     if (!user?.churchId) return null;
 
     const churchId = user.churchId;
@@ -344,7 +346,7 @@ export const getAdvancedAnalytics = query({
       finalDeptId = user.departmentId;
       // Scoped role can drill down into their own subunits, but verify department match
       if (finalSubunitId) {
-        const subunit = await ctx.db.get(finalSubunitId as any);
+        const subunit = (await ctx.db.get(finalSubunitId as any)) as any;
         if (!subunit || subunit.departmentId !== finalDeptId) {
           finalSubunitId = null;
         }

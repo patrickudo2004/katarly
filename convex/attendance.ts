@@ -409,7 +409,7 @@ export const getAttendanceInsights = query({
     } else if (deptRoles.includes(userRole)) {
       query = query.filter(q => q.eq(q.field("departmentId"), user.departmentId));
       if (args.subunitId) {
-        const subunit = await ctx.db.get(args.subunitId as any);
+        const subunit = (await ctx.db.get(args.subunitId as any)) as any;
         if (subunit && subunit.departmentId === user.departmentId) {
           query = query.filter(q => q.eq(q.field("subunitId"), args.subunitId));
         } else {
@@ -461,7 +461,7 @@ export const getHistoricalAttendance = query({
         finalDeptId = user.departmentId;
         // Verify subunit belongs to their department
         if (finalSubunitId) {
-          const subunit = await ctx.db.get(finalSubunitId as any);
+          const subunit = (await ctx.db.get(finalSubunitId as any)) as any;
           if (!subunit || subunit.departmentId !== finalDeptId) {
             finalSubunitId = null;
           }

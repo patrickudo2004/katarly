@@ -50,6 +50,8 @@ export const AdminSettings: React.FC = () => {
     lateThresholdMinutes: 15,
     autoCheckoutHours: 4,
     burnoutLimitShiftsPerMonth: 8,
+    burnoutLimitConsecutiveSundays: 4,
+    enableBurnoutAlerts: true,
     swapDeadlineHours: 24,
     radiusUnit: 'meters' as 'meters' | 'miles',
     accentColor: '#8b5cf6',
@@ -73,6 +75,8 @@ export const AdminSettings: React.FC = () => {
         lateThresholdMinutes: church.settings?.lateThresholdMinutes ?? 15,
         autoCheckoutHours: church.settings?.autoCheckoutHours ?? 4,
         burnoutLimitShiftsPerMonth: church.settings?.burnoutLimitShiftsPerMonth ?? 8,
+        burnoutLimitConsecutiveSundays: church.settings?.burnoutLimitConsecutiveSundays ?? 4,
+        enableBurnoutAlerts: church.settings?.enableBurnoutAlerts ?? true,
         swapDeadlineHours: church.settings?.swapDeadlineHours ?? 24,
         radiusUnit: church.settings?.radiusUnit ?? 'meters',
         accentColor: church.settings?.accentColor ?? '#8b5cf6',
@@ -449,7 +453,7 @@ export const AdminSettings: React.FC = () => {
             <section className={styles.section}>
               <h3><Activity size={20} /> Burnout & Capacity</h3>
               <div className={styles.field}>
-                <label>Volunteer Burnout Limit</label>
+                <label>Volunteer Monthly Shift Limit</label>
                 <div className={styles.inputWithUnit}>
                   <input 
                     type="number" 
@@ -460,6 +464,31 @@ export const AdminSettings: React.FC = () => {
                 </div>
                 <p className={styles.hint}>Rota will flag a warning if a volunteer is assigned more shifts than this.</p>
               </div>
+
+              <div className={styles.field} style={{ marginTop: '1.5rem' }}>
+                <label>Consecutive Sunday Service Limit</label>
+                <div className={styles.inputWithUnit}>
+                  <input 
+                    type="number" 
+                    value={formData.burnoutLimitConsecutiveSundays}
+                    onChange={e => setFormData({...formData, burnoutLimitConsecutiveSundays: parseInt(e.target.value)})}
+                  />
+                  <span>Sundays in a row</span>
+                </div>
+                <p className={styles.hint}>Flag a warning if a volunteer serves this many consecutive Sundays without rest.</p>
+              </div>
+
+              <label className={styles.checkboxLabel} style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <input 
+                  type="checkbox"
+                  checked={formData.enableBurnoutAlerts}
+                  onChange={(e) => setFormData({...formData, enableBurnoutAlerts: e.target.checked})}
+                />
+                <div className={styles.checkboxInfo} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <strong style={{ fontSize: '0.875rem' }}>Enable Burnout Warnings</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Display burnout alerts and stats on the reports dashboard page.</span>
+                </div>
+              </label>
             </section>
 
             <section className={styles.section}>

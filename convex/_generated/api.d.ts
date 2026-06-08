@@ -23,6 +23,7 @@ import type * as notifications from "../notifications.js";
 import type * as oversight from "../oversight.js";
 import type * as probation from "../probation.js";
 import type * as recognition from "../recognition.js";
+import type * as reports from "../reports.js";
 import type * as rewards from "../rewards.js";
 import type * as rotas from "../rotas.js";
 import type * as services from "../services.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   oversight: typeof oversight;
   probation: typeof probation;
   recognition: typeof recognition;
+  reports: typeof reports;
   rewards: typeof rewards;
   rotas: typeof rotas;
   services: typeof services;

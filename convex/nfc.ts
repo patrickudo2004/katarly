@@ -7,7 +7,7 @@ async function getAuthenticatedUser(ctx: any) {
   if (!userId) throw new Error("Not authenticated");
   const user = await ctx.db.get(userId);
   if (!user) throw new Error("User not found");
-  return user;
+  return user as any;
 }
 
 export const getNfcConfig = query({
@@ -15,7 +15,7 @@ export const getNfcConfig = query({
     const user = await getAuthenticatedUser(ctx);
     if (!user.churchId) return null;
 
-    const church = await ctx.db.get(user.churchId);
+    const church = (await ctx.db.get(user.churchId)) as any;
     if (!church) return null;
 
     // Only management can see the full config
@@ -38,7 +38,7 @@ export const initializeNfc = mutation({
     if (user.role !== "SuperAdmin") throw new Error("Only SuperAdmins can initialize NFC");
     if (!user.churchId) throw new Error("Church not found");
 
-    const church = await ctx.db.get(user.churchId);
+    const church = (await ctx.db.get(user.churchId)) as any;
     if (!church) throw new Error("Church not found");
 
     if (church.settings?.nfcSecret) return church.settings.nfcSecret;

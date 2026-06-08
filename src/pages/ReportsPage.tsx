@@ -13,7 +13,14 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Shield,
+  Activity,
+  Award,
+  LayoutGrid,
+  ChevronUp,
+  ChevronDown,
+  AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toPng } from 'html-to-image';
@@ -26,7 +33,7 @@ import {
 import styles from './ReportsPage.module.css';
 
 export const ReportsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'trends' | 'services'>('trends');
+  const [activeTab, setActiveTab] = useState<'trends' | 'services' | 'floor' | 'wellness' | 'compliance' | 'leaderboard' | 'probation'>('trends');
   const [rangeDays, setRangeDays] = useState(28); // 4 weeks default
   const [deptId, setDeptId] = useState<string | null>(null);
   const [subunitId, setSubunitId] = useState<string | null>(null);
@@ -37,6 +44,13 @@ export const ReportsPage: React.FC = () => {
   const isSuperAdmin = me?.role === 'SuperAdmin';
   const isDeptLevel = ['DeaconHead', 'PastoralOversight', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary'].includes(me?.role || '');
   const isSubunitLevel = ['SubunitLead', 'SubunitAssistant'].includes(me?.role || '');
+
+  // Fetch new operational report data
+  const liveCoverage = useQuery(api.reports.getLiveFloorCoverage, { departmentId: deptId as any });
+  const burnoutAlerts = useQuery(api.reports.getBurnoutAlerts, { departmentId: deptId as any, subunitId: subunitId as any });
+  const safeguardingLogs = useQuery(api.reports.getSafeguardingAudit, { departmentId: deptId as any });
+  const leaderboards = useQuery(api.reports.getSubunitLeaderboards);
+  const probationList = useQuery(api.reports.getProbationStatusList, { departmentId: deptId as any });
 
   // Automatically lock/initialize state based on role
   React.useEffect(() => {
@@ -125,6 +139,54 @@ export const ReportsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const exportCompliancePDF = () => {
+    if (!safeguardingLogs) return;
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Katarly Safeguarding & Compliance Audit Trail", 14, 20);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm')}`, 14, 27);
+      doc.text(`Scope: ${isSuperAdmin ? 'Church-wide' : 'Department Scoped'}`, 14, 32);
+      
+      let y = 42;
+      doc.setFontSize(11);
+      doc.setFillColor(243, 244, 246);
+      doc.rect(14, y, 182, 8, "F");
+      doc.setFont("Helvetica", "bold");
+      doc.text("Volunteer Name", 16, y + 6);
+      doc.text("Service", 65, y + 6);
+      doc.text("Check-in Time", 110, y + 6);
+      doc.text("Verification stamp", 145, y + 6);
+      
+      y += 8;
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(9);
+
+      for (const log of safeguardingLogs) {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        // Obfuscate username slightly for GDPR compliance (extract name part before email sign)
+        const namePart = log.volunteerName.split('@')[0];
+        doc.text(namePart, 16, y + 5);
+        doc.text(log.serviceName, 65, y + 5);
+        doc.text(format(log.timestamp, 'yyyy-MM-dd HH:mm'), 110, y + 5);
+        doc.text(log.verifiedBy, 145, y + 5);
+        
+        doc.setDrawColor(229, 231, 235);
+        doc.line(14, y + 8, 196, y + 8);
+        y += 9;
+      }
+      
+      doc.save(`safeguarding-audit-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate PDF audit trail.");
+    }
+  };
+
   if (!me) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-purple-600" /></div>;
 
   const currentServiceInsights = () => {
@@ -181,7 +243,7 @@ export const ReportsPage: React.FC = () => {
         </div>
       </header>
 
-      <div className={styles.tabNav}>
+      <div className={styles.tabNav} style={{ overflowX: 'auto', whiteSpace: 'nowrap', paddingBottom: '0.75rem', display: 'flex', gap: '0.5rem' }}>
         <button 
           className={activeTab === 'trends' ? styles.activeTab : ''} 
           onClick={() => setActiveTab('trends')}
@@ -193,6 +255,36 @@ export const ReportsPage: React.FC = () => {
           onClick={() => setActiveTab('services')}
         >
           <PieChartIcon size={18} /> Service Drill-down
+        </button>
+        <button 
+          className={activeTab === 'floor' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('floor')}
+        >
+          <LayoutGrid size={18} /> Floor Coverage
+        </button>
+        <button 
+          className={activeTab === 'wellness' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('wellness')}
+        >
+          <Activity size={18} /> Wellness Warnings
+        </button>
+        <button 
+          className={activeTab === 'compliance' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('compliance')}
+        >
+          <Shield size={18} /> Compliance Logs
+        </button>
+        <button 
+          className={activeTab === 'leaderboard' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('leaderboard')}
+        >
+          <Award size={18} /> Leaderboards
+        </button>
+        <button 
+          className={activeTab === 'probation' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('probation')}
+        >
+          <Users size={18} /> Probation Tracker
         </button>
       </div>
 
@@ -432,6 +524,318 @@ export const ReportsPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'floor' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Real-time Floor Coverage</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Live volunteer check-in ratios compared to today's scheduled rota.</p>
+            </div>
+            {liveCoverage && liveCoverage.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                {liveCoverage.map((item) => (
+                  <div key={item.subunitId} style={{ 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '12px', 
+                    padding: '1.25rem',
+                    borderLeft: `4px solid ${item.status === 'red' ? '#ef4444' : item.status === 'amber' ? '#f59e0b' : '#10b981'}`
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.subunitName}</h4>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.departmentName}</span>
+                      </div>
+                      <span style={{ 
+                        fontSize: '0.75rem', 
+                        fontWeight: 600, 
+                        textTransform: 'uppercase', 
+                        padding: '0.25rem 0.5rem', 
+                        borderRadius: '4px',
+                        background: item.status === 'red' ? 'rgba(239, 68, 68, 0.15)' : item.status === 'amber' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                        color: item.status === 'red' ? '#ef4444' : item.status === 'amber' ? '#f59e0b' : '#10b981'
+                      }}>{item.status === 'red' ? 'Critical' : item.status === 'amber' ? 'Warning' : 'Good'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                      <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Coverage:</span>
+                      <strong style={{ fontSize: '1.125rem', color: 'var(--text-primary)' }}>{item.checkedIn} / {item.required} Checked-in</strong>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', marginTop: '0.75rem', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${Math.min((item.checkedIn / item.required) * 100, 100)}%`, 
+                        height: '100%', 
+                        background: item.status === 'red' ? '#ef4444' : item.status === 'amber' ? '#f59e0b' : '#10b981' 
+                      }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                <Calendar size={48} style={{ opacity: 0.5, marginBottom: '1rem', color: 'var(--text-secondary)' }} />
+                <p>No active services running at this time.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'wellness' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Volunteer Wellness & Burnout Warnings</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Servants flagged for exceeding monthly shift limits or consecutive week limits.</p>
+            </div>
+            {burnoutAlerts && burnoutAlerts.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {burnoutAlerts.map((alert) => (
+                  <div key={alert.userId} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '12px', 
+                    padding: '1.25rem'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{alert.name}</h4>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600,
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: alert.riskLevel === 'high' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                          color: alert.riskLevel === 'high' ? '#ef4444' : '#f59e0b'
+                        }}>{alert.riskLevel === 'high' ? 'High Risk' : 'Medium Risk'}</span>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        {alert.departmentName} &bull; {alert.subunitName}
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Monthly Shifts</div>
+                        <strong style={{ fontSize: '1.125rem', color: 'var(--text-primary)' }}>{alert.shiftsCount}</strong>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Sundays Served</div>
+                        <strong style={{ fontSize: '1.125rem', color: 'var(--text-primary)' }}>{alert.consecutiveWeeks} consecutive</strong>
+                      </div>
+                      <div style={{ width: '200px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        {alert.reasons.map((reason: string, idx: number) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>
+                            <AlertTriangle size={12} />
+                            <span>{reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                <CheckCircle size={48} style={{ opacity: 0.5, color: '#10b981', marginBottom: '1rem' }} />
+                <p>All clear! No volunteers currently exceeding wellness thresholds.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'compliance' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Safeguarding & Compliance Audit Logs</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Verified placement logs and background check credentials for children's safety compliance.</p>
+              </div>
+              <button 
+                onClick={exportCompliancePDF} 
+                className={styles.exportBtn}
+                style={{ background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <FileText size={18} /> Export PDF Audit Trail
+              </button>
+            </div>
+
+            <div className={styles.tableWrapper}>
+              <table className={styles.rawTable}>
+                <thead>
+                  <tr>
+                    <th>Volunteer</th>
+                    <th>Safety Status</th>
+                    <th>Service & Dept</th>
+                    <th>Logged Stamp</th>
+                    <th>Verified By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {safeguardingLogs?.map((log) => (
+                    <tr key={log.id}>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.volunteerName}</td>
+                      <td>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600, 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '9999px',
+                          background: log.hasBackgroundCheck ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          color: log.hasBackgroundCheck ? '#10b981' : '#ef4444'
+                        }}>
+                          {log.hasBackgroundCheck ? '✓ Safeguarded' : '✗ Unverified'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ color: 'var(--text-primary)' }}>{log.serviceName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{log.departmentName}</div>
+                      </td>
+                      <td>{format(log.timestamp, 'HH:mm')} &bull; <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{log.locationAccuracy}</span></td>
+                      <td>
+                        <span style={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontStyle: 'italic' }}>
+                          {log.verifiedBy}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!safeguardingLogs || safeguardingLogs.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className={styles.emptyRow}>No records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'leaderboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Subunit Consistency Leaderboards</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Church rankings by average attendance consistency and punctuality in the last 30 days.</p>
+            </div>
+            
+            <div className={styles.tableWrapper}>
+              <table className={styles.rawTable}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '80px' }}>Rank</th>
+                    <th>Subunit</th>
+                    <th>Department</th>
+                    <th>Consistency Score</th>
+                    <th>Avg Punctuality</th>
+                    <th style={{ width: '100px' }}>Trend</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboards?.map((item, idx) => (
+                    <tr key={item.subunitId}>
+                      <td style={{ fontSize: '1.125rem', fontWeight: 700, color: idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : 'var(--text-secondary)' }}>
+                        #{idx + 1}
+                      </td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.subunitName}</td>
+                      <td>{item.departmentName}</td>
+                      <td style={{ fontWeight: 700, color: item.consistencyScore > 85 ? '#10b981' : item.consistencyScore > 65 ? '#f59e0b' : '#ef4444' }}>
+                        {item.consistencyScore}%
+                      </td>
+                      <td>{item.avgLatenessMinutes <= 5 ? 'On Time (<5m)' : `+${item.avgLatenessMinutes} mins avg`}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: item.trend === 'up' ? '#10b981' : item.trend === 'down' ? '#ef4444' : 'var(--text-secondary)' }}>
+                          {item.trend === 'up' ? <ChevronUp size={16} /> : item.trend === 'down' ? <ChevronDown size={16} /> : null}
+                          <span style={{ textTransform: 'capitalize', fontSize: '0.75rem', fontWeight: 600 }}>{item.trend}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!leaderboards || leaderboards.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className={styles.emptyRow}>No leaderboard stats calculated yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'probation' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Probation & Rehabilitation Graduation Tracker</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Track volunteers on warning or probation status as they progress toward full restoration.</p>
+            </div>
+
+            {probationList && probationList.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+                {probationList.map((item) => (
+                  <div key={item.userId} style={{ 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '12px', 
+                    padding: '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1rem'
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{item.name}</h4>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.departmentName} &bull; {item.subunitName}</span>
+                        </div>
+                        {item.isGraduationReady && (
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 600, 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: '4px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            color: '#10b981'
+                          }}>Ready to Graduate</span>
+                        )}
+                      </div>
+                      
+                      <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                          <span>Latest supervisor review:</span>
+                          <span style={{ 
+                            fontWeight: 600, 
+                            color: item.remarkSentiment === 'Good' ? '#10b981' : item.remarkSentiment === 'Fair' ? '#f59e0b' : '#ef4444' 
+                          }}>{item.remarkSentiment}</span>
+                        </div>
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', margin: 0, fontStyle: 'italic' }}>
+                          "{item.lastRemark}"
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                        <span>Consecutive On-time Shifts Streak:</span>
+                        <strong>{item.streakCount} / {item.requiredStreak}</strong>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: 'var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${Math.min((item.streakCount / item.requiredStreak) * 100, 100)}%`, 
+                          height: '100%', 
+                          background: item.isGraduationReady ? '#10b981' : '#8b5cf6' 
+                        }}></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                <CheckCircle size={48} style={{ opacity: 0.5, color: '#10b981', marginBottom: '1rem' }} />
+                <p>No volunteers currently on probation in this department.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

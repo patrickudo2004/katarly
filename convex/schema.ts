@@ -92,6 +92,8 @@ export default defineSchema({
       lateThresholdMinutes: v.optional(v.number()),
       autoCheckoutHours: v.optional(v.number()),
       burnoutLimitShiftsPerMonth: v.optional(v.number()),
+      burnoutLimitConsecutiveSundays: v.optional(v.number()),
+      enableBurnoutAlerts: v.optional(v.boolean()),
       swapDeadlineHours: v.optional(v.number()),
       radiusUnit: v.optional(v.union(v.literal("meters"), v.literal("miles"))),
       accentColor: v.optional(v.string()),
@@ -373,4 +375,26 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_church", ["churchId"])
     .index("by_user_church", ["userId", "churchId"]),
+
+  subunitStats: defineTable({
+    churchId: v.id("churches"),
+    subunitId: v.id("subunits"),
+    subunitName: v.string(),
+    departmentId: v.id("departments"),
+    departmentName: v.string(),
+    consistencyScore: v.number(),
+    avgLatenessMinutes: v.number(),
+    trend: v.union(v.literal("up"), v.literal("down"), v.literal("stable")),
+    lastCalculatedAt: v.number(),
+  }).index("by_church", ["churchId"])
+    .index("by_church_score", ["churchId", "consistencyScore"]),
+
+  auditLogs: defineTable({
+    churchId: v.id("churches"),
+    action: v.string(),            // e.g. "manual_checkin", "override_geofence"
+    userId: v.id("users"),         // Target user
+    actorId: v.id("users"),        // Admin doing the action
+    timestamp: v.number(),
+    details: v.string(),
+  }).index("by_church", ["churchId"]),
 });
