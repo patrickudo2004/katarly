@@ -678,16 +678,29 @@ export const ReportsPage: React.FC = () => {
                     <tr key={log.id}>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.volunteerName}</td>
                       <td>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          fontWeight: 600, 
-                          padding: '0.25rem 0.5rem', 
-                          borderRadius: '9999px',
-                          background: log.hasBackgroundCheck ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                          color: log.hasBackgroundCheck ? '#10b981' : '#ef4444'
-                        }}>
-                          {log.hasBackgroundCheck ? '✓ Safeguarded' : '✗ Unverified'}
-                        </span>
+                        {!log.requiresSafeguarding ? (
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 600, 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: '9999px',
+                            background: 'rgba(148, 163, 184, 0.15)',
+                            color: '#94a3b8'
+                          }}>
+                            Not Required
+                          </span>
+                        ) : (
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 600, 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: '9999px',
+                            background: log.hasBackgroundCheck ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: log.hasBackgroundCheck ? '#10b981' : '#ef4444'
+                          }}>
+                            {log.hasBackgroundCheck ? '✓ Safeguarded' : '✗ Unverified'}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div style={{ color: 'var(--text-primary)' }}>{log.serviceName}</div>

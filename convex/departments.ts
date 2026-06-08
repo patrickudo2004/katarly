@@ -84,9 +84,13 @@ export const updateDepartment = mutation({
   args: {
     id: v.id("departments"),
     name: v.string(),
+    requiresSafeguarding: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await checkAdmin(ctx);
-    await ctx.db.patch(args.id, { name: args.name });
+    await ctx.db.patch(args.id, { 
+      name: args.name,
+      requiresSafeguarding: args.requiresSafeguarding,
+    });
   },
 });

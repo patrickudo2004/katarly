@@ -46,6 +46,7 @@ export const AdminPage: React.FC = () => {
   const [newDeptName, setNewDeptName] = useState('');
   const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
   const [editingDeptName, setEditingDeptName] = useState('');
+  const [editingDeptRequiresSafeguarding, setEditingDeptRequiresSafeguarding] = useState(false);
 
   const [isAddingSubunit, setIsAddingSubunit] = useState(false);
   const [newSubunit, setNewSubunit] = useState({ name: '', departmentId: '' as any });
@@ -59,6 +60,27 @@ export const AdminPage: React.FC = () => {
       await updateUserRole({ userId, role: role as any });
     } catch (err: any) {
       alert(err.message || "Failed to update user role.");
+    }
+  };
+
+  const handleToggleSkill = async (user: any, skill: string, checked: boolean) => {
+    const currentSkills = user.skills || [];
+    let newSkills;
+    if (checked) {
+      newSkills = [...currentSkills.filter((s: string) => s !== skill), skill];
+    } else {
+      newSkills = currentSkills.filter((s: string) => s !== skill);
+    }
+    try {
+      await updateUserRole({
+        userId: user._id,
+        role: user.role || "Volunteer",
+        departmentId: user.departmentId,
+        subunitId: user.subunitId,
+        skills: newSkills
+      });
+    } catch (err: any) {
+      alert("Failed to update safeguarding status: " + (err.message || err));
     }
   };
 
@@ -106,7 +128,11 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!editingDeptId) return;
     try {
-      await updateDept({ id: editingDeptId as any, name: editingDeptName });
+      await updateDept({ 
+        id: editingDeptId as any, 
+        name: editingDeptName,
+        requiresSafeguarding: editingDeptRequiresSafeguarding
+      });
       setEditingDeptId(null);
     } catch (err) {
       alert("Failed to update department");
@@ -205,20 +231,34 @@ export const AdminPage: React.FC = () => {
                             onChange={e => setEditingDeptName(e.target.value)} 
                             autoFocus
                           />
-                          <div className={styles.editActions}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', marginTop: '0.5rem', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={editingDeptRequiresSafeguarding}
+                              onChange={e => setEditingDeptRequiresSafeguarding(e.target.checked)}
+                            />
+                            <span style={{ color: 'var(--text-primary)' }}>Requires Safeguarding Clearance</span>
+                          </label>
+                          <div className={styles.editActions} style={{ marginTop: '0.5rem' }}>
                             <button type="submit" className={styles.saveBtn}>Save</button>
                             <button type="button" onClick={() => setEditingDeptId(null)} className={styles.cancelBtn}>Cancel</button>
                           </div>
                         </form>
                       ) : (
                         <div className={styles.nameRow}>
-                          <strong>{dept.name}</strong>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            {dept.name}
+                            {dept.requiresSafeguarding && (
+                              <span style={{ fontSize: '0.7rem', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 600 }}>High Risk</span>
+                            )}
+                          </strong>
                           {activeUser?.role === 'SuperAdmin' && (
                             <button 
                               className={styles.editIconBtn}
                               onClick={() => {
                                 setEditingDeptId(dept._id);
                                 setEditingDeptName(dept.name);
+                                setEditingDeptRequiresSafeguarding(dept.requiresSafeguarding ?? false);
                               }}
                             >
                               Edit
@@ -423,6 +463,7 @@ export const AdminPage: React.FC = () => {
                       <th>Name</th>
                       <th>Role</th>
                       <th>Dept/Subunit</th>
+                      <th>Safeguarding & Background Check</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -472,6 +513,28 @@ export const AdminPage: React.FC = () => {
                                 <option key={s._id} value={s._id}>{s.name}</option>
                               ))}
                             </select>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                              <input 
+                                type="checkbox"
+                                checked={user.skills?.includes("Safeguarding Approved") ?? false}
+                                onChange={(e) => handleToggleSkill(user, "Safeguarding Approved", e.target.checked)}
+                                disabled={activeUser?.role !== 'SuperAdmin'}
+                              />
+                              <span style={{ color: 'var(--text-primary)' }}>Safeguarding Approved</span>
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                              <input 
+                                type="checkbox"
+                                checked={user.skills?.includes("Background Checked") ?? false}
+                                onChange={(e) => handleToggleSkill(user, "Background Checked", e.target.checked)}
+                                disabled={activeUser?.role !== 'SuperAdmin'}
+                              />
+                              <span style={{ color: 'var(--text-primary)' }}>Background Checked</span>
+                            </label>
                           </div>
                         </td>
                         <td>

@@ -216,6 +216,7 @@ export const getSafeguardingAudit = query({
           verifiedBy: supervisor?.name || supervisor?.email || "Self (Auto QR)",
           hasBackgroundCheck: isApproved,
           locationAccuracy: r.location ? `${r.location.accuracy.toFixed(1)}m` : "No GPS",
+          requiresSafeguarding: department?.requiresSafeguarding ?? false,
         };
       })
     );

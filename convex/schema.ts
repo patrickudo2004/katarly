@@ -115,6 +115,7 @@ export default defineSchema({
     name: v.string(),
     headId: v.optional(v.id("users")),
     assistantId: v.optional(v.id("users")),
+    requiresSafeguarding: v.optional(v.boolean()),
   }).index("by_church", ["churchId"]),
 
   subunits: defineTable({

@@ -37,6 +37,27 @@ export const PeoplePage: React.FC = () => {
     }
   };
 
+  const handleToggleSkill = async (user: any, skill: string, checked: boolean) => {
+    const currentSkills = user.skills || [];
+    let newSkills;
+    if (checked) {
+      newSkills = [...currentSkills.filter((s: string) => s !== skill), skill];
+    } else {
+      newSkills = currentSkills.filter((s: string) => s !== skill);
+    }
+    try {
+      await updateUserRole({
+        userId: user._id,
+        role: user.role || "Volunteer",
+        departmentId: user.departmentId,
+        subunitId: user.subunitId,
+        skills: newSkills
+      });
+    } catch (err: any) {
+      alert("Failed to update safeguarding status: " + (err.message || err));
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -108,7 +129,7 @@ export const PeoplePage: React.FC = () => {
             </div>
 
             {me?.role === 'SuperAdmin' && (
-              <div className={styles.cardActions}>
+              <div className={styles.cardActions} style={{ flexDirection: 'column', gap: '0.5rem', alignItems: 'stretch' }}>
                 <select 
                   className={styles.roleSelect}
                   value={user.role}
@@ -118,6 +139,24 @@ export const PeoplePage: React.FC = () => {
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox"
+                      checked={user.skills?.includes("Safeguarding Approved") ?? false}
+                      onChange={(e) => handleToggleSkill(user, "Safeguarding Approved", e.target.checked)}
+                    />
+                    <span>Safeguarding Approved</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox"
+                      checked={user.skills?.includes("Background Checked") ?? false}
+                      onChange={(e) => handleToggleSkill(user, "Background Checked", e.target.checked)}
+                    />
+                    <span>Background Checked</span>
+                  </label>
+                </div>
               </div>
             )}
           </div>

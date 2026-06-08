@@ -265,14 +265,16 @@ export const updateUserRole = mutation({
     ),
     departmentId: v.optional(v.id("departments")),
     subunitId: v.optional(v.id("subunits")),
+    skills: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const adminId = await auth.getUserId(ctx);
     if (!adminId) throw new Error("Not authenticated");
     const admin = await ctx.db.get(adminId);
+    if (!admin) throw new Error("Admin user not found");
 
-    const isSuperAdmin = admin?.role === "SuperAdmin";
-    const isDeaconHead = admin?.role === "DeaconHead";
+    const isSuperAdmin = admin.role === "SuperAdmin";
+    const isDeaconHead = admin.role === "DeaconHead";
 
     if (!isSuperAdmin && !isDeaconHead) {
       throw new Error("Only SuperAdmin or DeaconHead can change roles");
@@ -284,7 +286,7 @@ export const updateUserRole = mutation({
         throw new Error("DeaconHead can only assign the PastoralOversight role");
       }
       const targetUser = await ctx.db.get(args.userId);
-      if (targetUser?.departmentId !== admin?.departmentId) {
+      if (targetUser?.departmentId !== admin.departmentId) {
         throw new Error("DeaconHead can only assign roles within their own department");
       }
     }
@@ -294,7 +296,7 @@ export const updateUserRole = mutation({
       throw new Error("Only SuperAdmin can assign the DeaconHead role");
     }
 
-    const { userId, ...updates } = args;
+    const { userId, skills, ...updates } = args;
     const churchId = admin.churchId!;
 
     let membership = await ctx.db
@@ -321,11 +323,15 @@ export const updateUserRole = mutation({
 
     const targetUser = await ctx.db.get(userId);
     if (targetUser && targetUser.churchId === churchId) {
-      await ctx.db.patch(userId, {
+      const userPatch: any = {
         role: args.role as any,
         departmentId: args.departmentId,
         subunitId: args.subunitId,
-      });
+      };
+      if (skills !== undefined) {
+        userPatch.skills = skills;
+      }
+      await ctx.db.patch(userId, userPatch);
     }
   },
 });
