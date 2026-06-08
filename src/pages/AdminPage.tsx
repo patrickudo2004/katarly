@@ -44,6 +44,7 @@ export const AdminPage: React.FC = () => {
 
   const [isAddingDept, setIsAddingDept] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptRequiresSafeguarding, setNewDeptRequiresSafeguarding] = useState(false);
   const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
   const [editingDeptName, setEditingDeptName] = useState('');
   const [editingDeptRequiresSafeguarding, setEditingDeptRequiresSafeguarding] = useState(false);
@@ -108,8 +109,12 @@ export const AdminPage: React.FC = () => {
   const handleCreateDept = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createDept({ name: newDeptName });
+      await createDept({ 
+        name: newDeptName,
+        requiresSafeguarding: newDeptRequiresSafeguarding
+      });
       setNewDeptName('');
+      setNewDeptRequiresSafeguarding(false);
       setIsAddingDept(false);
     } catch (err) {
       alert("Failed to create department");
@@ -213,10 +218,20 @@ export const AdminPage: React.FC = () => {
               </div>
 
               {isAddingDept && (
-                <form onSubmit={handleCreateDept} className={styles.inlineForm}>
-                  <input placeholder="Dept Name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} required />
-                  <button type="submit">Save</button>
-                  <button type="button" onClick={() => setIsAddingDept(false)}>Cancel</button>
+                <form onSubmit={handleCreateDept} className={styles.inlineForm} style={{ flexDirection: 'column', gap: '0.75rem', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '1rem', width: '100%', alignItems: 'center' }}>
+                    <input placeholder="Dept Name" value={newDeptName} onChange={e => setNewDeptName(e.target.value)} required style={{ flex: 1 }} />
+                    <button type="submit" className={styles.saveBtn} style={{ marginTop: 0 }}>Save</button>
+                    <button type="button" onClick={() => setIsAddingDept(false)} className={styles.cancelBtn}>Cancel</button>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={newDeptRequiresSafeguarding}
+                      onChange={e => setNewDeptRequiresSafeguarding(e.target.checked)}
+                    />
+                    <span style={{ color: 'var(--text-primary)' }}>Requires Safeguarding Clearance</span>
+                  </label>
                 </form>
               )}
 

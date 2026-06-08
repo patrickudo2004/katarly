@@ -11,12 +11,16 @@ async function checkAdmin(ctx: any) {
 }
 
 export const createDepartment = mutation({
-  args: { name: v.string() },
+  args: { 
+    name: v.string(),
+    requiresSafeguarding: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const user = await checkAdmin(ctx);
     return await ctx.db.insert("departments", {
       churchId: user.churchId!,
       name: args.name,
+      requiresSafeguarding: args.requiresSafeguarding ?? false,
     });
   },
 });
