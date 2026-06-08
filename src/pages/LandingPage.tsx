@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Church, Calendar, ShieldCheck, Heart, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Church, Calendar, ShieldCheck, Heart, Sparkles, ArrowRight, CheckCircle2, Video, MapPin } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import styles from './LandingPage.module.css';
 
@@ -79,6 +79,22 @@ export const LandingPage: React.FC = () => {
               </div>
               <h3>Morale & Streaks</h3>
               <p>Build volunteer appreciation with automatic streaks, custom reward badges, and a church-wide Hall of Fame.</p>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardIconBox} style={{ background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5' }}>
+                <Video size={24} />
+              </div>
+              <h3>Hybrid Meetings & Devotionals</h3>
+              <p>Schedule workers' devotionals, rehearsal clusters, or training. Integrates MS Teams, Zoom, or Google Meet links and records online check-ins seamlessly.</p>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardIconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                <MapPin size={24} />
+              </div>
+              <h3>Multi-Campus Sanctuary Gate</h3>
+              <p>Directs volunteers serving at multiple campuses to select their specific sanctuary upon login, keeping campus rota metrics isolated and clean.</p>
             </div>
           </div>
         </section>
