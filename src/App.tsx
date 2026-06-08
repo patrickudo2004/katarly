@@ -81,6 +81,7 @@ function AppContent() {
         setIsSwitching(true);
         try {
           await switchChurch({ churchId: memberships[0].churchId });
+          sessionStorage.setItem('sessionChurchId', memberships[0].churchId);
         } catch (e) {
           console.error("Auto switch failed:", e);
         } finally {
@@ -90,6 +91,12 @@ function AppContent() {
       autoSelect();
     }
   }, [me, memberships, switchChurch]);
+
+  React.useEffect(() => {
+    if (me?.churchId && memberships && memberships.length === 1) {
+      sessionStorage.setItem('sessionChurchId', me.churchId);
+    }
+  }, [me?.churchId, memberships]);
 
   if (me === undefined || memberships === undefined || isSwitching || isSyncing) {
     return (
@@ -104,8 +111,11 @@ function AppContent() {
     return <CreateChurch />;
   }
 
-  // If user has multiple memberships but no active church context, show selector
-  if (!me.churchId && memberships.length > 1) {
+  const sessionChurchId = sessionStorage.getItem('sessionChurchId');
+  const hasMultipleChurches = memberships.length > 1;
+
+  // If user has multiple memberships but has not selected one in this browser session, show selector
+  if (hasMultipleChurches && (!sessionChurchId || sessionChurchId !== me.churchId)) {
     return <ChurchSelector />;
   }
 

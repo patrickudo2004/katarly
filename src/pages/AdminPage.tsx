@@ -512,7 +512,18 @@ export const AdminPage: React.FC = () => {
                           <div className={styles.assignmentCell}>
                             <select 
                               value={user.departmentId || ''}
-                              onChange={(e) => updateUserRole({ userId: user._id, departmentId: e.target.value as any || undefined, role: user.role as any })}
+                              onChange={(e) => {
+                                const newDeptId = e.target.value;
+                                const newSubunitId = user.subunitId && subunits.find(s => s._id === user.subunitId)?.departmentId === newDeptId 
+                                  ? user.subunitId 
+                                  : undefined;
+                                updateUserRole({ 
+                                  userId: user._id, 
+                                  departmentId: newDeptId as any || undefined, 
+                                  subunitId: newSubunitId as any || undefined,
+                                  role: user.role as any 
+                                });
+                              }}
                               disabled={activeUser?.role !== 'SuperAdmin'}
                             >
                               <option value="">No Dept</option>
@@ -520,7 +531,12 @@ export const AdminPage: React.FC = () => {
                             </select>
                             <select 
                               value={user.subunitId || ''}
-                              onChange={(e) => updateUserRole({ userId: user._id, subunitId: e.target.value as any || undefined, role: user.role as any })}
+                              onChange={(e) => updateUserRole({ 
+                                userId: user._id, 
+                                departmentId: user.departmentId as any || undefined, 
+                                subunitId: e.target.value as any || undefined, 
+                                role: user.role as any 
+                              })}
                               disabled={activeUser?.role !== 'SuperAdmin'}
                             >
                               <option value="">No Subunit</option>

@@ -34,7 +34,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
       (pos) => setLocation(pos),
       (err) => {
         console.error("GPS Error:", err);
-        setError("Location access is required for attendance verification.");
+        setError("Location access is required for check-in verification.");
       },
       { enableHighAccuracy: true }
     );
@@ -73,7 +73,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
             setSuccess(true);
             stopScanner();
           } catch (err: any) {
-            setError(err.message || "Failed to mark attendance");
+            setError(err.message || "Failed to check in");
           }
         },
         () => {} // silent failure for non-matches
@@ -114,7 +114,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
         <h2>Scan Service QR Code</h2>
       </div>
 
-      {!location && !error && (
+      {isCameraActive && !location && !error && (
         <div className={styles.status}>
           <MapPin className={styles.spinning} />
           <p>Acquiring GPS location...</p>
@@ -131,7 +131,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
       {success && (
         <div className={styles.success}>
           <CheckCircle2 size={40} />
-          <h3>Attendance Marked!</h3>
+          <h3>Check-In Successful!</h3>
           <p>You have been successfully checked in.</p>
           <button onClick={() => setSuccess(false)} className={styles.resetBtn}>Scan Another</button>
         </div>

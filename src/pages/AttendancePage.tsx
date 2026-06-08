@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { AttendanceScanner } from '../components/AttendanceScanner';
-import { MapPin, Clock, CheckCircle2, AlertCircle, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, AlertCircle, ShieldCheck, ChevronRight, Loader2, Nfc } from 'lucide-react';
 import { format } from 'date-fns';
 import styles from './AttendancePage.module.css';
 
@@ -23,6 +24,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export const AttendancePage: React.FC = () => {
+  const navigate = useNavigate();
   const church = useQuery(api.churches.getMyChurch);
   const todayServices = useQuery(api.services.getDailyServices);
   const markAttendance = useMutation(api.attendance.markAttendance);
@@ -34,6 +36,10 @@ export const AttendancePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+
+  const [isNfcScanning, setIsNfcScanning] = useState(false);
+  const [nfcError, setNfcError] = useState<string | null>(null);
+  const [showNfcInstructions, setShowNfcInstructions] = useState(false);
 
   // Live listener for verification status
   const latestRequest = useQuery(api.attendance.getLatestVerificationStatus);
@@ -78,6 +84,54 @@ export const AttendancePage: React.FC = () => {
   const handleManualRequest = () => {
     setScanData({ type: 'MANUAL', id: 'MANUAL', secret: 'MANUAL' });
     setStep('select');
+  };
+
+  const handleNfcCheckin = async () => {
+    if (!('NDEFReader' in window)) {
+      setShowNfcInstructions(true);
+      return;
+    }
+
+    setIsNfcScanning(true);
+    setNfcError(null);
+
+    try {
+      const ndef = new (window as any).NDEFReader();
+      await ndef.scan();
+      
+      ndef.onreading = (event: any) => {
+        try {
+          const record = event.message.records[0];
+          if (record && record.recordType === "url") {
+            const textDecoder = new TextDecoder("utf-8");
+            const urlString = textDecoder.decode(record.data);
+            const url = new URL(urlString);
+            const c = url.searchParams.get('c');
+            const s = url.searchParams.get('s');
+            
+            if (c && s) {
+              setIsNfcScanning(false);
+              navigate(`/tap?c=${c}&s=${s}`);
+            } else {
+              setNfcError("Invalid NFC tag: missing credentials.");
+            }
+          } else {
+            setNfcError("Invalid NFC tag format.");
+          }
+        } catch (e: any) {
+          setNfcError("Failed to read NFC data.");
+        }
+      };
+
+      ndef.onreadingerror = () => {
+        setNfcError("NFC reading failed. Please try again.");
+      };
+
+    } catch (err: any) {
+      console.error("NFC Scan error:", err);
+      setNfcError(err.message || "Failed to start NFC scanner.");
+      setIsNfcScanning(false);
+    }
   };
 
   const handleCheckIn = async (serviceId: any) => {
@@ -131,8 +185,16 @@ export const AttendancePage: React.FC = () => {
         <div className={styles.scannerWrapper}>
           <AttendanceScanner onScan={handleScan} isProcessing={isProcessing} />
           
-          <div className="mt-8 px-4 text-center">
-            <p className="text-gray-500 text-sm mb-4">Having trouble with the scanner or GPS?</p>
+          <div className="mt-8 px-4 text-center flex flex-col gap-3">
+            <button 
+              onClick={handleNfcCheckin}
+              className="w-full py-3 px-4 bg-purple-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200"
+            >
+              <Nfc size={20} />
+              Check In via NFC
+            </button>
+
+            <p className="text-gray-500 text-sm mt-2 mb-2">Having trouble with the scanner or GPS?</p>
             <button 
               onClick={handleManualRequest}
               className="w-full py-3 px-4 bg-white border-2 border-purple-200 text-purple-700 rounded-xl font-semibold flex items-center justify-center gap-2 hover:border-purple-600 transition-colors"
@@ -142,6 +204,57 @@ export const AttendancePage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* NFC Scanning Glassmorphism Overlay */}
+        {isNfcScanning && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <div className={styles.pulseContainer}>
+                <div className={styles.pulseRing} />
+                <Nfc size={40} className="text-purple-600 animate-pulse" />
+              </div>
+              <h3>Scanning NFC Tag</h3>
+              <p>Hold the back of your phone close to the physical NFC sticker on the wall.</p>
+              {nfcError && <p className="text-red-500 text-sm mt-2">{nfcError}</p>}
+              <button 
+                onClick={() => setIsNfcScanning(false)}
+                className="mt-6 px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* NFC Instructions Modal */}
+        {showNfcInstructions && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-full w-fit mb-4 mx-auto">
+                <Nfc size={32} />
+              </div>
+              <h3>One-Tap NFC Check-In</h3>
+              <div className="text-left text-sm text-gray-600 space-y-3 mt-4">
+                <p><strong>For iPhones:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 ml-1">
+                  <li>Wake or unlock your iPhone.</li>
+                  <li>Hold the top-back edge of your phone directly against the physical NFC sticker on the wall.</li>
+                  <li>Tap the notification that pops up on your screen.</li>
+                </ol>
+                <p className="mt-2 text-xs text-gray-400">Note: You do not need to click any buttons in this app. iOS detects the tag automatically!</p>
+                
+                <p className="pt-2"><strong>For Androids:</strong></p>
+                <p>Ensure NFC is enabled in your phone settings, then use Chrome to tap the tag.</p>
+              </div>
+              <button 
+                onClick={() => setShowNfcInstructions(false)}
+                className="mt-6 w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -153,7 +266,7 @@ export const AttendancePage: React.FC = () => {
           <div className={styles.successIcon}>
             <CheckCircle2 size={64} />
           </div>
-          <h1>Attendance Marked!</h1>
+          <h1>Check-In Successful!</h1>
           <p>You have been successfully checked in for your service.</p>
           <button onClick={() => setStep('scan')} className={styles.primaryBtn}>
             Done

@@ -19,6 +19,7 @@ export const ChurchSelector: React.FC = () => {
     setSelectingId(churchId);
     try {
       await switchChurch({ churchId });
+      sessionStorage.setItem('sessionChurchId', churchId);
       navigate('/');
     } catch (error) {
       console.error("Failed to switch church:", error);
@@ -28,6 +29,7 @@ export const ChurchSelector: React.FC = () => {
   };
 
   const handleSignOut = async () => {
+    sessionStorage.removeItem('sessionChurchId');
     await signOut();
     navigate('/login');
   };

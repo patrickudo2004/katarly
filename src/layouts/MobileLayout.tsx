@@ -29,6 +29,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
+    sessionStorage.removeItem('sessionChurchId');
     await signOut();
     navigate('/login');
   };

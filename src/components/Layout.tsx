@@ -124,7 +124,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
             {!isCollapsed && (
               <div className={styles.userMeta}>
                 <p className={styles.userName}>{user.name}</p>
-                <button className={styles.logoutBtn} onClick={(e) => { e.preventDefault(); signOut(); }}>
+                <button className={styles.logoutBtn} onClick={(e) => { e.preventDefault(); sessionStorage.removeItem('sessionChurchId'); signOut(); }}>
                   <LogOut size={14} />
                   <span>Sign Out</span>
                 </button>

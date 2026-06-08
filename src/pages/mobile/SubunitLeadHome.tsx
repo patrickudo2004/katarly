@@ -19,9 +19,10 @@ export const SubunitLeadHome: React.FC = () => {
     church ? { churchId: church._id } : "skip"
   );
   
-  // Scope live attendance specifically to the subunit being led
+  // Scope live attendance specifically to the subunit being led, guarding against skipped queries
+  const shouldSkip = !nextService || !mySubunitId;
   const liveAttendance = useQuery(api.subunits.getLiveAttendance,
-    nextService && mySubunitId ? { serviceId: nextService._id, subunitId: mySubunitId } : "skip"
+    shouldSkip ? "skip" : { serviceId: nextService._id, subunitId: mySubunitId }
   );
 
   // Critical loading state (block main layout only on basic user & church/service context)
@@ -39,7 +40,8 @@ export const SubunitLeadHome: React.FC = () => {
 
   // Safe checks for arrays
   const safePendingVerifications = pendingVerifications || [];
-  const safeLiveAttendance = liveAttendance || [];
+  const isLiveAttendanceLoading = liveAttendance === undefined && !shouldSkip;
+  const safeLiveAttendance = shouldSkip ? [] : (liveAttendance || []);
   const presentCount = safeLiveAttendance.length;
 
   const formatTimeSafe = (timestamp: number | undefined) => {
@@ -79,7 +81,7 @@ export const SubunitLeadHome: React.FC = () => {
 
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
-          {liveAttendance === undefined ? (
+          {isLiveAttendanceLoading ? (
             <Loader2 className="animate-spin text-purple-600" size={20} />
           ) : (
             <span className={styles.statValue}>{presentCount}</span>
@@ -98,13 +100,13 @@ export const SubunitLeadHome: React.FC = () => {
           {nextService && <div className={styles.badge} style={{ background: '#fef2f2', color: '#ef4444' }}>Live</div>}
         </div>
         <div className={styles.list}>
-          {liveAttendance === undefined ? (
+          {isLiveAttendanceLoading ? (
             <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
               <Loader2 className="animate-spin text-purple-600" size={24} />
             </div>
           ) : safeLiveAttendance.length === 0 ? (
             <div className={styles.emptyState}>
-              No one has checked in yet.
+              {!mySubunitId ? "No subunit assigned" : "No active service for check-in"}
             </div>
           ) : (
             safeLiveAttendance.map((record: any) => (
