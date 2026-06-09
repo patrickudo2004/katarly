@@ -79,8 +79,8 @@ export const createMeeting = mutation({
       if (!args.departmentId) {
         throw new Error("departmentId is required for Departmental scope");
       }
-      // Non-SuperAdmins can only schedule for their own department
-      if (user.role !== "SuperAdmin" && user.departmentId !== args.departmentId) {
+      // Non-SuperAdmins/DeaconHeads can only schedule for their own department
+      if (user.role !== "SuperAdmin" && user.role !== "DeaconHead" && user.departmentId !== args.departmentId) {
         throw new Error("You can only schedule meetings for your own department");
       }
     } else if (args.scope === "Subunit") {
@@ -185,7 +185,7 @@ export const getMeetingsForUser = query({
 
       // 2. Departmental is visible to users in that department
       if (meeting.scope === "Departmental") {
-        return user.role === "SuperAdmin" || user.departmentId === meeting.departmentId;
+        return user.role === "SuperAdmin" || user.role === "DeaconHead" || user.departmentId === meeting.departmentId;
       }
 
       // 3. Subunit is visible to users in that subunit
