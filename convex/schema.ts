@@ -63,7 +63,8 @@ export default defineSchema({
     userId: v.id("users"),
     authorId: v.id("users"),
     churchId: v.id("churches"),
-    content: v.string(),
+    content: v.string(), // Public note visible to the probationer
+    privateNote: v.optional(v.string()), // Private note visible only to leadership
     sentiment: v.union(v.literal("Good"), v.literal("Fair"), v.literal("Concern")),
     timestamp: v.number(),
   })
@@ -214,14 +215,18 @@ export default defineSchema({
     startDate: v.number(),
     endDate: v.number(),
     status: v.union(v.literal("active"), v.literal("completed"), v.literal("extended"), v.literal("ended")),
-    createdBy: v.id("users"), // Dept Head
+    createdBy: v.id("users"),
+    activeSubunitId: v.optional(v.id("subunits")), // Current subunit rotation stage
+    rotationSubunits: v.optional(v.array(v.id("subunits"))), // Array of subunits in rotation
   }).index("by_user", ["userId"])
-    .index("by_church", ["churchId"]),
+    .index("by_church", ["churchId"])
+    .index("by_church_status", ["churchId", "status"]),
 
   kpiLogs: defineTable({
     probationId: v.id("probationPeriods"),
     userId: v.id("users"),
-    loggerId: v.id("users"), // Subunit Lead
+    loggerId: v.id("users"),
+    subunitId: v.optional(v.id("subunits")), // Subunit tag for this log
     date: v.number(),
     score: v.union(v.literal("Excellent"), v.literal("Good"), v.literal("Needs Improvement"), v.literal("Disapprove")),
     note: v.optional(v.string()),

@@ -24,6 +24,7 @@ import { ServiceManagement } from './pages/ServiceManagement';
 import { PrintAttendance } from './pages/PrintAttendance';
 import { PeoplePage } from './pages/PeoplePage';
 import { ReportsPage } from './pages/ReportsPage';
+import { ProbationPage } from './pages/ProbationPage';
 import { DebugAuth } from './pages/DebugAuth';
 import { NetworkPage } from './pages/NetworkPage';
 import { AcceptInvite } from './pages/AcceptInvite';
@@ -231,6 +232,11 @@ function AppContent() {
       <Route path="/people" element={
         <PageLayout user={me as any}>
           <PeoplePage />
+        </PageLayout>
+      } />
+      <Route path="/probation" element={
+        <PageLayout user={me as any}>
+          <ProbationPage />
         </PageLayout>
       } />
       <Route path="/select-church" element={<ChurchSelector />} />

@@ -1,20 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Calendar, MapPin, QrCode, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, MapPin, QrCode, Loader2, RefreshCw, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { MeetingCard } from '../../components/MeetingCard';
+import { MemberProfileModal } from '../../components/MemberProfileModal';
 import styles from './mobile.module.css';
 
 export const VolunteerHome: React.FC = () => {
   const navigate = useNavigate();
+  const me = useQuery(api.users.me);
   const nextService = useQuery(api.services.getNextService);
   const myShifts = useQuery(api.rotas.getMyShifts);
   const church = useQuery(api.churches.getMyChurch);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
-  if (nextService === undefined || church === undefined) {
+  if (me === undefined || nextService === undefined || church === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -49,6 +52,35 @@ export const VolunteerHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {me?.role === "Probation" && (
+        <section className={styles.section}>
+          <div 
+            className={`${styles.card} cursor-pointer hover:border-purple-300 transition-all`}
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%)',
+              border: '1px solid rgba(139, 92, 246, 0.2)',
+              padding: '1.25rem',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}
+            onClick={() => setShowProfileModal(true)}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="text-purple-600" style={{ display: 'flex' }}><TrendingUp size={20} /></span>
+                <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>Your Restoration Growth Track</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 750, color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.1)', padding: '0.25rem 0.50rem', borderRadius: '9999px', textTransform: 'uppercase' }}>Active</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              You are on a restorative journey to full status. Click here to see your checklist, metrics, and leadership remarks.
+            </p>
+          </div>
+        </section>
+      )}
+
       {activeMeetings.length > 0 && (
         <section className={styles.section} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
           <h2 className={styles.sectionTitle}>Active Gatherings</h2>
@@ -154,6 +186,13 @@ export const VolunteerHome: React.FC = () => {
       <button className={styles.floatingBtn} onClick={() => navigate('/attendance')}>
         <QrCode size={24} />
       </button>
+
+      {showProfileModal && (
+        <MemberProfileModal 
+          userId={me._id} 
+          onClose={() => setShowProfileModal(false)} 
+        />
+      )}
     </div>
   );
 };

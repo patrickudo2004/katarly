@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Users, Search, Filter, Shield, MoreVertical, Mail, Phone, Calendar } from 'lucide-react';
 import { RoleBadge } from '../components/RoleBadge';
+import { MemberProfileModal } from '../components/MemberProfileModal';
 import styles from './PeoplePage.module.css';
 
 export const PeoplePage: React.FC = () => {
@@ -13,6 +14,7 @@ export const PeoplePage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('All');
   const [sortBy, setSortBy] = useState<'name' | 'dateJoined' | 'role'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedUserId, setSelectedUserId] = useState<any>(null);
 
   const users = useQuery(api.users.getVisibleUsers, {
     searchTerm,
@@ -101,31 +103,36 @@ export const PeoplePage: React.FC = () => {
       <div className={styles.userGrid}>
         {users?.map(user => (
           <div key={user._id} className={styles.userCard}>
-            <div className={styles.cardHeader}>
-              <div className={styles.avatar}>
-                {user.image ? <img src={user.image} alt={user.name} /> : (user.name?.[0] || user.email?.[0])}
-              </div>
-              <div className={styles.userInfo}>
-                <h3>{user.name || 'Unnamed User'}</h3>
-                <p>{user.email}</p>
-              </div>
-            </div>
-            
-            <div className={styles.cardContent}>
-              <div className={styles.metaRow}>
-                <Shield size={14} />
-                <RoleBadge role={user.role} />
-              </div>
-              <div className={styles.metaRow}>
-                <Calendar size={14} />
-                <span>{user.departmentName} • {user.subunitName}</span>
-              </div>
-              {user.phone && (
-                <div className={styles.metaRow}>
-                  <Phone size={14} />
-                  <span>{user.phone}</span>
+            <div 
+              style={{ cursor: 'pointer' }}
+              onClick={() => setSelectedUserId(user._id)}
+            >
+              <div className={styles.cardHeader}>
+                <div className={styles.avatar}>
+                  {user.image ? <img src={user.image} alt={user.name} /> : (user.name?.[0] || user.email?.[0])}
                 </div>
-              )}
+                <div className={styles.userInfo}>
+                  <h3>{user.name || 'Unnamed User'}</h3>
+                  <p>{user.email}</p>
+                </div>
+              </div>
+              
+              <div className={styles.cardContent}>
+                <div className={styles.metaRow}>
+                  <Shield size={14} />
+                  <RoleBadge role={user.role} />
+                </div>
+                <div className={styles.metaRow}>
+                  <Calendar size={14} />
+                  <span>{user.departmentName} • {user.subunitName}</span>
+                </div>
+                {user.phone && (
+                  <div className={styles.metaRow}>
+                    <Phone size={14} />
+                    <span>{user.phone}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {me?.role === 'SuperAdmin' && (
@@ -162,6 +169,13 @@ export const PeoplePage: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {selectedUserId && (
+        <MemberProfileModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+        />
+      )}
     </div>
   );
 };

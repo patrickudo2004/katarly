@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { BottomNav } from '../components/BottomNav';
 import { NotificationTray } from '../components/NotificationTray';
-import { Bell, LogOut, User, Moon, Sun, ChevronDown, X, Church } from 'lucide-react';
+import { Bell, LogOut, User, Moon, Sun, ChevronDown, X, Church, TrendingUp } from 'lucide-react';
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
@@ -82,6 +82,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
                 <User size={20} />
                 <span>My Profile</span>
               </Link>
+
+              {['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'].includes(user.role) && (
+                <Link to="/probation" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
+                  <TrendingUp size={20} />
+                  <span>Growth Tracks</span>
+                </Link>
+              )}
 
               {memberships && memberships.length > 1 && (
                 <Link to="/select-church" className={styles.menuItem} onClick={() => setShowUserMenu(false)}>
