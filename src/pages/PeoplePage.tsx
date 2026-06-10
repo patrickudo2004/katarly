@@ -31,6 +31,10 @@ export const PeoplePage: React.FC = () => {
   ];
 
   const handleRoleUpdate = async (userId: any, newRole: any) => {
+    if (newRole === 'Probation') {
+      alert("To place a member on the Restorative Growth Track, please click on the member's card to open their profile drawer, then use the 'Setup Growth Track' panel to configure their duration, target threshold, and initial subunit.");
+      return;
+    }
     try {
       await updateUserRole({ userId, role: newRole });
       alert("Role updated successfully");

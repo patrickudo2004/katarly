@@ -50,6 +50,7 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
   const logKPI = useMutation(api.probation.logKPIForUser);
   const rotateSubunit = useMutation(api.probation.rotateProbationSubunit);
   const graduateProbationer = useMutation(api.probation.graduateProbationer);
+  const initializeProbation = useMutation(api.probation.initializeProbation);
 
   // Form States
   const [remarkContent, setRemarkContent] = useState('');
@@ -62,6 +63,13 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
   const [targetSubunitId, setTargetSubunitId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showKpiForm, setShowKpiForm] = useState(false);
+  
+  // Initiation Form States
+  const [showInitiateForm, setShowInitiateForm] = useState(false);
+  const [initMonths, setInitMonths] = useState(3);
+  const [initThreshold, setInitThreshold] = useState(80);
+  const [initServiceCount, setInitServiceCount] = useState(6);
+  const [initSubunitId, setInitSubunitId] = useState('');
 
   if (!user || !currentUser) {
     return (
@@ -160,6 +168,33 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
       onClose();
     } catch (error: any) {
       alert(error.message || 'Failed to graduate volunteer');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInitiateProbation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!initSubunitId) {
+      alert("Please select an initial serving subunit rotation.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await initializeProbation({
+        userId,
+        threshold: initThreshold,
+        months: initMonths,
+        targetServiceCount: initServiceCount,
+        activeSubunitId: initSubunitId as any,
+        rotationSubunits: [initSubunitId as any],
+      });
+      setShowInitiateForm(false);
+      alert(`${user.name} has been placed on the Restorative Growth Track successfully.`);
+      setActiveTab('growth');
+    } catch (error: any) {
+      alert(error.message || 'Failed to initiate Growth Track');
     } finally {
       setIsSubmitting(false);
     }
@@ -270,6 +305,120 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
                       {badges.map((ub: any) => (
                         <BadgeDisplay key={ub._id} badge={ub.badge} />
                       ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Initiate Growth Track Options */}
+              {isLeader && !isSelf && !isProbationer && (
+                <section className={styles.rotationSection}>
+                  <div className={styles.rotationHeader}>
+                    <h4>Initiate Restorative Growth Track</h4>
+                    <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+                  </div>
+                  
+                  {showInitiateForm ? (
+                    <form onSubmit={handleInitiateProbation} className={styles.addRemarkBox} style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Duration (Months)</label>
+                          <select 
+                            value={initMonths} 
+                            onChange={e => setInitMonths(Number(e.target.value))}
+                            className={styles.filterSelect}
+                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', fontWeight: 600 }}
+                          >
+                            <option value={1}>1 Month</option>
+                            <option value={2}>2 Months</option>
+                            <option value={3}>3 Months</option>
+                            <option value={6}>6 Months</option>
+                            <option value={12}>12 Months</option>
+                          </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Attendance Target (%)</label>
+                          <input 
+                            type="number" 
+                            min={0} 
+                            max={100}
+                            value={initThreshold} 
+                            onChange={e => setInitThreshold(Number(e.target.value))}
+                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Required Services</label>
+                          <input 
+                            type="number" 
+                            min={1}
+                            value={initServiceCount} 
+                            onChange={e => setInitServiceCount(Number(e.target.value))}
+                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
+                            required
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Initial Subunit Rotation</label>
+                          <select 
+                            value={initSubunitId} 
+                            onChange={e => setInitSubunitId(e.target.value)}
+                            className={styles.filterSelect}
+                            style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', fontWeight: 600 }}
+                            required
+                          >
+                            <option value="">Select active subunit...</option>
+                            {subunits?.map((sub: any) => (
+                              <option key={sub._id} value={sub._id}>
+                                {sub.departmentName} - {sub.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                        <button 
+                          type="button" 
+                          className={styles.extendBtn}
+                          style={{ padding: '0.5rem 1rem' }}
+                          onClick={() => setShowInitiateForm(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          style={{
+                            background: 'var(--accent)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Place on Growth Track
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Volunteer is currently active. You can place them on a restorative growth track.
+                      </span>
+                      <button 
+                        className={styles.extendBtn}
+                        onClick={() => setShowInitiateForm(true)}
+                        style={{ padding: '0.5rem 1rem' }}
+                      >
+                        Setup Growth Track
+                      </button>
                     </div>
                   )}
                 </section>
