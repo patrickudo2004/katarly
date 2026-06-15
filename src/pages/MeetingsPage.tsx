@@ -53,6 +53,10 @@ export const MeetingsPage: React.FC = () => {
   const [meetingUrl, setMeetingUrl] = useState('');
   const [locationName, setLocationName] = useState('');
 
+  // Multi-date occurrences state
+  const [occurrencesDates, setOccurrencesDates] = useState<string[]>([]);
+  const [newOccurDate, setNewOccurDate] = useState('');
+
   // Scanner state
   const isScanning = searchParams.get('scan') === 'true';
   const scanMeetingId = searchParams.get('id');
@@ -94,6 +98,57 @@ export const MeetingsPage: React.FC = () => {
     }
   }, [me]);
 
+  const handleDuplicateMeeting = (meeting: any) => {
+    setName(meeting.name);
+    setDescription(meeting.description || '');
+    setScope(meeting.scope);
+    setTargetDeptId(meeting.departmentId || '');
+    setTargetSubunitId(meeting.subunitId || '');
+    setFormatType(meeting.format);
+    setPlatform(meeting.platform);
+    setMeetingUrl(meeting.meetingUrl || '');
+    setLocationName(meeting.locationName || '');
+
+    const offset = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+    const newStart = new Date(meeting.startTime + offset);
+    const newEnd = new Date(meeting.endTime + offset);
+    
+    // Format to local ISO (YYYY-MM-DDTHH:MM) using target date timezone offsets for accuracy
+    const tzOffsetStart = newStart.getTimezoneOffset() * 60000;
+    const tzOffsetEnd = newEnd.getTimezoneOffset() * 60000;
+    setStartDateStr(new Date(newStart.getTime() - tzOffsetStart).toISOString().slice(0, 16));
+    setEndDateStr(new Date(newEnd.getTime() - tzOffsetEnd).toISOString().slice(0, 16));
+
+    // Clear occurrences for duplicate base
+    setOccurrencesDates([]);
+    setShowCreateModal(true);
+  };
+
+  const handleAddOccurDate = () => {
+    if (!newOccurDate) return;
+    if (occurrencesDates.includes(newOccurDate)) {
+      setSubmitError('This occurrence date is already added.');
+      return;
+    }
+    if (startDateStr) {
+      const parsedBase = new Date(startDateStr);
+      if (!isNaN(parsedBase.getTime())) {
+        const baseDate = format(parsedBase, 'yyyy-MM-dd');
+        if (baseDate === newOccurDate) {
+          setSubmitError('The base date is already included as the first occurrence.');
+          return;
+        }
+      }
+    }
+    setOccurrencesDates(prev => [...prev, newOccurDate].sort());
+    setNewOccurDate('');
+    setSubmitError(null);
+  };
+
+  const handleRemoveOccurDate = (dateStr: string) => {
+    setOccurrencesDates(prev => prev.filter(d => d !== dateStr));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -114,6 +169,34 @@ export const MeetingsPage: React.FC = () => {
       return;
     }
 
+    // Build occurrences if any additional dates selected
+    let occurrences = undefined;
+    if (occurrencesDates.length > 0) {
+      const duration = end - start;
+      const startBase = new Date(start);
+      occurrences = [
+        { startTime: start, endTime: end },
+        ...occurrencesDates.map(dateStr => {
+          const [year, month, day] = dateStr.split('-').map(Number);
+          // Use constructor to avoid intermediate state rollover bugs
+          const occurDate = new Date(
+            year,
+            month - 1,
+            day,
+            startBase.getHours(),
+            startBase.getMinutes(),
+            startBase.getSeconds(),
+            startBase.getMilliseconds()
+          );
+          const endOccur = new Date(occurDate.getTime() + duration);
+          return {
+            startTime: occurDate.getTime(),
+            endTime: endOccur.getTime()
+          };
+        })
+      ];
+    }
+
     try {
       await createMeeting({
         name,
@@ -127,6 +210,7 @@ export const MeetingsPage: React.FC = () => {
         platform,
         meetingUrl: (formatType === 'Online' || formatType === 'Hybrid') ? meetingUrl : undefined,
         locationName: (formatType === 'Physical' || formatType === 'Hybrid') ? locationName : undefined,
+        occurrences,
       });
 
       // Clear Form
@@ -136,6 +220,8 @@ export const MeetingsPage: React.FC = () => {
       setEndDateStr('');
       setMeetingUrl('');
       setLocationName('');
+      setOccurrencesDates([]);
+      setNewOccurDate('');
       setShowCreateModal(false);
     } catch (err: any) {
       setSubmitError(err.message || 'Failed to schedule meeting');
@@ -168,6 +254,16 @@ export const MeetingsPage: React.FC = () => {
       setIsProcessingCheckin(false);
     }
   };
+
+  const minOccurDate = (() => {
+    if (startDateStr) {
+      const parsed = new Date(startDateStr);
+      if (!isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    }
+    return format(new Date(), 'yyyy-MM-dd');
+  })();
 
   if (isScanning) {
     return (
@@ -226,7 +322,11 @@ export const MeetingsPage: React.FC = () => {
       ) : (
         <div className={styles.grid}>
           {meetings.map(meeting => (
-            <MeetingCard key={meeting._id} meeting={meeting as any} />
+            <MeetingCard 
+              key={meeting._id} 
+              meeting={meeting as any} 
+              onDuplicate={handleDuplicateMeeting}
+            />
           ))}
         </div>
       )}
@@ -322,6 +422,52 @@ export const MeetingsPage: React.FC = () => {
                     required 
                   />
                 </div>
+              </div>
+
+              {/* Multi-Date Occurrences Option */}
+              <div className={styles.occurrencesSection}>
+                <label>Multi-Date Occurrences (Optional)</label>
+                <div className={styles.occurrencesRow}>
+                  <input 
+                    type="date" 
+                    value={newOccurDate} 
+                    onChange={e => setNewOccurDate(e.target.value)}
+                    min={minOccurDate}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={handleAddOccurDate} 
+                    className={styles.addOccurBtn}
+                    disabled={!newOccurDate}
+                  >
+                    + Add Date
+                  </button>
+                </div>
+                <p className={styles.hintText}>
+                  Use this to schedule recurring or random dates for the same gathering series. Each date uses the same start/end hours as above.
+                </p>
+                
+                {occurrencesDates.length > 0 && (
+                  <div className={styles.occurrencesList}>
+                    {occurrencesDates.map(dateStr => {
+                      const [y, m, d] = dateStr.split('-').map(Number);
+                      const dateObj = new Date(y, m - 1, d);
+                      return (
+                        <span key={dateStr} className={styles.occurrenceBadge}>
+                          {format(dateObj, 'MMM d, yyyy')}
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveOccurDate(dateStr)}
+                            className={styles.removeOccurBtn}
+                            title="Remove date"
+                          >
+                            <X size={14} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className={styles.formRow}>

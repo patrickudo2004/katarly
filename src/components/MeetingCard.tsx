@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { Video, MapPin, Clock, Calendar, Laptop, Loader2, ArrowRight, Star, AlertCircle } from 'lucide-react';
+import { Video, MapPin, Clock, Calendar, Laptop, Loader2, ArrowRight, Star, AlertCircle, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { MeetingDetailsModal } from './MeetingDetailsModal';
 import styles from './MeetingCard.module.css';
@@ -29,9 +29,10 @@ interface MeetingCardProps {
       wellnessFeedback?: string;
     } | null;
   };
+  onDuplicate?: (meeting: any) => void;
 }
 
-export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting }) => {
+export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }) => {
   const navigate = useNavigate();
   const checkIn = useMutation(api.meetings.checkInToMeeting);
   const lodgeExcuse = useMutation(api.meetings.lodgeMeetingExcuse);
@@ -103,7 +104,42 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting }) => {
     }
   };
 
+  const handleCopyInvite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const formatDate = format(meeting.startTime, 'EEEE, MMM d');
+    const formatTime = `${format(meeting.startTime, 'p')} - ${format(meeting.endTime, 'p')}`;
+    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${meeting.locationName ? `(${meeting.locationName})` : ''}\n\n👉 Tap here to check-in and join the gathering:\nhttps://katarly.app/meetings?id=${meeting._id}`;
+    
+    navigator.clipboard.writeText(inviteText)
+      .then(() => {
+        alert("Shareable invite copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy invite:", err);
+      });
+  };
+
   const getPlatformColors = () => {
+    if (meeting.platform === 'Custom' && meeting.meetingUrl) {
+      const lower = meeting.meetingUrl.toLowerCase();
+      if (lower.includes('whatsapp.com')) {
+        return { bg: 'rgba(37, 211, 102, 0.1)', text: '#25d366', border: 'rgba(37, 211, 102, 0.2)', name: 'WhatsApp Call' };
+      }
+      if (lower.includes('discord.gg') || lower.includes('discord.com')) {
+        return { bg: 'rgba(88, 101, 242, 0.1)', text: '#5865f2', border: 'rgba(88, 101, 242, 0.2)', name: 'Discord Room' };
+      }
+      if (lower.includes('slack.com')) {
+        return { bg: 'rgba(74, 21, 75, 0.1)', text: '#4a154b', border: 'rgba(74, 21, 75, 0.2)', name: 'Slack Huddle' };
+      }
+      if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+        return { bg: 'rgba(255, 0, 0, 0.1)', text: '#ff0000', border: 'rgba(255, 0, 0, 0.2)', name: 'YouTube Live' };
+      }
+      if (lower.includes('facebook.com')) {
+        return { bg: 'rgba(24, 119, 242, 0.1)', text: '#1877f2', border: 'rgba(24, 119, 242, 0.2)', name: 'Facebook Live' };
+      }
+      return { bg: 'rgba(107, 114, 128, 0.1)', text: 'var(--text-secondary)', border: 'var(--border-color)', name: 'External Link' };
+    }
+
     switch (meeting.platform) {
       case 'Teams':
         return { bg: 'rgba(98, 100, 167, 0.1)', text: '#6264a7', border: 'rgba(98, 100, 167, 0.2)', name: 'MS Teams' };
@@ -250,17 +286,40 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting }) => {
           )}
         </div>
 
-        {/* Excuse trigger button */}
+        {/* Actions Row (Excuse & Copy Invite) */}
         {!isCheckedIn && !hasEnded && !showExcuseForm && (
+          <div style={{ display: 'flex', gap: '8px', width: '100%', marginTop: '0.5rem' }}>
+            <button 
+              className={styles.excuseBtn}
+              style={{ flex: 1, marginTop: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowExcuseForm(true);
+              }}
+            >
+              <AlertCircle size={14} />
+              Cannot Attend?
+            </button>
+            <button 
+              className={styles.secondaryBtn}
+              style={{ flex: 1, padding: '8px 12px', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              onClick={handleCopyInvite}
+            >
+              <Share2 size={14} />
+              Copy Invite
+            </button>
+          </div>
+        )}
+
+        {/* Copy Invite fallback button for checked-in or ended meetings */}
+        {(isCheckedIn || hasEnded) && (
           <button 
-            className={styles.excuseBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowExcuseForm(true);
-            }}
+            className={styles.secondaryBtn}
+            style={{ width: '100%', padding: '8px 12px', fontSize: '0.8125rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '0.5rem' }}
+            onClick={handleCopyInvite}
           >
-            <AlertCircle size={14} />
-            Cannot Attend? Lodge Excuse
+            <Share2 size={14} />
+            Copy Invite Text
           </button>
         )}
 
@@ -360,6 +419,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting }) => {
         <MeetingDetailsModal
           meetingId={meeting._id}
           onClose={() => setShowDetails(false)}
+          onDuplicate={onDuplicate ? () => onDuplicate(meeting) : undefined}
         />
       )}
     </>

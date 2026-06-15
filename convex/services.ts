@@ -2,6 +2,29 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 
+function validateMeetingUrl(platform: string, url: string) {
+  if (!url.startsWith("https://")) {
+    throw new Error("Meeting URL must be secure and start with https://");
+  }
+
+  if (platform === "Teams") {
+    const teamsRegex = /^https:\/\/(?:[a-zA-Z0-9-]+\.)?teams\.(?:microsoft\.com|live\.com)/;
+    if (!teamsRegex.test(url)) {
+      throw new Error("Invalid Teams link. URL must belong to microsoft.com or live.com");
+    }
+  } else if (platform === "Zoom") {
+    const zoomRegex = /^https:\/\/(?:[a-zA-Z0-9-]+\.)?zoom\.(?:us|com)/;
+    if (!zoomRegex.test(url)) {
+      throw new Error("Invalid Zoom link. URL must belong to zoom.us or zoom.com");
+    }
+  } else if (platform === "Meet") {
+    const meetRegex = /^https:\/\/meet\.google\.com/;
+    if (!meetRegex.test(url)) {
+      throw new Error("Invalid Google Meet link. URL must start with https://meet.google.com");
+    }
+  }
+}
+
 export const getChurchServices = query({
   args: {},
   handler: async (ctx) => {
@@ -24,6 +47,11 @@ export const createService = mutation({
     startTime: v.number(),
     endTime: v.number(),
     qrType: v.optional(v.union(v.literal("Unique"), v.literal("Generic"))),
+    format: v.optional(v.union(v.literal("Physical"), v.literal("Online"), v.literal("Hybrid"))),
+    platform: v.optional(v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom"))),
+    meetingUrl: v.optional(v.string()),
+    locationName: v.optional(v.string()),
+    occurrences: v.optional(v.array(v.object({ startTime: v.number(), endTime: v.number() }))),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -32,25 +60,78 @@ export const createService = mutation({
     if (!user?.churchId) throw new Error("Church not found");
 
     const allowedRoles = ["SuperAdmin", "DeaconHead", "PastoralOversight"];
-    if (!allowedRoles.includes(user.role)) {
+    if (!allowedRoles.includes(user.role || "")) {
       throw new Error("Unauthorized: Only SuperAdmin, DeaconHead, or PastoralOversight can create services.");
+    }
+
+    const format = args.format || "Physical";
+    if (format === "Online" || format === "Hybrid") {
+      if (!args.meetingUrl) {
+        throw new Error("Meeting URL is required for online or hybrid services");
+      }
+      validateMeetingUrl(args.platform || "Custom", args.meetingUrl);
     }
 
     const church = await ctx.db.get(user.churchId);
     const resolvedQrType = args.qrType || church?.settings?.defaultQrType || "Unique";
 
-    // Generate a secure secret for QR code
-    const qrCodeSecret = Math.random().toString(36).substring(2, 15) + 
-                         Math.random().toString(36).substring(2, 15);
+    const servicesToCreate = args.occurrences && args.occurrences.length > 0 
+      ? args.occurrences 
+      : [{ startTime: args.startTime, endTime: args.endTime }];
 
-    return await ctx.db.insert("services", {
-      churchId: user.churchId,
-      name: args.name,
-      startTime: args.startTime,
-      endTime: args.endTime,
-      qrCodeSecret,
-      qrType: resolvedQrType,
-    });
+    const createdIds = [];
+    for (const occ of servicesToCreate) {
+      const qrCodeSecret = Math.random().toString(36).substring(2, 15) + 
+                           Math.random().toString(36).substring(2, 15);
+
+      const serviceId = await ctx.db.insert("services", {
+        churchId: user.churchId,
+        name: args.name,
+        startTime: occ.startTime,
+        endTime: occ.endTime,
+        qrCodeSecret,
+        qrType: resolvedQrType,
+        format,
+        platform: args.platform,
+        meetingUrl: args.meetingUrl,
+        locationName: args.locationName,
+      });
+      createdIds.push(serviceId);
+    }
+
+    // Chat Announcement
+    if (createdIds.length > 0) {
+      try {
+        const channel = await ctx.db
+          .query("channels")
+          .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
+          .filter((q) => q.eq(q.field("type"), "announcement"))
+          .first();
+
+        if (channel && !channel.isDisabled) {
+          const firstOcc = servicesToCreate[0];
+          const formatDate = new Date(firstOcc.startTime).toLocaleDateString();
+          const formatTime = new Date(firstOcc.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const isSeries = createdIds.length > 1;
+
+          const chatMsg = isSeries
+            ? `📅 *New Service Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and sign up: https://katarly.app/service-management`
+            : `📅 *New Service Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and check-in: https://katarly.app/service-management`;
+
+          await ctx.db.insert("messages", {
+            channelId: channel._id,
+            userId,
+            text: chatMsg,
+            isPinned: false,
+            createdAt: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to post service announcement:", err);
+      }
+    }
+
+    return createdIds[0];
   },
 });
 
@@ -163,5 +244,51 @@ export const getNextService = query({
       .first();
 
     return service;
+  },
+});
+
+export const updateService = mutation({
+  args: {
+    id: v.id("services"),
+    name: v.string(),
+    startTime: v.number(),
+    endTime: v.number(),
+    qrType: v.optional(v.union(v.literal("Unique"), v.literal("Generic"))),
+    format: v.union(v.literal("Physical"), v.literal("Online"), v.literal("Hybrid")),
+    platform: v.optional(v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom"))),
+    meetingUrl: v.optional(v.string()),
+    locationName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User context not found");
+
+    const service = await ctx.db.get(args.id);
+    if (!service) throw new Error("Service not found");
+
+    const allowedRoles = ["SuperAdmin", "DeaconHead", "PastoralOversight"];
+    if (!allowedRoles.includes(user.role || "")) {
+      throw new Error("Unauthorized: Only SuperAdmin, DeaconHead, or PastoralOversight can modify services.");
+    }
+
+    if (args.format === "Online" || args.format === "Hybrid") {
+      if (!args.meetingUrl) {
+        throw new Error("Meeting URL is required for online or hybrid services");
+      }
+      validateMeetingUrl(args.platform || "Custom", args.meetingUrl);
+    }
+
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      startTime: args.startTime,
+      endTime: args.endTime,
+      qrType: args.qrType,
+      format: args.format,
+      platform: args.platform,
+      meetingUrl: args.meetingUrl,
+      locationName: args.locationName,
+    });
   },
 });

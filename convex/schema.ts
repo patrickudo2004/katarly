@@ -108,6 +108,10 @@ export default defineSchema({
     endTime: v.number(),
     qrCodeSecret: v.optional(v.string()),
     qrType: v.optional(v.union(v.literal("Unique"), v.literal("Generic"))),
+    format: v.optional(v.union(v.literal("Physical"), v.literal("Online"), v.literal("Hybrid"))),
+    platform: v.optional(v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom"))),
+    meetingUrl: v.optional(v.string()),
+    locationName: v.optional(v.string()),
   }).index("by_church", ["churchId"])
     .index("by_church_start_time", ["churchId", "startTime"]),
 
@@ -135,6 +139,7 @@ export default defineSchema({
     subunitId: v.optional(v.id("subunits")),
     role: v.string(),
     status: v.union(v.literal("Pending"), v.literal("Confirmed"), v.literal("Declined")),
+    roleFormat: v.optional(v.union(v.literal("Physical"), v.literal("Online"))),
   }).index("by_service", ["serviceId"])
     .index("by_user", ["userId"])
     .index("by_service_user", ["serviceId", "userId"]),

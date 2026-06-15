@@ -325,3 +325,91 @@
   margin-bottom: 1rem;
   text-align: center;
 }
+
+/* Multi-Date Occurrences Styles */
+.occurrencesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  padding: 1rem;
+  border-radius: 16px;
+  margin-top: 0.5rem;
+}
+
+.occurrencesSection label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.occurrencesRow {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .occurrencesRow {
+    flex-direction: column;
+  }
+}
+
+.occurrencesRow input {
+  flex: 1;
+}
+
+.addOccurBtn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.addOccurBtn:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+.occurrencesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.occurrenceBadge {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.removeOccurBtn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.removeOccurBtn:hover {
+  color: #dc2626;
+}
+

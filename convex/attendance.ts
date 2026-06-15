@@ -42,11 +42,25 @@ async function validateAndMark(
     throw new Error(`Attendance window for "${service.name}" is closed`);
   }
 
+  // Retrieve rota entry to inspect if steward is assigned online/virtually
+  const rotaEntry = await ctx.db
+    .query("rotas")
+    .withIndex("by_service_user", (q: any) => q.eq("serviceId", service._id).eq("userId", userId))
+    .first();
+
   // 3. Verify Geofence
   const userLat = typeof args.lat === 'number' ? args.lat : undefined;
   const userLng = typeof args.lng === 'number' ? args.lng : undefined;
 
-  if (church.location) {
+  const isOnlineService = service.format === "Online";
+  const isOnlineSteward = service.format === "Hybrid" && (
+    rotaEntry?.roleFormat === "Online" || 
+    /online|virtual|stream|moderator|chat/i.test(rotaEntry?.role || "")
+  );
+
+  const bypassGeofence = isOnlineService || isOnlineSteward;
+
+  if (church.location && !bypassGeofence) {
     if (userLat === undefined || userLng === undefined) {
       throw new Error("GPS coordinates are required to check in at this church.");
     }
@@ -66,11 +80,6 @@ async function validateAndMark(
   if (existing) return existing._id;
 
   // 5. Determine Department/Subunit from Rota (Multi-role support)
-  const rotaEntry = await ctx.db
-    .query("rotas")
-    .withIndex("by_service_user", (q: any) => q.eq("serviceId", service._id).eq("userId", userId))
-    .first();
-
   // Fallback to user's primary dept if no specific rota entry exists for this service
   const user = await ctx.db.get(userId);
   const departmentId = rotaEntry?.departmentId ?? user?.departmentId ?? undefined;

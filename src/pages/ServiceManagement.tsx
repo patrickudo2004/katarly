@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Calendar, Plus, QrCode, Clock, MapPin, Loader2, X, Printer, Copy, Trash2 } from 'lucide-react';
+import { 
+  Calendar, Plus, QrCode, Clock, MapPin, 
+  Loader2, X, Printer, Copy, Trash2, Edit, Laptop, Share2 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { AttendanceTicket } from '../components/AttendanceTicket';
 import styles from './ServiceManagement.module.css';
@@ -10,69 +13,234 @@ export const ServiceManagement: React.FC = () => {
   const church = useQuery(api.churches.getMyChurch);
   const services = useQuery(api.services.getChurchServices);
   const createService = useMutation(api.services.createService);
+  const updateService = useMutation(api.services.updateService);
   const deleteService = useMutation(api.services.deleteService);
   
   const [isAdding, setIsAdding] = useState(false);
+  const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     date: '',
     startTime: '09:00',
     endTime: '11:00',
-    qrType: 'Unique' as 'Unique' | 'Generic'
+    qrType: 'Unique' as 'Unique' | 'Generic',
+    format: 'Physical' as 'Physical' | 'Online' | 'Hybrid',
+    platform: 'Custom' as 'Teams' | 'Zoom' | 'Meet' | 'Custom',
+    meetingUrl: '',
+    locationName: '',
   });
+
+  const [occurrencesDates, setOccurrencesDates] = useState<string[]>([]);
+  const [newOccurDate, setNewOccurDate] = useState('');
+  
   const [showDailyPass, setShowDailyPass] = useState(false);
   const dailyServices = useQuery(api.services.getDailyServices);
-  const initializeQrSecret = useMutation(api.churches.initializeQrSecret);
 
   // Set default qrType when modal opens if church settings exist
-  React.useEffect(() => {
-    if (isAdding && church?.settings?.defaultQrType) {
+  useEffect(() => {
+    if (isAdding && !editServiceId && church?.settings?.defaultQrType) {
       setFormData(prev => ({ ...prev, qrType: church.settings!.defaultQrType! }));
     }
-  }, [isAdding, church]);
+  }, [isAdding, editServiceId, church]);
+
+  const handleUrlChange = (val: string) => {
+    const isTeams = /teams\.microsoft\.com|teams\.live\.com/i.test(val);
+    const isZoom = /zoom\.us|zoom\.com/i.test(val);
+    const isMeet = /meet\.google\.com/i.test(val);
+
+    let platform = formData.platform;
+    if (isTeams) platform = 'Teams';
+    else if (isZoom) platform = 'Zoom';
+    else if (isMeet) platform = 'Meet';
+    else if (val) platform = 'Custom';
+
+    setFormData(prev => ({
+      ...prev,
+      meetingUrl: val,
+      platform
+    }));
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const start = new Date(`${formData.date}T${formData.startTime}`).getTime();
     const end = new Date(`${formData.date}T${formData.endTime}`).getTime();
     
+    if (isNaN(start) || isNaN(end)) {
+      alert("Please enter a valid date and time.");
+      return;
+    }
+
+    if (end <= start) {
+      alert("End time must be after start time.");
+      return;
+    }
+    
     try {
-      await createService({
-        name: formData.name,
-        startTime: start,
-        endTime: end,
-        qrType: formData.qrType
-      });
+      if (editServiceId) {
+        // Edit Mode
+        await updateService({
+          id: editServiceId as any,
+          name: formData.name,
+          startTime: start,
+          endTime: end,
+          qrType: formData.qrType,
+          format: formData.format,
+          platform: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.platform : undefined,
+          meetingUrl: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.meetingUrl : undefined,
+          locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
+        });
+        alert("Service updated successfully.");
+      } else {
+        // Create Mode
+        let occurrences = undefined;
+        if (occurrencesDates.length > 0) {
+          const duration = end - start;
+          occurrences = [
+            { startTime: start, endTime: end },
+            ...occurrencesDates.map(dateStr => {
+              const [year, month, day] = dateStr.split('-').map(Number);
+              const startOccur = new Date(
+                year,
+                month - 1,
+                day,
+                new Date(start).getHours(),
+                new Date(start).getMinutes(),
+                new Date(start).getSeconds(),
+                new Date(start).getMilliseconds()
+              );
+              const endOccur = new Date(startOccur.getTime() + duration);
+              return {
+                startTime: startOccur.getTime(),
+                endTime: endOccur.getTime()
+              };
+            })
+          ];
+        }
+
+        await createService({
+          name: formData.name,
+          startTime: start,
+          endTime: end,
+          qrType: formData.qrType,
+          format: formData.format,
+          platform: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.platform : undefined,
+          meetingUrl: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.meetingUrl : undefined,
+          locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
+          occurrences,
+        });
+        alert("Service scheduled successfully.");
+      }
+
       setIsAdding(false);
+      setEditServiceId(null);
       setFormData({ 
         name: '', 
         date: '', 
         startTime: '09:00', 
         endTime: '11:00', 
-        qrType: church?.settings?.defaultQrType || 'Unique' 
+        qrType: church?.settings?.defaultQrType || 'Unique',
+        format: 'Physical',
+        platform: 'Custom',
+        meetingUrl: '',
+        locationName: '',
       });
-    } catch (err) {
-      alert("Failed to create service. Please ensure all fields are correct.");
+      setOccurrencesDates([]);
+      setNewOccurDate('');
+    } catch (err: any) {
+      alert(err.message || "Failed to process service. Please check your inputs.");
     }
   };
 
-  const handleDuplicate = (service: any) => {
+  const handleEdit = (service: any) => {
+    setEditServiceId(service._id);
     const startDate = new Date(service.startTime);
     const endDate = new Date(service.endTime);
     
+    // Adjust timezone offset so form datetime inputs populate correctly
+    const tzOffsetStart = startDate.getTimezoneOffset() * 60000;
+    const tzOffsetEnd = endDate.getTimezoneOffset() * 60000;
+    
     setFormData({
-      name: `${service.name}`,
-      date: format(startDate, 'yyyy-MM-dd'),
-      startTime: format(startDate, 'HH:mm'),
-      endTime: format(endDate, 'HH:mm'),
-      qrType: service.qrType || 'Unique'
+      name: service.name,
+      date: format(new Date(service.startTime - tzOffsetStart), 'yyyy-MM-dd'),
+      startTime: format(new Date(service.startTime - tzOffsetStart), 'HH:mm'),
+      endTime: format(new Date(service.endTime - tzOffsetEnd), 'HH:mm'),
+      qrType: service.qrType || 'Unique',
+      format: service.format || 'Physical',
+      platform: service.platform || 'Custom',
+      meetingUrl: service.meetingUrl || '',
+      locationName: service.locationName || '',
     });
+    setOccurrencesDates([]);
     setIsAdding(true);
   };
 
+  const handleDuplicate = (service: any) => {
+    const offset = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+    const newStart = new Date(service.startTime + offset);
+    const newEnd = new Date(service.endTime + offset);
+    
+    const tzOffsetStart = newStart.getTimezoneOffset() * 60000;
+    const tzOffsetEnd = newEnd.getTimezoneOffset() * 60000;
+    
+    setFormData({
+      name: service.name,
+      date: format(new Date(newStart.getTime() - tzOffsetStart), 'yyyy-MM-dd'),
+      startTime: format(new Date(newStart.getTime() - tzOffsetStart), 'HH:mm'),
+      endTime: format(new Date(newEnd.getTime() - tzOffsetEnd), 'HH:mm'),
+      qrType: service.qrType || 'Unique',
+      format: service.format || 'Physical',
+      platform: service.platform || 'Custom',
+      meetingUrl: service.meetingUrl || '',
+      locationName: service.locationName || '',
+    });
+    setEditServiceId(null);
+    setOccurrencesDates([]);
+    setIsAdding(true);
+  };
+
+  const handleCopyInvite = (service: any) => {
+    const formatDate = format(new Date(service.startTime), 'EEEE, MMM d');
+    const formatTime = `${format(new Date(service.startTime), 'p')} - ${format(new Date(service.endTime), 'p')}`;
+    const inviteText = `📅 *Service Gathering Invite*: *${service.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${service.format || 'Physical'}* ${service.locationName ? `(${service.locationName})` : ''}\n\n👉 View shifts and sign up here:\nhttps://katarly.app/service-management?id=${service._id}`;
+    
+    navigator.clipboard.writeText(inviteText)
+      .then(() => {
+        alert("Shareable invite copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy invite:", err);
+      });
+  };
+
+  const handleAddOccurDate = () => {
+    if (!newOccurDate) return;
+    if (occurrencesDates.includes(newOccurDate)) {
+      alert('This date has already been added.');
+      return;
+    }
+    if (formData.date) {
+      const parsedBase = new Date(formData.date);
+      if (!isNaN(parsedBase.getTime())) {
+        const baseDate = format(parsedBase, 'yyyy-MM-dd');
+        if (baseDate === newOccurDate) {
+          alert('The base date is already included as the first occurrence.');
+          return;
+        }
+      }
+    }
+    setOccurrencesDates(prev => [...prev, newOccurDate].sort());
+    setNewOccurDate('');
+  };
+
+  const handleRemoveOccurDate = (dateStr: string) => {
+    setOccurrencesDates(prev => prev.filter(d => d !== dateStr));
+  };
+
   const handlePrintPass = (startTime: number) => {
-    // Open the high-fidelity print route for this service's specific date
     const dateStr = format(new Date(startTime), 'yyyy-MM-dd');
     const printUrl = `/print/attendance/${church?._id}?secret=${church?.settings?.qrCodeSecret || ''}&date=${dateStr}`;
     window.open(printUrl, '_blank');
@@ -87,6 +255,61 @@ export const ServiceManagement: React.FC = () => {
       }
     }
   };
+
+  const getPlatformStyles = (platform: string, url?: string) => {
+    if (platform === 'Custom' && url) {
+      const lower = url.toLowerCase();
+      if (lower.includes('whatsapp.com')) {
+        return { backgroundColor: 'rgba(37, 211, 102, 0.1)', color: '#25d366', borderColor: 'rgba(37, 211, 102, 0.2)' };
+      }
+      if (lower.includes('discord.gg') || lower.includes('discord.com')) {
+        return { backgroundColor: 'rgba(88, 101, 242, 0.1)', color: '#5865f2', borderColor: 'rgba(88, 101, 242, 0.2)' };
+      }
+      if (lower.includes('slack.com')) {
+        return { backgroundColor: 'rgba(74, 21, 75, 0.1)', color: '#4a154b', borderColor: 'rgba(74, 21, 75, 0.2)' };
+      }
+      if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+        return { backgroundColor: 'rgba(255, 0, 0, 0.1)', color: '#ff0000', borderColor: 'rgba(255, 0, 0, 0.2)' };
+      }
+      if (lower.includes('facebook.com')) {
+        return { backgroundColor: 'rgba(24, 119, 242, 0.1)', color: '#1877f2', borderColor: 'rgba(24, 119, 242, 0.2)' };
+      }
+    }
+    switch (platform) {
+      case 'Teams': return { backgroundColor: 'rgba(98, 100, 167, 0.1)', color: '#6264a7', borderColor: 'rgba(98, 100, 167, 0.2)' };
+      case 'Zoom': return { backgroundColor: 'rgba(45, 140, 255, 0.1)', color: '#2d8cff', borderColor: 'rgba(45, 140, 255, 0.2)' };
+      case 'Meet': return { backgroundColor: 'rgba(15, 157, 88, 0.1)', color: '#0f9d58', borderColor: 'rgba(15, 157, 88, 0.2)' };
+      default: return { backgroundColor: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-secondary)', borderColor: 'var(--border-color)' };
+    }
+  };
+
+  const getPlatformName = (platform: string, url?: string) => {
+    if (platform === 'Custom' && url) {
+      const lower = url.toLowerCase();
+      if (lower.includes('whatsapp.com')) return 'WhatsApp';
+      if (lower.includes('discord.gg') || lower.includes('discord.com')) return 'Discord';
+      if (lower.includes('slack.com')) return 'Slack';
+      if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'YouTube Live';
+      if (lower.includes('facebook.com')) return 'Facebook Live';
+      return 'External';
+    }
+    switch (platform) {
+      case 'Teams': return 'MS Teams';
+      case 'Zoom': return 'Zoom';
+      case 'Meet': return 'Google Meet';
+      default: return 'Virtual Link';
+    }
+  };
+
+  const minOccurDate = (() => {
+    if (formData.date) {
+      const parsed = new Date(formData.date);
+      if (!isNaN(parsed.getTime())) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    }
+    return format(new Date(), 'yyyy-MM-dd');
+  })();
 
   if (services === undefined || church === undefined) {
     return (
@@ -103,11 +326,11 @@ export const ServiceManagement: React.FC = () => {
           <Calendar className={styles.headerIcon} />
           <div>
             <h1>Service Management</h1>
-            <p>Schedule services and generate attendance QR codes.</p>
+            <p>Schedule services, assign formats, and generate check-in QR codes.</p>
           </div>
         </div>
         <div className={styles.headerActions}>
-          <button className={styles.addBtn} onClick={() => setIsAdding(true)}>
+          <button className={styles.addBtn} onClick={() => { setEditServiceId(null); setIsAdding(true); }}>
             <Plus size={20} /> Create Service
           </button>
         </div>
@@ -139,19 +362,53 @@ export const ServiceManagement: React.FC = () => {
                       {new Date(service.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <div className={styles.typeTag}>
-                    <QrCode size={12} />
-                    {service.qrType} Code
+                  {service.locationName && (
+                    <div className={styles.meta} style={{ marginTop: '4px' }}>
+                      <MapPin size={14} />
+                      <span>{service.locationName}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span className={`${styles.formatBadge} ${styles[service.format || 'Physical']}`}>
+                      {service.format || 'Physical'}
+                    </span>
+                    {(service.format === 'Online' || service.format === 'Hybrid') && service.meetingUrl && (
+                      <span 
+                        className={styles.platformBadge} 
+                        style={getPlatformStyles(service.platform || 'Custom', service.meetingUrl)}
+                      >
+                        <Laptop size={12} />
+                        {getPlatformName(service.platform || 'Custom', service.meetingUrl)}
+                      </span>
+                    )}
+                    <div className={styles.typeTag}>
+                      <QrCode size={12} />
+                      {service.qrType || 'Unique'} Code
+                    </div>
                   </div>
                 </div>
               </div>
               <div className={styles.cardActions}>
                 <button 
+                  className={styles.editBtn}
+                  onClick={() => handleEdit(service)}
+                  title="Edit details"
+                >
+                  <Edit size={18} />
+                </button>
+                <button 
                   className={styles.duplicateBtn}
                   onClick={() => handleDuplicate(service)}
-                  title="Duplicate this service"
+                  title="Duplicate service (+7 days)"
                 >
                   <Copy size={18} />
+                </button>
+                <button 
+                  className={styles.duplicateBtn}
+                  onClick={() => handleCopyInvite(service)}
+                  title="Copy shareable invite"
+                >
+                  <Share2 size={18} />
                 </button>
                 <button 
                   className={styles.printBtn}
@@ -162,7 +419,7 @@ export const ServiceManagement: React.FC = () => {
                 <button 
                   className={styles.deleteBtn}
                   onClick={() => handleDelete(service._id)}
-                  title="Delete this service"
+                  title="Delete service"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -172,15 +429,15 @@ export const ServiceManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Create Modal */}
+      {/* Create / Edit Modal */}
       {isAdding && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+          <div className={styles.modal} style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div className={styles.modalHeader}>
-              <h2>Schedule New Service</h2>
-              <button onClick={() => setIsAdding(false)}><X size={20} /></button>
+              <h2>{editServiceId ? "Edit Service Details" : "Schedule New Service"}</h2>
+              <button onClick={() => { setIsAdding(false); setEditServiceId(null); }}><X size={20} /></button>
             </div>
-            <form onSubmit={handleCreate} className={styles.form}>
+            <form onSubmit={handleCreate} className={styles.form} style={{ overflowY: 'auto', flex: 1 }}>
               <div className={styles.field}>
                 <label>Service Name</label>
                 <input 
@@ -190,6 +447,58 @@ export const ServiceManagement: React.FC = () => {
                   required
                 />
               </div>
+              
+              <div className={styles.field}>
+                <label>Service Format</label>
+                <select 
+                  value={formData.format}
+                  onChange={e => setFormData({...formData, format: e.target.value as any})}
+                >
+                  <option value="Physical">Physical Only</option>
+                  <option value="Online">Online Only</option>
+                  <option value="Hybrid">Hybrid (Both)</option>
+                </select>
+              </div>
+
+              {(formData.format === 'Online' || formData.format === 'Hybrid') && (
+                <>
+                  <div className={styles.field}>
+                    <label>Platform</label>
+                    <select 
+                      value={formData.platform}
+                      onChange={e => setFormData({...formData, platform: e.target.value as any})}
+                    >
+                      <option value="Custom">Custom Link (YouTube Live, etc.)</option>
+                      <option value="Teams">Microsoft Teams</option>
+                      <option value="Zoom">Zoom</option>
+                      <option value="Meet">Google Meet</option>
+                    </select>
+                  </div>
+                  <div className={styles.field}>
+                    <label>Streaming/Room URL</label>
+                    <input 
+                      type="url" 
+                      placeholder="https://..." 
+                      value={formData.meetingUrl}
+                      onChange={e => handleUrlChange(e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              {(formData.format === 'Physical' || formData.format === 'Hybrid') && (
+                <div className={styles.field}>
+                  <label>Sanctuary/Room Location</label>
+                  <input 
+                    placeholder="e.g. Main Sanctuary" 
+                    value={formData.locationName}
+                    onChange={e => setFormData({...formData, locationName: e.target.value})}
+                    required
+                  />
+                </div>
+              )}
+
               <div className={styles.field}>
                 <label>Date</label>
                 <input 
@@ -199,6 +508,7 @@ export const ServiceManagement: React.FC = () => {
                   required
                 />
               </div>
+
               <div className={styles.row}>
                 <div className={styles.field}>
                   <label>Start Time</label>
@@ -220,6 +530,53 @@ export const ServiceManagement: React.FC = () => {
                 </div>
               </div>
               
+              {!editServiceId && (
+                <div className={styles.occurrencesSection}>
+                  <label>Multi-Date Occurrences (Optional)</label>
+                  <div className={styles.occurrencesRow}>
+                    <input 
+                      type="date" 
+                      value={newOccurDate} 
+                      onChange={e => setNewOccurDate(e.target.value)}
+                      min={minOccurDate}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleAddOccurDate} 
+                      className={styles.addOccurBtn}
+                      disabled={!newOccurDate}
+                    >
+                      + Add Date
+                    </button>
+                  </div>
+                  <p className={styles.hint}>
+                    Schedule recurring dates for this service. Each will use the same start/end hours as above.
+                  </p>
+                  
+                  {occurrencesDates.length > 0 && (
+                    <div className={styles.occurrencesList}>
+                      {occurrencesDates.map(dateStr => {
+                        const [y, m, d] = dateStr.split('-').map(Number);
+                        const dateObj = new Date(y, m - 1, d);
+                        return (
+                          <span key={dateStr} className={styles.occurrenceBadge}>
+                            {format(dateObj, 'MMM d, yyyy')}
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveOccurDate(dateStr)}
+                              className={styles.removeOccurBtn}
+                              title="Remove date"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className={styles.field}>
                 <label>QR Code Security</label>
                 <select 
@@ -232,7 +589,21 @@ export const ServiceManagement: React.FC = () => {
                 <p className={styles.hint}>Unique codes change per service to prevent attendance fraud.</p>
               </div>
 
-              <button type="submit" className={styles.submitBtn}>Create Service</button>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+                {editServiceId && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsAdding(false); setEditServiceId(null); }} 
+                    className={styles.submitBtn}
+                    style={{ flex: 1, background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', boxShadow: 'none' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button type="submit" className={styles.submitBtn} style={{ flex: 2 }}>
+                  {editServiceId ? "Save Changes" : "Create Service"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

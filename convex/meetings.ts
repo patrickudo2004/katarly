@@ -57,6 +57,7 @@ export const createMeeting = mutation({
     platform: v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom")),
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
+    occurrences: v.optional(v.array(v.object({ startTime: v.number(), endTime: v.number() }))),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -105,22 +106,202 @@ export const createMeeting = mutation({
       validateMeetingUrl(args.platform, args.meetingUrl);
     }
 
-    // Generate random secret if physical check-in is supported
-    let qrCodeSecret = undefined;
-    if (args.format === "Physical" || args.format === "Hybrid") {
-      qrCodeSecret = `${args.scope.toUpperCase()}:MEET:${Math.random().toString(36).substring(2, 15)}`;
-      if (!args.locationName) {
-        throw new Error("Location name is required for physical or hybrid meetings");
+    if ((args.format === "Physical" || args.format === "Hybrid") && !args.locationName) {
+      throw new Error("Location name is required for physical or hybrid meetings");
+    }
+
+    const meetingsToCreate = args.occurrences && args.occurrences.length > 0 
+      ? args.occurrences 
+      : [{ startTime: args.startTime, endTime: args.endTime }];
+
+    const createdIds = [];
+    for (const occ of meetingsToCreate) {
+      let qrCodeSecret = undefined;
+      if (args.format === "Physical" || args.format === "Hybrid") {
+        qrCodeSecret = `${args.scope.toUpperCase()}:MEET:${Math.random().toString(36).substring(2, 15)}`;
+      }
+
+      const meetingId = await ctx.db.insert("meetings", {
+        churchId,
+        name: args.name,
+        description: args.description,
+        scope: args.scope,
+        departmentId: args.departmentId,
+        subunitId: args.subunitId,
+        startTime: occ.startTime,
+        endTime: occ.endTime,
+        format: args.format,
+        platform: args.platform,
+        meetingUrl: args.meetingUrl,
+        locationName: args.locationName,
+        qrCodeSecret,
+        createdBy: userId,
+      });
+      createdIds.push(meetingId);
+    }
+
+    if (createdIds.length > 0) {
+      const firstMeeting = meetingsToCreate[0];
+      const isSeries = createdIds.length > 1;
+      const notificationTitle = isSeries 
+        ? `📅 New Gathering Series Scheduled`
+        : `📅 New Gathering Scheduled`;
+      const formatTime = new Date(firstMeeting.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const formatDate = new Date(firstMeeting.startTime).toLocaleDateString();
+      const notificationMsg = isSeries
+        ? `"${args.name}" (${args.format}) series scheduled starting ${formatDate} at ${formatTime} (${createdIds.length} occurrences).`
+        : `"${args.name}" (${args.format}) is scheduled for ${formatDate} at ${formatTime}.`;
+
+      // Dispatch Notifications
+      try {
+        let usersQuery = ctx.db
+          .query("users")
+          .withIndex("by_church", (q) => q.eq("churchId", churchId))
+          .filter((q) => q.eq(q.field("status"), "active"));
+
+        if (args.scope === "Departmental" && args.departmentId) {
+          usersQuery = ctx.db
+            .query("users")
+            .withIndex("by_dept", (q) => q.eq("churchId", churchId).eq("departmentId", args.departmentId))
+            .filter((q) => q.eq(q.field("status"), "active"));
+        } else if (args.scope === "Subunit" && args.subunitId) {
+          usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), args.subunitId));
+        }
+
+        const users = await usersQuery.collect();
+        for (const u of users) {
+          if (u._id === userId) continue;
+          await ctx.db.insert("notifications", {
+            userId: u._id,
+            title: notificationTitle,
+            message: notificationMsg,
+            type: "meeting",
+            read: false,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to dispatch meeting notifications:", err);
+      }
+
+      // Chat announcement
+      try {
+        let channelType: "announcement" | "department" | "subunit" = "announcement";
+        if (args.scope === "Departmental") channelType = "department";
+        if (args.scope === "Subunit") channelType = "subunit";
+
+        let channel = null;
+        if (channelType === "announcement") {
+          channel = await ctx.db
+            .query("channels")
+            .withIndex("by_church", (q) => q.eq("churchId", churchId))
+            .filter((q) => q.eq(q.field("type"), "announcement"))
+            .first();
+        } else if (channelType === "department" && args.departmentId) {
+          channel = await ctx.db
+            .query("channels")
+            .withIndex("by_church", (q) => q.eq("churchId", churchId))
+            .filter((q) => q.and(
+              q.eq(q.field("type"), "department"),
+              q.eq(q.field("departmentId"), args.departmentId)
+            ))
+            .first();
+        } else if (channelType === "subunit" && args.subunitId) {
+          channel = await ctx.db
+            .query("channels")
+            .withIndex("by_church", (q) => q.eq("churchId", churchId))
+            .filter((q) => q.and(
+              q.eq(q.field("type"), "subunit"),
+              q.eq(q.field("subunitId"), args.subunitId)
+            ))
+            .first();
+        }
+
+        if (channel && !channel.isDisabled) {
+          const chatMsg = isSeries
+            ? `📅 *New Gathering Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${args.format}*\n👉 View details in the app: https://katarly.app/meetings`
+            : `📅 *New Gathering Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${args.format}*\n👉 View details and check-in: https://katarly.app/meetings?id=${createdIds[0]}`;
+
+          await ctx.db.insert("messages", {
+            channelId: channel._id,
+            userId,
+            text: chatMsg,
+            isPinned: false,
+            createdAt: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to post chat announcement:", err);
       }
     }
 
-    const meetingId = await ctx.db.insert("meetings", {
-      churchId,
+    return createdIds[0];
+  },
+});
+
+export const updateMeeting = mutation({
+  args: {
+    meetingId: v.id("meetings"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    endTime: v.number(),
+    format: v.union(v.literal("Physical"), v.literal("Online"), v.literal("Hybrid")),
+    platform: v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom")),
+    meetingUrl: v.optional(v.string()),
+    locationName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User context not found");
+
+    const meeting = await ctx.db.get(args.meetingId);
+    if (!meeting) throw new Error("Meeting not found");
+
+    // Scoping checks for permissions
+    let isAuthorized = meeting.createdBy === userId || user.role === "SuperAdmin" || user.role === "DeaconHead";
+    
+    if (!isAuthorized) {
+      if (meeting.scope === "Departmental") {
+        const deptRoles = ["DepartmentHead", "DepartmentAssistant", "DepartmentSecretary", "PastoralOversight"];
+        isAuthorized = deptRoles.includes(user.role || "") && user.departmentId === meeting.departmentId;
+      } else if (meeting.scope === "Subunit") {
+        const subRoles = ["SubunitLead", "SubunitAssistant"];
+        const deptRoles = ["DepartmentHead", "PastoralOversight"];
+        isAuthorized = 
+          (subRoles.includes(user.role || "") && user.subunitId === meeting.subunitId) ||
+          (deptRoles.includes(user.role || "") && user.departmentId === meeting.departmentId);
+      }
+    }
+
+    if (!isAuthorized) {
+      throw new Error("Unauthorized to edit this meeting.");
+    }
+
+    // Validate URL if format is Online or Hybrid
+    if (args.format === "Online" || args.format === "Hybrid") {
+      if (!args.meetingUrl) {
+        throw new Error("Meeting URL is required for online or hybrid meetings");
+      }
+      validateMeetingUrl(args.platform, args.meetingUrl);
+    }
+
+    // Dynamic QR Secret check
+    let qrCodeSecret = meeting.qrCodeSecret;
+    if ((args.format === "Physical" || args.format === "Hybrid") && !qrCodeSecret) {
+      qrCodeSecret = `${meeting.scope.toUpperCase()}:MEET:${Math.random().toString(36).substring(2, 15)}`;
+    } else if (args.format === "Online") {
+      qrCodeSecret = undefined;
+    }
+
+    if ((args.format === "Physical" || args.format === "Hybrid") && !args.locationName) {
+      throw new Error("Location name is required for physical or hybrid meetings");
+    }
+
+    await ctx.db.patch(args.meetingId, {
       name: args.name,
       description: args.description,
-      scope: args.scope,
-      departmentId: args.departmentId,
-      subunitId: args.subunitId,
       startTime: args.startTime,
       endTime: args.endTime,
       format: args.format,
@@ -128,44 +309,7 @@ export const createMeeting = mutation({
       meetingUrl: args.meetingUrl,
       locationName: args.locationName,
       qrCodeSecret,
-      createdBy: userId,
     });
-
-    // Notify scoped members asynchronously
-    try {
-      let usersQuery = ctx.db
-        .query("users")
-        .withIndex("by_church", (q) => q.eq("churchId", churchId))
-        .filter((q) => q.eq(q.field("status"), "active"));
-
-      if (args.scope === "Departmental" && args.departmentId) {
-        usersQuery = ctx.db
-          .query("users")
-          .withIndex("by_dept", (q) => q.eq("churchId", churchId).eq("departmentId", args.departmentId))
-          .filter((q) => q.eq(q.field("status"), "active"));
-      } else if (args.scope === "Subunit" && args.subunitId) {
-        usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), args.subunitId));
-      }
-
-      const users = await usersQuery.collect();
-      const formatTime = new Date(args.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const formatDate = new Date(args.startTime).toLocaleDateString();
-
-      for (const u of users) {
-        if (u._id === userId) continue; // Skip notifying creator
-        await ctx.db.insert("notifications", {
-          userId: u._id,
-          title: `📅 New Gathering Scheduled`,
-          message: `"${args.name}" (${args.format}) is scheduled for ${formatDate} at ${formatTime}.`,
-          type: "meeting",
-          read: false,
-        });
-      }
-    } catch (err) {
-      console.error("Failed to dispatch meeting notifications:", err);
-    }
-
-    return meetingId;
   },
 });
 
@@ -175,17 +319,32 @@ export const deleteMeeting = mutation({
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error("User context not found");
 
     const meeting = await ctx.db.get(args.meetingId);
     if (!meeting) throw new Error("Meeting not found");
 
-    // Only creator or SuperAdmin can delete
-    if (meeting.createdBy !== userId && user.role !== "SuperAdmin") {
-      throw new Error("Only the creator or a SuperAdmin can delete this meeting");
+    // Scoping checks for permissions
+    let isAuthorized = meeting.createdBy === userId || user.role === "SuperAdmin" || user.role === "DeaconHead";
+    
+    if (!isAuthorized) {
+      if (meeting.scope === "Departmental") {
+        const deptRoles = ["DepartmentHead", "DepartmentAssistant", "DepartmentSecretary", "PastoralOversight"];
+        isAuthorized = deptRoles.includes(user.role || "") && user.departmentId === meeting.departmentId;
+      } else if (meeting.scope === "Subunit") {
+        const subRoles = ["SubunitLead", "SubunitAssistant"];
+        const deptRoles = ["DepartmentHead", "PastoralOversight"];
+        isAuthorized = 
+          (subRoles.includes(user.role || "") && user.subunitId === meeting.subunitId) ||
+          (deptRoles.includes(user.role || "") && user.departmentId === meeting.departmentId);
+      }
     }
 
-    // Also delete attendance records for this meeting
+    if (!isAuthorized) {
+      throw new Error("Unauthorized to delete this meeting.");
+    }
+
+    // Delete attendance records for this meeting
     const attendanceRecords = await ctx.db
       .query("meetingAttendance")
       .withIndex("by_meeting", (q) => q.eq("meetingId", args.meetingId))
