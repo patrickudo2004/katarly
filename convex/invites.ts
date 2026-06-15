@@ -100,7 +100,7 @@ export const sendInviteEmail = action({
   },
   handler: async (ctx, args) => {
     // Environment Variable Audit
-    const baseUrl = process.env.SITE_URL || process.env.VITE_CONVEX_SITE_URL || "https://katarly.vercel.app";
+    const baseUrl = process.env.SITE_URL || process.env.VITE_CONVEX_SITE_URL || "https://servesync-pi.vercel.app";
     const inviteLink = `${baseUrl}/accept-invite?token=${args.token}`;
     
     console.log(`[EmailAudit] Attempting to send invite to: ${args.email}`);

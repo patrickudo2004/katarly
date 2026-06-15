@@ -218,8 +218,8 @@ export const createMeeting = mutation({
 
         if (channel && !channel.isDisabled) {
           const chatMsg = isSeries
-            ? `📅 *New Gathering Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${args.format}*\n👉 View details in the app: https://katarly.app/meetings`
-            : `📅 *New Gathering Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${args.format}*\n👉 View details and check-in: https://katarly.app/meetings?id=${createdIds[0]}`;
+            ? `📅 *New Gathering Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${args.format}*\n👉 View details in the app: https://servesync-pi.vercel.app/meetings`
+            : `📅 *New Gathering Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${args.format}*\n👉 View details and check-in: https://servesync-pi.vercel.app/meetings?id=${createdIds[0]}`;
 
           await ctx.db.insert("messages", {
             channelId: channel._id,

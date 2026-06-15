@@ -205,7 +205,7 @@ export const ServiceManagement: React.FC = () => {
   const handleCopyInvite = (service: any) => {
     const formatDate = format(new Date(service.startTime), 'EEEE, MMM d');
     const formatTime = `${format(new Date(service.startTime), 'p')} - ${format(new Date(service.endTime), 'p')}`;
-    const inviteText = `📅 *Service Gathering Invite*: *${service.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${service.format || 'Physical'}* ${service.locationName ? `(${service.locationName})` : ''}\n\n👉 View shifts and sign up here:\nhttps://katarly.app/service-management?id=${service._id}`;
+    const inviteText = `📅 *Service Gathering Invite*: *${service.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${service.format || 'Physical'}* ${service.locationName ? `(${service.locationName})` : ''}\n\n👉 View shifts and sign up here:\nhttps://servesync-pi.vercel.app/service-management?id=${service._id}`;
     
     navigator.clipboard.writeText(inviteText)
       .then(() => {

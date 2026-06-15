@@ -115,8 +115,8 @@ export const createService = mutation({
           const isSeries = createdIds.length > 1;
 
           const chatMsg = isSeries
-            ? `📅 *New Service Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and sign up: https://katarly.app/service-management`
-            : `📅 *New Service Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and check-in: https://katarly.app/service-management`;
+            ? `📅 *New Service Series Scheduled*: *${args.name}*\n⏰ Starting ${formatDate} @ ${formatTime} (${createdIds.length} occurrences)\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and sign up: https://servesync-pi.vercel.app/service-management`
+            : `📅 *New Service Scheduled*: *${args.name}*\n⏰ ${formatDate} @ ${formatTime}\n📍 Format: *${format}* ${args.locationName ? `(${args.locationName})` : ''}\n👉 View shifts and check-in: https://servesync-pi.vercel.app/service-management`;
 
           await ctx.db.insert("messages", {
             channelId: channel._id,

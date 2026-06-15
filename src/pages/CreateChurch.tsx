@@ -160,7 +160,7 @@ export const CreateChurch: React.FC = () => {
           <div className={styles.field}>
             <label>Church URL</label>
             <div className={styles.slugInput}>
-              <span>katarly.app/</span>
+              <span>servesync-pi.vercel.app/</span>
               <input 
                 type="text" 
                 value={slug}

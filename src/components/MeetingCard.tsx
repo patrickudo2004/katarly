@@ -108,7 +108,7 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }
     e.stopPropagation();
     const formatDate = format(meeting.startTime, 'EEEE, MMM d');
     const formatTime = `${format(meeting.startTime, 'p')} - ${format(meeting.endTime, 'p')}`;
-    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${meeting.locationName ? `(${meeting.locationName})` : ''}\n\n👉 Tap here to check-in and join the gathering:\nhttps://katarly.app/meetings?id=${meeting._id}`;
+    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${meeting.locationName ? `(${meeting.locationName})` : ''}\n\n👉 Tap here to check-in and join the gathering:\nhttps://servesync-pi.vercel.app/meetings?id=${meeting._id}`;
     
     navigator.clipboard.writeText(inviteText)
       .then(() => {
