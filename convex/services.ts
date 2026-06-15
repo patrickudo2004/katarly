@@ -288,7 +288,42 @@ export const updateService = mutation({
       format: args.format,
       platform: args.platform,
       meetingUrl: args.meetingUrl,
-      locationName: args.locationName,
     });
   },
 });
+
+export const getServiceDetails = query({
+  args: { serviceId: v.id("services") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    if (!user?.churchId) return null;
+
+    const service = await ctx.db.get(args.serviceId);
+    if (!service || service.churchId !== user.churchId) return null;
+
+    // Fetch active rota slots for this service
+    const rotas = await ctx.db
+      .query("rotas")
+      .withIndex("by_service", (q) => q.eq("serviceId", args.serviceId))
+      .collect();
+
+    const rotaDetails = await Promise.all(
+      rotas.map(async (r) => {
+        const u = r.userId ? await ctx.db.get(r.userId) : null;
+        return {
+          ...r,
+          userName: u?.name || u?.email || null,
+          userImage: u?.image || null,
+        };
+      })
+    );
+
+    return {
+      ...service,
+      rotas: rotaDetails,
+    };
+  },
+});
+

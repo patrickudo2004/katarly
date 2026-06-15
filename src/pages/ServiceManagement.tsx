@@ -3,13 +3,15 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { 
   Calendar, Plus, QrCode, Clock, MapPin, 
-  Loader2, X, Printer, Copy, Trash2, Edit, Laptop, Share2 
+  Loader2, X, Printer, Copy, Trash2, Edit, Laptop, Share2, MoreHorizontal 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AttendanceTicket } from '../components/AttendanceTicket';
+import { ServiceDetailsModal } from '../components/ServiceDetailsModal';
 import styles from './ServiceManagement.module.css';
 
 export const ServiceManagement: React.FC = () => {
+  const me = useQuery(api.users.me);
   const church = useQuery(api.churches.getMyChurch);
   const services = useQuery(api.services.getChurchServices);
   const createService = useMutation(api.services.createService);
@@ -19,6 +21,8 @@ export const ServiceManagement: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -44,6 +48,14 @@ export const ServiceManagement: React.FC = () => {
       setFormData(prev => ({ ...prev, qrType: church.settings!.defaultQrType! }));
     }
   }, [isAdding, editServiceId, church]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveDropdownId(null);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   const handleUrlChange = (val: string) => {
     const isTeams = /teams\.microsoft\.com|teams\.live\.com/i.test(val);
@@ -345,83 +357,121 @@ export const ServiceManagement: React.FC = () => {
           </div>
         ) : (
           services.map(service => (
-            <div key={service._id} className={styles.serviceCard}>
-              <div className={styles.serviceInfo}>
-                <div className={styles.dateBadge}>
-                  <span className={styles.day}>{new Date(service.startTime).getDate()}</span>
-                  <span className={styles.month}>
-                    {new Date(service.startTime).toLocaleString('default', { month: 'short' })}
-                  </span>
-                </div>
-                <div className={styles.details}>
-                  <h3>{service.name}</h3>
-                  <div className={styles.meta}>
-                    <Clock size={14} />
-                    <span>
-                      {new Date(service.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                      {new Date(service.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <div 
+              key={service._id} 
+              className={styles.serviceCard}
+              onClick={() => setSelectedServiceId(service._id)}
+            >
+              <div className={styles.cardHeader}>
+                <div className={styles.serviceInfo}>
+                  <div className={styles.dateBadge}>
+                    <span className={styles.day}>{new Date(service.startTime).getDate()}</span>
+                    <span className={styles.month}>
+                      {new Date(service.startTime).toLocaleString('default', { month: 'short' })}
                     </span>
                   </div>
-                  {service.locationName && (
-                    <div className={styles.meta} style={{ marginTop: '4px' }}>
-                      <MapPin size={14} />
-                      <span>{service.locationName}</span>
+                  <div className={styles.details}>
+                    <h3>{service.name}</h3>
+                    <div className={styles.meta}>
+                      <Clock size={14} />
+                      <span>
+                        {new Date(service.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                        {new Date(service.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {service.locationName && (
+                      <div className={styles.meta} style={{ marginTop: '4px' }}>
+                        <MapPin size={14} />
+                        <span>{service.locationName}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span className={`${styles.formatBadge} ${styles[service.format || 'Physical']}`}>
+                        {service.format || 'Physical'}
+                      </span>
+                      {(service.format === 'Online' || service.format === 'Hybrid') && service.meetingUrl && (
+                        <span 
+                          className={styles.platformBadge} 
+                          style={getPlatformStyles(service.platform || 'Custom', service.meetingUrl)}
+                        >
+                          <Laptop size={12} />
+                          {getPlatformName(service.platform || 'Custom', service.meetingUrl)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dropdown Menu */}
+                <div className={styles.dropdownContainer} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className={styles.ellipsisBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveDropdownId(activeDropdownId === service._id ? null : service._id);
+                    }}
+                    title="Actions"
+                  >
+                    <MoreHorizontal size={20} />
+                  </button>
+                  
+                  {activeDropdownId === service._id && (
+                    <div className={styles.dropdownMenu}>
+                      <button 
+                        onClick={() => {
+                          handleCopyInvite(service);
+                          setActiveDropdownId(null);
+                        }}
+                      >
+                        <Share2 size={16} /> Copy Invite
+                      </button>
+                      {service.format !== 'Online' && (
+                        <button 
+                          onClick={() => {
+                            handlePrintPass(service.startTime);
+                            setActiveDropdownId(null);
+                          }}
+                        >
+                          <Printer size={16} /> Print Pass
+                        </button>
+                      )}
+                      {me && ['SuperAdmin', 'DeaconHead', 'PastoralOversight'].includes(me.role || '') && (
+                        <>
+                          <button 
+                            onClick={() => {
+                              handleDuplicate(service);
+                              setActiveDropdownId(null);
+                            }}
+                          >
+                            <Copy size={16} /> Duplicate (+7d)
+                          </button>
+                          <button 
+                            onClick={() => {
+                              handleEdit(service);
+                              setActiveDropdownId(null);
+                            }}
+                          >
+                            <Edit size={16} /> Edit Details
+                          </button>
+                          <button 
+                            className={styles.deleteMenuBtn}
+                            onClick={() => {
+                              handleDelete(service._id);
+                              setActiveDropdownId(null);
+                            }}
+                          >
+                            <Trash2 size={16} /> Delete Service
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span className={`${styles.formatBadge} ${styles[service.format || 'Physical']}`}>
-                      {service.format || 'Physical'}
-                    </span>
-                    {(service.format === 'Online' || service.format === 'Hybrid') && service.meetingUrl && (
-                      <span 
-                        className={styles.platformBadge} 
-                        style={getPlatformStyles(service.platform || 'Custom', service.meetingUrl)}
-                      >
-                        <Laptop size={12} />
-                        {getPlatformName(service.platform || 'Custom', service.meetingUrl)}
-                      </span>
-                    )}
-                    <div className={styles.typeTag}>
-                      <QrCode size={12} />
-                      {service.qrType || 'Unique'} Code
-                    </div>
-                  </div>
                 </div>
               </div>
-              <div className={styles.cardActions}>
-                <button 
-                  className={styles.editBtn}
-                  onClick={() => handleEdit(service)}
-                  title="Edit details"
-                >
-                  <Edit size={18} />
-                </button>
-                <button 
-                  className={styles.duplicateBtn}
-                  onClick={() => handleDuplicate(service)}
-                  title="Duplicate service (+7 days)"
-                >
-                  <Copy size={18} />
-                </button>
-                <button 
-                  className={styles.duplicateBtn}
-                  onClick={() => handleCopyInvite(service)}
-                  title="Copy shareable invite"
-                >
-                  <Share2 size={18} />
-                </button>
-                <button 
-                  className={styles.printBtn}
-                  onClick={() => handlePrintPass(service.startTime)}
-                >
-                  <Printer size={18} /> Print Pass
-                </button>
-                <button 
-                  className={styles.deleteBtn}
-                  onClick={() => handleDelete(service._id)}
-                  title="Delete service"
-                >
-                  <Trash2 size={18} />
+              
+              <div className={styles.cardFooter}>
+                <button className={styles.manageBtn}>
+                  Manage & View Details
                 </button>
               </div>
             </div>
@@ -628,6 +678,22 @@ export const ServiceManagement: React.FC = () => {
           date={new Date(selectedService.startTime)}
           qrCodeValue={`SERVICE:${selectedService._id}:${selectedService.qrCodeSecret}`}
           onClose={() => setSelectedService(null)}
+        />
+      )}
+
+      {/* Service Details Modal */}
+      {selectedServiceId && (
+        <ServiceDetailsModal
+          serviceId={selectedServiceId}
+          onClose={() => setSelectedServiceId(null)}
+          onDuplicate={() => {
+            const s = services.find((srv) => srv._id === selectedServiceId);
+            if (s) handleDuplicate(s);
+          }}
+          onEdit={() => {
+            const s = services.find((srv) => srv._id === selectedServiceId);
+            if (s) handleEdit(s);
+          }}
         />
       )}
     </div>
