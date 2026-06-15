@@ -14,7 +14,8 @@ import {
   QrCode, 
   ExternalLink,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  Star
 } from 'lucide-react';
 import { format } from 'date-fns';
 import styles from './MeetingDetailsModal.module.css';
@@ -25,7 +26,7 @@ interface MeetingDetailsModalProps {
 }
 
 export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetingId, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'details' | 'roster'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'roster' | 'feedback'>('details');
   const [showQrBroadcaster, setShowQrBroadcaster] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
@@ -168,6 +169,14 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
             >
               Attendee Roster ({attendanceList?.length || 0})
             </button>
+            {attendanceList?.some(a => a.wellnessRating !== undefined) && (
+              <button 
+                className={`${styles.tab} ${activeTab === 'feedback' ? styles.active : ''}`}
+                onClick={() => setActiveTab('feedback')}
+              >
+                Feedback & Ratings
+              </button>
+            )}
           </nav>
         )}
 
@@ -219,11 +228,17 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
 
               {/* Attendance Status Confirmation */}
               {meeting.userAttendance && (
-                <div className={styles.attendanceStatus}>
+                <div className={styles.attendanceStatus} style={meeting.userAttendance.status === 'Excused' ? { background: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderColor: 'var(--border-color)' } : {}}>
                   <CheckCircle2 size={18} />
-                  <span>
-                    Your attendance is verified: {meeting.userAttendance.status} ({meeting.userAttendance.attendanceType === 'online' ? 'Online' : 'Physically'} at {format(meeting.userAttendance.timestamp, 'p')})
-                  </span>
+                  {meeting.userAttendance.status === 'Excused' ? (
+                    <span>
+                      Your attendance is marked as Excused: {meeting.userAttendance.excuseReason} {meeting.userAttendance.excuseDetail ? `("${meeting.userAttendance.excuseDetail}")` : ""}
+                    </span>
+                  ) : (
+                    <span>
+                      Your attendance is verified: {meeting.userAttendance.status} ({meeting.userAttendance.attendanceType === 'online' ? 'Online' : 'Physically'} at {format(meeting.userAttendance.timestamp, 'p')})
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -258,28 +273,37 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
                 )}
               </div>
             </>
-          ) : (
+          ) : activeTab === 'roster' ? (
             /* Attendance Roster Tab (Leaders only) */
             <div className={styles.rosterSection}>
               <h4 className={styles.label} style={{ marginBottom: '0.25rem' }}>Attended Members</h4>
               <div className={styles.rosterList}>
                 {attendanceList?.map((log: any) => (
-                  <div key={log._id} className={styles.rosterItem}>
-                    <div className={styles.userMeta}>
-                      <div className={styles.avatar}>
-                        {log.user?.name?.[0] || 'U'}
+                  <div key={log._id} className={styles.rosterItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.5rem', padding: '0.875rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className={styles.userMeta}>
+                        <div className={styles.avatar}>
+                          {log.user?.name?.[0] || 'U'}
+                        </div>
+                        <div>
+                          <span className={styles.userName}>{log.user?.name}</span>
+                          <p className={styles.userSub}>
+                            {log.user?.role} • {log.method} • {log.attendanceType === 'online' ? 'Online' : 'Physical'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <span className={styles.userName}>{log.user?.name}</span>
-                        <p className={styles.userSub}>{log.user?.role} • {log.method}</p>
+                      <div className={styles.checkinMeta}>
+                        <span className={styles.checkinTime}>{format(log.timestamp, 'p')}</span>
+                        <span className={`${styles.statusBadge} ${styles[log.status.toLowerCase()]}`}>
+                          {log.status}
+                        </span>
                       </div>
                     </div>
-                    <div className={styles.checkinMeta}>
-                      <span className={styles.checkinTime}>{format(log.timestamp, 'p')}</span>
-                      <span className={`${styles.statusBadge} ${styles[log.status.toLowerCase()]}`}>
-                        {log.status}
-                      </span>
-                    </div>
+                    {log.status === 'Excused' && log.excuseReason && (
+                      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '0.5rem 0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        <strong>Excuse ({log.excuseReason}):</strong> {log.excuseDetail || 'No additional note provided'}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {attendanceList?.length === 0 && (
@@ -336,6 +360,37 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          ) : (
+            /* Wellness Feedback Tab (Leaders only) */
+            <div className={styles.rosterSection}>
+              <h4 className={styles.label} style={{ marginBottom: '0.5rem' }}>Volunteer Feedback & Meeting Quality</h4>
+              <div className={styles.rosterList}>
+                {attendanceList?.filter(a => a.wellnessRating !== undefined).map((log: any) => (
+                  <div key={log._id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className={styles.userMeta}>
+                        <div className={styles.avatar}>
+                          {log.user?.name?.[0] || 'U'}
+                        </div>
+                        <div>
+                          <span className={styles.userName}>{log.user?.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>{log.user?.role}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', color: '#f59e0b', fontWeight: 700, alignItems: 'center' }}>
+                        <Star size={16} fill="#f59e0b" />
+                        <span>{log.wellnessRating} / 5</span>
+                      </div>
+                    </div>
+                    {log.wellnessFeedback && (
+                      <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontStyle: 'italic', margin: 0, paddingLeft: '2.5rem' }}>
+                        "{log.wellnessFeedback}"
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}

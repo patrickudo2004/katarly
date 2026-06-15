@@ -497,3 +497,261 @@ export const getProbationStatusList = query({
     return resultList;
   },
 });
+
+export const getMeetingAnalytics = query({
+  args: {
+    rangeDays: v.number(),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    subunitId: v.optional(v.union(v.id("subunits"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user.churchId) return null;
+
+    const userRole = user.role || "";
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+    const allowedRoles = ["SuperAdmin", ...deptRoles, ...subunitRoles];
+
+    if (!allowedRoles.includes(userRole)) {
+      throw new Error("Unauthorized");
+    }
+
+    let finalDeptId: string | null = args.departmentId || null;
+    let finalSubunitId: string | null = args.subunitId || null;
+
+    if (deptRoles.includes(userRole)) {
+      if (!user.departmentId) return null;
+      finalDeptId = user.departmentId;
+      if (finalSubunitId) {
+        const subunit = (await ctx.db.get(finalSubunitId as any)) as any;
+        if (!subunit || subunit.departmentId !== finalDeptId) {
+          finalSubunitId = null;
+        }
+      }
+    } else if (subunitRoles.includes(userRole)) {
+      if (!user.subunitId) return null;
+      finalSubunitId = user.subunitId;
+      finalDeptId = user.departmentId || null;
+    }
+
+    const startTimeLimit = Date.now() - (args.rangeDays * 24 * 60 * 60 * 1000);
+    const meetings = await ctx.db
+      .query("meetings")
+      .withIndex("by_church_start_time", (q) => q.eq("churchId", user.churchId).gt("startTime", startTimeLimit))
+      .collect();
+
+    const filteredMeetings = meetings.filter((m) => {
+      if (finalSubunitId) return m.subunitId === finalSubunitId;
+      if (finalDeptId) return m.departmentId === finalDeptId;
+      return true;
+    });
+
+    const churchUsers = await ctx.db
+      .query("users")
+      .withIndex("by_church", (q) => q.eq("churchId", user.churchId))
+      .collect();
+
+    let totalExpected = 0;
+    let totalPresent = 0;
+    let totalLate = 0;
+    let totalExcused = 0;
+    let totalPhysical = 0;
+    let totalOnline = 0;
+    
+    let ratingSum = 0;
+    let ratingCount = 0;
+
+    const excuseCounts: Record<string, number> = {
+      Work: 0,
+      Health: 0,
+      Travel: 0,
+      Family: 0,
+      Other: 0,
+    };
+
+    const trendsList = [];
+
+    const sortedMeetingsForTrends = [...filteredMeetings].sort((a, b) => a.startTime - b.startTime);
+
+    for (const m of sortedMeetingsForTrends) {
+      let expectedUsers = [];
+      if (m.scope === "ChurchWide") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active");
+      } else if (m.scope === "Departmental") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active" && u.departmentId === m.departmentId);
+      } else if (m.scope === "Subunit") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active" && u.subunitId === m.subunitId);
+      }
+      const expectedCount = Math.max(1, expectedUsers.length);
+      totalExpected += expectedCount;
+
+      const attendance = await ctx.db
+        .query("meetingAttendance")
+        .withIndex("by_meeting", (q) => q.eq("meetingId", m._id))
+        .collect();
+
+      const present = attendance.filter((a) => a.status === "Present").length;
+      const late = attendance.filter((a) => a.status === "Late").length;
+      const excused = attendance.filter((a) => a.status === "Excused").length;
+
+      totalPresent += present;
+      totalLate += late;
+      totalExcused += excused;
+
+      totalPhysical += attendance.filter((a) => a.status !== "Excused" && a.attendanceType === "physical").length;
+      totalOnline += attendance.filter((a) => a.status !== "Excused" && a.attendanceType === "online").length;
+
+      attendance.forEach((a) => {
+        if (a.wellnessRating !== undefined) {
+          ratingSum += a.wellnessRating;
+          ratingCount++;
+        }
+        if (a.status === "Excused" && a.excuseReason) {
+          const key = a.excuseReason;
+          if (excuseCounts[key] !== undefined) {
+            excuseCounts[key]++;
+          } else {
+            excuseCounts.Other++;
+          }
+        }
+      });
+
+      const actualCheckedIn = present + late;
+      const attRate = expectedCount > 0 ? Math.round((actualCheckedIn / expectedCount) * 100) : 0;
+      const lateRate = actualCheckedIn > 0 ? Math.round((late / actualCheckedIn) * 100) : 0;
+
+      const dateStr = new Date(m.startTime).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      trendsList.push({
+        date: dateStr,
+        meetingName: m.name,
+        attendanceRate: attRate,
+        latenessRate: lateRate,
+      });
+    }
+
+    const actualCheckIns = totalPresent + totalLate;
+    const overallAttendanceRate = totalExpected > 0 ? Math.round((actualCheckIns / totalExpected) * 100) : 0;
+    const overallLatenessRate = actualCheckIns > 0 ? Math.round((totalLate / actualCheckIns) * 100) : 0;
+    const averageRating = ratingCount > 0 ? parseFloat((ratingSum / ratingCount).toFixed(1)) : 0;
+
+    return {
+      meetingsCount: filteredMeetings.length,
+      attendanceRate: overallAttendanceRate,
+      latenessRate: overallLatenessRate,
+      averageRating,
+      physicalCount: totalPhysical,
+      onlineCount: totalOnline,
+      excuses: Object.entries(excuseCounts).map(([name, value]) => ({ name, value })),
+      trends: trendsList,
+    };
+  },
+});
+
+export const getMeetingsReportList = query({
+  args: {
+    rangeDays: v.number(),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+    subunitId: v.optional(v.union(v.id("subunits"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user.churchId) return [];
+
+    const userRole = user.role || "";
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+    const allowedRoles = ["SuperAdmin", ...deptRoles, ...subunitRoles];
+
+    if (!allowedRoles.includes(userRole)) {
+      throw new Error("Unauthorized");
+    }
+
+    let finalDeptId: string | null = args.departmentId || null;
+    let finalSubunitId: string | null = args.subunitId || null;
+
+    if (deptRoles.includes(userRole)) {
+      if (!user.departmentId) return [];
+      finalDeptId = user.departmentId;
+      if (finalSubunitId) {
+        const subunit = (await ctx.db.get(finalSubunitId as any)) as any;
+        if (!subunit || subunit.departmentId !== finalDeptId) {
+          finalSubunitId = null;
+        }
+      }
+    } else if (subunitRoles.includes(userRole)) {
+      if (!user.subunitId) return [];
+      finalSubunitId = user.subunitId;
+      finalDeptId = user.departmentId || null;
+    }
+
+    const startTimeLimit = Date.now() - (args.rangeDays * 24 * 60 * 60 * 1000);
+    const meetings = await ctx.db
+      .query("meetings")
+      .withIndex("by_church_start_time", (q) => q.eq("churchId", user.churchId).gt("startTime", startTimeLimit))
+      .collect();
+
+    const filteredMeetings = meetings.filter((m) => {
+      if (finalSubunitId) return m.subunitId === finalSubunitId;
+      if (finalDeptId) return m.departmentId === finalDeptId;
+      return true;
+    });
+
+    const churchUsers = await ctx.db
+      .query("users")
+      .withIndex("by_church", (q) => q.eq("churchId", user.churchId))
+      .collect();
+
+    const results = [];
+    for (const m of filteredMeetings) {
+      let expectedUsers = [];
+      if (m.scope === "ChurchWide") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active");
+      } else if (m.scope === "Departmental") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active" && u.departmentId === m.departmentId);
+      } else if (m.scope === "Subunit") {
+        expectedUsers = churchUsers.filter((u) => u.status === "active" && u.subunitId === m.subunitId);
+      }
+      const expectedCount = Math.max(1, expectedUsers.length);
+
+      const attendance = await ctx.db
+        .query("meetingAttendance")
+        .withIndex("by_meeting", (q) => q.eq("meetingId", m._id))
+        .collect();
+
+      const present = attendance.filter((a) => a.status === "Present").length;
+      const late = attendance.filter((a) => a.status === "Late").length;
+      const excused = attendance.filter((a) => a.status === "Excused").length;
+      
+      const ratings = attendance.filter((a) => a.wellnessRating !== undefined).map((a) => a.wellnessRating as number);
+      const avgRating = ratings.length > 0 ? parseFloat((ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)) : 0;
+
+      const physicalCount = attendance.filter((a) => a.status !== "Excused" && a.attendanceType === "physical").length;
+      const onlineCount = attendance.filter((a) => a.status !== "Excused" && a.attendanceType === "online").length;
+
+      const dept = m.departmentId ? await ctx.db.get(m.departmentId) : null;
+      const sub = m.subunitId ? await ctx.db.get(m.subunitId) : null;
+
+      results.push({
+        _id: m._id,
+        name: m.name,
+        startTime: m.startTime,
+        endTime: m.endTime,
+        format: m.format,
+        scope: m.scope,
+        departmentName: dept?.name || "Church-wide",
+        subunitName: sub?.name || "None",
+        expectedCount,
+        presentCount: present,
+        lateCount: late,
+        excusedCount: excused,
+        physicalCount,
+        onlineCount,
+        averageRating: avgRating,
+      });
+    }
+
+    return results.sort((a, b) => b.startTime - a.startTime);
+  },
+});
+

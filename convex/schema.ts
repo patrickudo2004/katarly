@@ -439,6 +439,10 @@ export default defineSchema({
       lng: v.number(),
       accuracy: v.number(),
     })),
+    excuseReason: v.optional(v.string()),
+    excuseDetail: v.optional(v.string()),
+    wellnessRating: v.optional(v.number()),
+    wellnessFeedback: v.optional(v.string()),
   })
     .index("by_meeting", ["meetingId"])
     .index("by_user", ["userId"])

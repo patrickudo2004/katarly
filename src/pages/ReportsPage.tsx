@@ -20,7 +20,9 @@ import {
   LayoutGrid,
   ChevronUp,
   ChevronDown,
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  Video
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toPng } from 'html-to-image';
@@ -31,9 +33,11 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import styles from './ReportsPage.module.css';
+import { MeetingDetailsModal } from '../components/MeetingDetailsModal';
 
 export const ReportsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'trends' | 'services' | 'floor' | 'wellness' | 'compliance' | 'leaderboard' | 'probation'>('trends');
+  const [activeTab, setActiveTab] = useState<'trends' | 'services' | 'floor' | 'wellness' | 'compliance' | 'leaderboard' | 'probation' | 'meetings'>('trends');
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [rangeDays, setRangeDays] = useState(28); // 4 weeks default
   const [deptId, setDeptId] = useState<string | null>(null);
   const [subunitId, setSubunitId] = useState<string | null>(null);
@@ -51,6 +55,16 @@ export const ReportsPage: React.FC = () => {
   const safeguardingLogs = useQuery(api.reports.getSafeguardingAudit, { departmentId: deptId as any });
   const leaderboards = useQuery(api.reports.getSubunitLeaderboards);
   const probationList = useQuery(api.reports.getProbationStatusList, { departmentId: deptId as any });
+  const meetingAnalytics = useQuery(api.reports.getMeetingAnalytics, {
+    rangeDays,
+    departmentId: deptId as any,
+    subunitId: subunitId as any
+  });
+  const meetingsReportList = useQuery(api.reports.getMeetingsReportList, {
+    rangeDays,
+    departmentId: deptId as any,
+    subunitId: subunitId as any
+  });
 
   // Automatically lock/initialize state based on role
   React.useEffect(() => {
@@ -134,6 +148,33 @@ export const ReportsPage: React.FC = () => {
     const link = document.createElement('a');
     link.setAttribute('href', URL.createObjectURL(blob));
     link.setAttribute('download', `raw-attendance-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const exportMeetingsAsCSV = () => {
+    if (!meetingsReportList || meetingsReportList.length === 0) return;
+    const headers = ['Meeting Name', 'Start Time', 'Format', 'Scope', 'Department', 'Subunit', 'Expected Count', 'Present', 'Late', 'Excused', 'Physical Attendances', 'Online Attendances', 'Avg Rating'];
+    const rows = meetingsReportList.map(m => [
+      m.name,
+      format(m.startTime, 'yyyy-MM-dd HH:mm'),
+      m.format,
+      m.scope,
+      m.departmentName,
+      m.subunitName,
+      m.expectedCount,
+      m.presentCount,
+      m.lateCount,
+      m.excusedCount,
+      m.physicalCount,
+      m.onlineCount,
+      m.averageRating
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', `meetings-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -238,7 +279,7 @@ export const ReportsPage: React.FC = () => {
           <div className={styles.exportActions}>
             <button onClick={exportAsImage} title="Export PNG" className={styles.exportBtn}><ImageIcon size={18} /> PNG</button>
             <button onClick={exportAsPDF} title="Export PDF" className={styles.exportBtn}><FileText size={18} /> PDF</button>
-            <button onClick={exportAsCSV} title="Export CSV" className={styles.exportBtn}><Download size={18} /> CSV</button>
+            <button onClick={activeTab === 'meetings' ? exportMeetingsAsCSV : exportAsCSV} title="Export CSV" className={styles.exportBtn}><Download size={18} /> CSV</button>
           </div>
         </div>
       </header>
@@ -285,6 +326,12 @@ export const ReportsPage: React.FC = () => {
           onClick={() => setActiveTab('probation')}
         >
           <Users size={18} /> Probation Tracker
+        </button>
+        <button 
+          className={activeTab === 'meetings' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('meetings')}
+        >
+          <Video size={18} /> Meeting Analytics
         </button>
       </div>
 
@@ -850,6 +897,232 @@ export const ReportsPage: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Meetings Analytics View */}
+        {activeTab === 'meetings' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* KPI Row */}
+            <div className={styles.kpiRow}>
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Attendance Rate</div>
+                <div className={styles.kpiValue}>{meetingAnalytics?.attendanceRate || 0}%</div>
+                <div className={styles.kpiTrend}>Presence vs Expected Roster</div>
+              </div>
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Lateness Index</div>
+                <div className={styles.kpiValue} style={{ color: (meetingAnalytics?.latenessRate || 0) > 20 ? '#ef4444' : 'var(--text-primary)' }}>
+                  {meetingAnalytics?.latenessRate || 0}%
+                </div>
+                <div className={styles.kpiTrend}>Ratio of late check-ins</div>
+              </div>
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Wellness & Utility</div>
+                <div className={styles.kpiValue} style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                  <Star size={24} fill="#f59e0b" stroke="#f59e0b" />
+                  {meetingAnalytics?.averageRating || 'N/A'}
+                </div>
+                <div className={styles.kpiTrend}>Avg volunteer value rating</div>
+              </div>
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Meetings Run</div>
+                <div className={styles.kpiValue}>{meetingAnalytics?.meetingsCount || 0}</div>
+                <div className={styles.kpiTrend}>In chosen date range</div>
+              </div>
+            </div>
+
+            {/* Charts Container */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Trend line chart */}
+              <div className={styles.chartBox}>
+                <div className={styles.chartTitle}>Attendance & Lateness Timeline</div>
+                {meetingAnalytics?.trends && meetingAnalytics.trends.length > 0 ? (
+                  <div className={styles.chartWrapper}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={meetingAnalytics.trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                        <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={11} />
+                        <YAxis stroke="var(--text-secondary)" fontSize={11} domain={[0, 100]} unit="%" />
+                        <RechartsTooltip 
+                          contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
+                          labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Area type="monotone" name="Attendance Rate" dataKey="attendanceRate" fill="#8b5cf6" stroke="#8b5cf6" fillOpacity={0.07} strokeWidth={2} />
+                        <Line type="monotone" name="Lateness Index" dataKey="latenessRate" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No timeline data available</div>
+                )}
+              </div>
+
+              {/* Format split */}
+              <div className={styles.chartBox} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className={styles.chartTitle}>Gathering Format Split</div>
+                {meetingAnalytics && (meetingAnalytics.physicalCount > 0 || meetingAnalytics.onlineCount > 0) ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', height: '220px' }}>
+                    <div style={{ width: '150px', height: '150px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Physical', value: meetingAnalytics.physicalCount },
+                              { name: 'Online', value: meetingAnalytics.onlineCount }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={60}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            <Cell fill="#f59e0b" />
+                            <Cell fill="#3b82f6" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }} />
+                        <strong>Physical:</strong> {meetingAnalytics.physicalCount} check-ins
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6' }} />
+                        <strong>Online:</strong> {meetingAnalytics.onlineCount} check-ins
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No format split data available</div>
+                )}
+              </div>
+            </div>
+
+            {/* Excuse reasons bar chart */}
+            <div className={styles.chartBox}>
+              <div className={styles.chartTitle}>Absence/Excuse Analysis</div>
+              {meetingAnalytics?.excuses && meetingAnalytics.excuses.some(e => e.value > 0) ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }}>
+                  {meetingAnalytics.excuses.map((exc) => {
+                    const totalExcuses = meetingAnalytics.excuses.reduce((sum, e) => sum + e.value, 0);
+                    const pct = totalExcuses > 0 ? Math.round((exc.value / totalExcuses) * 100) : 0;
+                    return (
+                      <div key={exc.name} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                            {exc.name === 'Work' ? 'Work Conflict' : exc.name === 'Health' ? 'Health / Sick' : exc.name === 'Travel' ? 'Travel / Out of Town' : exc.name === 'Family' ? 'Family Emergency' : 'Other Reasons'}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{exc.value} ({pct}%)</span>
+                        </div>
+                        <div style={{ width: '100%', height: '8px', background: 'var(--bg-secondary)', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: '#8b5cf6', borderRadius: '4px' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No excused absences logged yet</div>
+              )}
+            </div>
+
+            {/* Drill-down list of meetings */}
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Video size={18} /> Gatherings Drill-Down
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      <th style={{ padding: '0.75rem' }}>Gathering Details</th>
+                      <th style={{ padding: '0.75rem' }}>Department/Subunit</th>
+                      <th style={{ padding: '0.75rem' }}>Format</th>
+                      <th style={{ padding: '0.75rem' }}>Attendance Rate</th>
+                      <th style={{ padding: '0.75rem' }}>Utility Rating</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {meetingsReportList?.map((m) => {
+                      const actualCheckedIn = m.presentCount + m.lateCount;
+                      const attPct = m.expectedCount > 0 ? Math.round((actualCheckedIn / m.expectedCount) * 100) : 0;
+                      return (
+                        <tr key={m._id} style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            <div style={{ fontWeight: 700 }}>{m.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <Clock size={12} /> {format(m.startTime, 'MMM d, p')}
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            <div>{m.departmentName}</div>
+                            {m.subunitName !== 'None' && <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{m.subunitName}</div>}
+                          </td>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            <span style={{ 
+                              fontSize: '0.75rem', 
+                              fontWeight: 600, 
+                              padding: '2px 8px', 
+                              borderRadius: '9999px',
+                              background: m.format === 'Physical' ? 'rgba(245, 158, 11, 0.1)' : m.format === 'Online' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                              color: m.format === 'Physical' ? '#f59e0b' : m.format === 'Online' ? '#3b82f6' : '#8b5cf6'
+                            }}>
+                              {m.format}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            <div style={{ fontWeight: 700 }}>{attPct}%</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {actualCheckedIn} / {m.expectedCount} present {m.excusedCount > 0 && `(${m.excusedCount} excused)`}
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            {m.averageRating > 0 ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
+                                {m.averageRating}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No reviews</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>
+                            <button 
+                              onClick={() => setSelectedMeetingId(m._id)}
+                              className={styles.exportBtn}
+                              style={{ padding: '6px 12px', fontSize: '0.75rem', border: '1px solid var(--border-color)' }}
+                            >
+                              Open Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {(!meetingsReportList || meetingsReportList.length === 0) && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          No meetings found in this timeframe.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Meeting Details Drill-Down Modal */}
+        {selectedMeetingId && (
+          <MeetingDetailsModal 
+            meetingId={selectedMeetingId as any}
+            onClose={() => setSelectedMeetingId(null)}
+          />
         )}
       </div>
     </div>

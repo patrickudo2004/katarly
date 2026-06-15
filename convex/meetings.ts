@@ -251,6 +251,10 @@ export const getMeetingsForUser = query({
           timestamp: attendance.timestamp,
           attendanceType: attendance.attendanceType,
           method: attendance.method,
+          excuseReason: attendance.excuseReason,
+          excuseDetail: attendance.excuseDetail,
+          wellnessRating: attendance.wellnessRating,
+          wellnessFeedback: attendance.wellnessFeedback,
         } : null,
       });
     }
@@ -281,6 +285,10 @@ export const getMeetingDetails = query({
         timestamp: attendance.timestamp,
         attendanceType: attendance.attendanceType,
         method: attendance.method,
+        excuseReason: attendance.excuseReason,
+        excuseDetail: attendance.excuseDetail,
+        wellnessRating: attendance.wellnessRating,
+        wellnessFeedback: attendance.wellnessFeedback,
       } : null,
     };
   },
@@ -484,5 +492,84 @@ export const checkInUserManually = mutation({
       method: "Manual",
       markedById: userId,
     });
+  },
+});
+
+export const lodgeMeetingExcuse = mutation({
+  args: {
+    meetingId: v.id("meetings"),
+    reason: v.string(),
+    detail: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || !user.churchId) throw new Error("User context not found");
+
+    const meeting = await ctx.db.get(args.meetingId);
+    if (!meeting) throw new Error("Meeting not found");
+
+    // Scoping check for safety
+    if (meeting.scope === "Departmental" && user.role !== "SuperAdmin" && user.role !== "DeaconHead" && user.departmentId !== meeting.departmentId) {
+      throw new Error("Unauthorized: Meeting is out of your department scope.");
+    }
+    if (meeting.scope === "Subunit" && user.role !== "SuperAdmin" && user.role !== "DeaconHead" && user.subunitId !== meeting.subunitId && !(user.role === "DepartmentHead" && user.departmentId === meeting.departmentId)) {
+      throw new Error("Unauthorized: Meeting is out of your subunit scope.");
+    }
+
+    const existing = await ctx.db
+      .query("meetingAttendance")
+      .withIndex("by_meeting_user", (q) => q.eq("meetingId", args.meetingId).eq("userId", userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "Excused",
+        excuseReason: args.reason,
+        excuseDetail: args.detail,
+        timestamp: Date.now(),
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("meetingAttendance", {
+      meetingId: args.meetingId,
+      userId,
+      churchId: user.churchId,
+      timestamp: Date.now(),
+      attendanceType: "online",
+      status: "Excused",
+      method: "Manual",
+      excuseReason: args.reason,
+      excuseDetail: args.detail,
+    });
+  },
+});
+
+export const submitMeetingFeedback = mutation({
+  args: {
+    meetingId: v.id("meetings"),
+    rating: v.number(),
+    feedback: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existing = await ctx.db
+      .query("meetingAttendance")
+      .withIndex("by_meeting_user", (q) => q.eq("meetingId", args.meetingId).eq("userId", userId))
+      .first();
+
+    if (!existing) {
+      throw new Error("Must be checked in (or marked absent/excused) to submit meeting feedback.");
+    }
+
+    await ctx.db.patch(existing._id, {
+      wellnessRating: args.rating,
+      wellnessFeedback: args.feedback,
+    });
+    return existing._id;
   },
 });
