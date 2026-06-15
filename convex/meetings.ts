@@ -114,7 +114,7 @@ export const createMeeting = mutation({
       }
     }
 
-    return await ctx.db.insert("meetings", {
+    const meetingId = await ctx.db.insert("meetings", {
       churchId,
       name: args.name,
       description: args.description,
@@ -130,6 +130,42 @@ export const createMeeting = mutation({
       qrCodeSecret,
       createdBy: userId,
     });
+
+    // Notify scoped members asynchronously
+    try {
+      let usersQuery = ctx.db
+        .query("users")
+        .withIndex("by_church", (q) => q.eq("churchId", churchId))
+        .filter((q) => q.eq(q.field("status"), "active"));
+
+      if (args.scope === "Departmental" && args.departmentId) {
+        usersQuery = ctx.db
+          .query("users")
+          .withIndex("by_dept", (q) => q.eq("churchId", churchId).eq("departmentId", args.departmentId))
+          .filter((q) => q.eq(q.field("status"), "active"));
+      } else if (args.scope === "Subunit" && args.subunitId) {
+        usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), args.subunitId));
+      }
+
+      const users = await usersQuery.collect();
+      const formatTime = new Date(args.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const formatDate = new Date(args.startTime).toLocaleDateString();
+
+      for (const u of users) {
+        if (u._id === userId) continue; // Skip notifying creator
+        await ctx.db.insert("notifications", {
+          userId: u._id,
+          title: `📅 New Gathering Scheduled`,
+          message: `"${args.name}" (${args.format}) is scheduled for ${formatDate} at ${formatTime}.`,
+          type: "meeting",
+          read: false,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to dispatch meeting notifications:", err);
+    }
+
+    return meetingId;
   },
 });
 
@@ -285,10 +321,32 @@ export const checkInToMeeting = mutation({
     const thirtyMins = 30 * 60 * 1000;
     
     if (now < meeting.startTime - fifteenMins) {
-      throw new Error("Meeting has not opened for check-in yet.");
+      throw new Error("Meeting check-in lobby is not open yet.");
     }
     if (now > meeting.endTime + thirtyMins) {
-      throw new Error("Check-in window for this meeting is closed.");
+      throw new Error("Check-in window for this meeting has officially closed.");
+    }
+
+    // Scoping Authorization Validation
+    if (meeting.scope === "Departmental") {
+      if (user.role !== "SuperAdmin" && user.role !== "DeaconHead" && user.departmentId !== meeting.departmentId) {
+        throw new Error("Unauthorized: You do not belong to the department hosting this meeting.");
+      }
+    } else if (meeting.scope === "Subunit") {
+      if (
+        user.role !== "SuperAdmin" &&
+        user.role !== "DeaconHead" &&
+        !(user.role === "DepartmentHead" && user.departmentId === meeting.departmentId) &&
+        user.subunitId !== meeting.subunitId
+      ) {
+        throw new Error("Unauthorized: You do not belong to the subunit hosting this meeting.");
+      }
+    }
+
+    let status: "Present" | "Late" | "Excused" = "Present";
+    // Mark as Late if they check in 15 minutes or more after the start time
+    if (now >= meeting.startTime + fifteenMins) {
+      status = "Late";
     }
 
     let method: "QR" | "WebJoin" | "Manual" = "Manual";
@@ -333,7 +391,7 @@ export const checkInToMeeting = mutation({
       churchId,
       timestamp: now,
       attendanceType: args.attendanceType,
-      status: "Present",
+      status,
       method,
       location: args.lat && args.lng ? {
         lat: args.lat,
@@ -373,5 +431,58 @@ export const getMeetingAttendance = query({
       }
     }
     return results;
+  },
+});
+
+export const checkInUserManually = mutation({
+  args: {
+    meetingId: v.id("meetings"),
+    targetUserId: v.id("users"),
+    status: v.union(v.literal("Present"), v.literal("Late"), v.literal("Excused")),
+    attendanceType: v.union(v.literal("physical"), v.literal("online")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || !["SuperAdmin", "DeaconHead", "PastoralOversight", "DepartmentHead", "SubunitLead"].includes(user.role || "")) {
+      throw new Error("Unauthorized: Only leaders can manually check members in.");
+    }
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser || !targetUser.churchId) throw new Error("Target user context not found");
+
+    // Scoping check for leaders
+    if (user.role === "DepartmentHead" && targetUser.departmentId !== user.departmentId) {
+      throw new Error("Unauthorized: You can only check in users from your department.");
+    }
+    if (user.role === "SubunitLead" && targetUser.subunitId !== user.subunitId) {
+      throw new Error("Unauthorized: You can only check in users from your subunit.");
+    }
+
+    const existing = await ctx.db
+      .query("meetingAttendance")
+      .withIndex("by_meeting_user", (q) => q.eq("meetingId", args.meetingId).eq("userId", args.targetUserId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: args.status,
+        attendanceType: args.attendanceType,
+        markedById: userId,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("meetingAttendance", {
+      meetingId: args.meetingId,
+      userId: args.targetUserId,
+      churchId: targetUser.churchId,
+      timestamp: Date.now(),
+      attendanceType: args.attendanceType,
+      status: args.status,
+      method: "Manual",
+      markedById: userId,
+    });
   },
 });
