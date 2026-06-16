@@ -98,6 +98,7 @@ export default defineSchema({
       swapDeadlineHours: v.optional(v.number()),
       radiusUnit: v.optional(v.union(v.literal("meters"), v.literal("miles"))),
       accentColor: v.optional(v.string()),
+      enableRewardsMarketplace: v.optional(v.boolean()),
     })),
   }).index("by_slug", ["slug"]),
 

@@ -55,6 +55,7 @@ export const AdminSettings: React.FC = () => {
     swapDeadlineHours: 24,
     radiusUnit: 'meters' as 'meters' | 'miles',
     accentColor: '#8b5cf6',
+    enableRewardsMarketplace: true,
     name: '',
     address: ''
   });
@@ -80,6 +81,7 @@ export const AdminSettings: React.FC = () => {
         swapDeadlineHours: church.settings?.swapDeadlineHours ?? 24,
         radiusUnit: church.settings?.radiusUnit ?? 'meters',
         accentColor: church.settings?.accentColor ?? '#8b5cf6',
+        enableRewardsMarketplace: church.settings?.enableRewardsMarketplace ?? true,
         name: church.name ?? '',
         address: church.address ?? ''
       });
@@ -527,6 +529,18 @@ export const AdminSettings: React.FC = () => {
                 <div className={styles.checkboxInfo}>
                   <strong>Require Staff Approval</strong>
                   <span>Leads must approve all swap requests manually.</span>
+                </div>
+              </label>
+
+              <label className={styles.checkboxLabel} style={{ marginTop: '1.5rem' }}>
+                <input 
+                  type="checkbox"
+                  checked={formData.enableRewardsMarketplace}
+                  onChange={(e) => setFormData({...formData, enableRewardsMarketplace: e.target.checked})}
+                />
+                <div className={styles.checkboxInfo}>
+                  <strong>Enable Rewards Marketplace</strong>
+                  <span>Allow volunteers to spend their service points on rewards.</span>
                 </div>
               </label>
             </section>

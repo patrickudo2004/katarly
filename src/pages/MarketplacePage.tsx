@@ -7,29 +7,35 @@ import styles from './MarketplacePage.module.css';
 
 export const MarketplacePage: React.FC = () => {
   const me = useQuery(api.users.me);
+  const church = useQuery(api.churches.getMyChurch);
   const [activeTab, setActiveTab] = React.useState<'swaps' | 'rewards'>('swaps');
 
   if (!me) return null;
 
+  const showRewards = church?.settings?.enableRewardsMarketplace ?? true;
+  const currentTab = showRewards ? activeTab : 'swaps';
+
   return (
     <div className={styles.container}>
-      <div className={styles.tabs}>
-        <button 
-          className={activeTab === 'swaps' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('swaps')}
-        >
-          Shift Swaps
-        </button>
-        <button 
-          className={activeTab === 'rewards' ? styles.activeTab : styles.tab}
-          onClick={() => setActiveTab('rewards')}
-        >
-          Redeem Rewards
-        </button>
-      </div>
+      {showRewards && (
+        <div className={styles.tabs}>
+          <button 
+            className={currentTab === 'swaps' ? styles.activeTab : styles.tab}
+            onClick={() => setActiveTab('swaps')}
+          >
+            Shift Swaps
+          </button>
+          <button 
+            className={currentTab === 'rewards' ? styles.activeTab : styles.tab}
+            onClick={() => setActiveTab('rewards')}
+          >
+            Redeem Rewards
+          </button>
+        </div>
+      )}
 
       <div className={styles.content}>
-        {activeTab === 'swaps' ? (
+        {currentTab === 'swaps' ? (
           <ShiftSwapMarketplace 
             churchId={me.churchId!} 
             userSubunitId={me.subunitId} 

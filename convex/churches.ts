@@ -183,6 +183,7 @@ export const updateExtendedSettings = mutation({
     lat: v.optional(v.number()),
     lng: v.optional(v.number()),
     nfcAutoCheckinEnabled: v.optional(v.boolean()),
+    enableRewardsMarketplace: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
