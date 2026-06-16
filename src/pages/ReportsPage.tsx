@@ -22,7 +22,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Star,
-  Video
+  Video,
+  ArrowLeftRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toPng } from 'html-to-image';
@@ -30,13 +31,13 @@ import { jsPDF } from 'jspdf';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, Line, ComposedChart, Legend,
-  PieChart, Pie, Cell
+  PieChart, Pie, Cell, Bar
 } from 'recharts';
 import styles from './ReportsPage.module.css';
 import { MeetingDetailsModal } from '../components/MeetingDetailsModal';
 
 export const ReportsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'trends' | 'services' | 'floor' | 'wellness' | 'compliance' | 'leaderboard' | 'probation' | 'meetings'>('trends');
+  const [activeTab, setActiveTab] = useState<'trends' | 'services' | 'floor' | 'wellness' | 'compliance' | 'leaderboard' | 'probation' | 'meetings' | 'shifts'>('trends');
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
   const [rangeDays, setRangeDays] = useState(28); // 4 weeks default
   const [deptId, setDeptId] = useState<string | null>(null);
@@ -64,6 +65,10 @@ export const ReportsPage: React.FC = () => {
     rangeDays,
     departmentId: deptId as any,
     subunitId: subunitId as any
+  });
+  const shiftSwapAnalytics = useQuery(api.reports.getShiftSwapAnalytics, {
+    rangeDays,
+    departmentId: deptId as any
   });
 
   // Automatically lock/initialize state based on role
@@ -332,6 +337,12 @@ export const ReportsPage: React.FC = () => {
           onClick={() => setActiveTab('meetings')}
         >
           <Video size={18} /> Meeting Analytics
+        </button>
+        <button 
+          className={activeTab === 'shifts' ? styles.activeTab : ''} 
+          onClick={() => setActiveTab('shifts')}
+        >
+          <ArrowLeftRight size={18} /> Shifts & Swaps
         </button>
       </div>
 
@@ -1114,6 +1125,237 @@ export const ReportsPage: React.FC = () => {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Shifts & Swaps View */}
+        {activeTab === 'shifts' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* KPI Cards Row */}
+            <div className={styles.kpiRow} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Rota Fill Rate</div>
+                <div className={styles.kpiValue} style={{ color: (shiftSwapAnalytics?.fillRate || 0) < 70 ? '#ef4444' : (shiftSwapAnalytics?.fillRate || 0) < 85 ? '#f59e0b' : '#10b981' }}>
+                  {shiftSwapAnalytics?.fillRate || 0}%
+                </div>
+                <div className={styles.kpiTrend}>
+                  {shiftSwapAnalytics?.assignedShifts || 0} / {shiftSwapAnalytics?.totalShifts || 0} shifts filled
+                </div>
+              </div>
+
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Open Shifts</div>
+                <div className={styles.kpiValue} style={{ color: (shiftSwapAnalytics?.openShifts || 0) > 0 ? '#f59e0b' : 'var(--text-primary)' }}>
+                  {shiftSwapAnalytics?.openShifts || 0}
+                </div>
+                <div className={styles.kpiTrend}>Unassigned in selected timeframe</div>
+              </div>
+
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Swap Claim Rate</div>
+                <div className={styles.kpiValue}>
+                  {shiftSwapAnalytics?.swapOffered
+                    ? Math.round(((shiftSwapAnalytics.swapApproved + shiftSwapAnalytics.swapClaimed) / shiftSwapAnalytics.swapOffered) * 100)
+                    : 0}%
+                </div>
+                <div className={styles.kpiTrend}>
+                  {shiftSwapAnalytics?.swapApproved || 0} of {shiftSwapAnalytics?.swapOffered || 0} requests filled
+                </div>
+              </div>
+
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Avg. Claim Time</div>
+                <div className={styles.kpiValue}>
+                  {shiftSwapAnalytics?.avgResolutionHours || 0} hrs
+                </div>
+                <div className={styles.kpiTrend}>From request post to resolve</div>
+              </div>
+
+              <div className={styles.kpiCard}>
+                <div className={styles.kpiHeader}>Timeframe</div>
+                <div className={styles.kpiSelect}>
+                  <select value={rangeDays} onChange={e => setRangeDays(Number(e.target.value))}>
+                    <option value={7}>Last 7 Days</option>
+                    <option value={28}>Last 4 Weeks</option>
+                    <option value={90}>Last 3 Months</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Charts Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Fill Rate & Swap Trends Chart */}
+              <div className={styles.chartBox}>
+                <div className={styles.chartTitle}>Weekly Fill Rate & Swap Activity</div>
+                {shiftSwapAnalytics?.weeklyTrend && shiftSwapAnalytics.weeklyTrend.length > 0 ? (
+                  <div className={styles.chartWrapper}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={shiftSwapAnalytics.weeklyTrend} margin={{ top: 10, right: -5, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                        <XAxis dataKey="weekLabel" stroke="var(--text-secondary)" fontSize={11} />
+                        <YAxis yAxisId="left" stroke="var(--text-secondary)" fontSize={11} domain={[0, 100]} unit="%" />
+                        <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" fontSize={11} allowDecimals={false} />
+                        <RechartsTooltip 
+                          contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
+                          labelStyle={{ color: 'var(--text-primary)', fontWeight: 600 }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Area yAxisId="left" type="monotone" name="Fill Rate %" dataKey="fillRate" fill="#8b5cf6" stroke="#8b5cf6" fillOpacity={0.07} strokeWidth={2} />
+                        <Bar yAxisId="right" name="Swaps Offered" dataKey="swapsOffered" fill="#cbd5e1" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                        <Bar yAxisId="right" name="Swaps Resolved" dataKey="swapsApproved" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No trend data available</div>
+                )}
+              </div>
+
+              {/* Swap Status Breakdown & Detail */}
+              <div className={styles.chartBox} style={{ display: 'flex', flexDirection: 'column', justifySpaceBetween: 'space-between' }}>
+                <div className={styles.chartTitle}>Swap Request Status Breakdown</div>
+                {shiftSwapAnalytics && (shiftSwapAnalytics.swapOffered > 0) ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', height: '220px' }}>
+                    <div style={{ width: '150px', height: '150px' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Approved', value: shiftSwapAnalytics.swapApproved },
+                              { name: 'Pending Claim', value: shiftSwapAnalytics.swapPending },
+                              { name: 'Declined', value: shiftSwapAnalytics.swapDeclined },
+                              { name: 'Cancelled', value: shiftSwapAnalytics.swapCancelled }
+                            ].filter(item => item.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={60}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            <Cell fill="#10b981" />
+                            <Cell fill="#f59e0b" />
+                            <Cell fill="#ef4444" />
+                            <Cell fill="#94a3b8" />
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8125rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#10b981' }} />
+                        <strong>Approved:</strong> {shiftSwapAnalytics.swapApproved}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b' }} />
+                        <strong>Pending Claim:</strong> {shiftSwapAnalytics.swapPending}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444' }} />
+                        <strong>Declined:</strong> {shiftSwapAnalytics.swapDeclined}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#94a3b8' }} />
+                        <strong>Cancelled:</strong> {shiftSwapAnalytics.swapCancelled}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No swap activity recorded in this period</div>
+                )}
+              </div>
+            </div>
+
+            {/* Top Claimers & Cross-dept Analysis Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
+              
+              {/* Leaderboard card */}
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={18} style={{ color: '#f59e0b' }} /> Swap & Open-Shift Contributors
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {shiftSwapAnalytics?.topClaimers && shiftSwapAnalytics.topClaimers.length > 0 ? (
+                    shiftSwapAnalytics.topClaimers.map((claimer, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 800, color: idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : 'var(--text-secondary)' }}>#{idx + 1}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{claimer.name}</span>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{claimer.count} shifts claimed</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>No shifts claimed yet.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Rota Guardrail & Cross-department audit */}
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} style={{ color: '#8b5cf6' }} /> Guardrail & Swap Compliance Audit
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.875rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Cross-Department Swaps</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{shiftSwapAnalytics?.crossDeptSwaps || 0}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Confirmed Shifts</span>
+                    <strong style={{ color: '#10b981' }}>{shiftSwapAnalytics?.confirmedCount || 0}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Pending Responses</span>
+                    <strong style={{ color: '#f59e0b' }}>{shiftSwapAnalytics?.pendingCount || 0}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Declined Placements</span>
+                    <strong style={{ color: '#ef4444' }}>{shiftSwapAnalytics?.declinedCount || 0}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Department Comparison (SuperAdmin only) */}
+            {isSuperAdmin && shiftSwapAnalytics?.deptBreakdown && shiftSwapAnalytics.deptBreakdown.length > 0 && (
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '1.5rem' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Users size={18} /> Department Shift Coverage Comparison
+                </h4>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        <th style={{ padding: '0.75rem' }}>Department Name</th>
+                        <th style={{ padding: '0.75rem' }}>Total Assigned Positions</th>
+                        <th style={{ padding: '0.75rem' }}>Filled Positions</th>
+                        <th style={{ padding: '0.75rem' }}>Coverage Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shiftSwapAnalytics.deptBreakdown.map((dept, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                          <td style={{ padding: '1rem 0.75rem', fontWeight: 700 }}>{dept.name}</td>
+                          <td style={{ padding: '1rem 0.75rem' }}>{dept.total}</td>
+                          <td style={{ padding: '1rem 0.75rem' }}>{dept.filled}</td>
+                          <td style={{ padding: '1rem 0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ minWidth: '40px' }}>{dept.fillRate}%</strong>
+                              <div style={{ flex: 1, maxWidth: '150px', height: '6px', background: 'var(--border-color)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ width: `${dept.fillRate}%`, height: '100%', background: dept.fillRate > 85 ? '#10b981' : dept.fillRate > 65 ? '#f59e0b' : '#ef4444' }} />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -755,3 +755,246 @@ export const getMeetingsReportList = query({
   },
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SHIFTS & SWAPS ANALYTICS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getShiftSwapAnalytics = query({
+  args: {
+    rangeDays: v.number(),
+    departmentId: v.optional(v.union(v.id("departments"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user.churchId) return null;
+
+    const userRole = user.role || "";
+    const deptRoles = ["DeaconHead", "PastoralOversight", "DepartmentHead", "DepartmentAssistant", "DepartmentSecretary"];
+    const subunitRoles = ["SubunitLead", "SubunitAssistant"];
+    const allowedRoles = ["SuperAdmin", ...deptRoles, ...subunitRoles];
+
+    if (!allowedRoles.includes(userRole)) throw new Error("Unauthorized");
+
+    // Scope locking
+    let finalDeptId: string | null = args.departmentId || null;
+    if (deptRoles.includes(userRole)) {
+      finalDeptId = user.departmentId || null;
+    } else if (subunitRoles.includes(userRole)) {
+      finalDeptId = user.departmentId || null;
+    }
+
+    const now = Date.now();
+    const rangeStart = now - args.rangeDays * 24 * 60 * 60 * 1000;
+
+    // ── 1. Fetch all services in range for this church ──
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_church", (q: any) => q.eq("churchId", user.churchId))
+      .filter((q: any) => q.gte(q.field("startTime"), rangeStart))
+      .collect();
+
+    const serviceMap = new Map(services.map((s: any) => [s._id, s]));
+    const serviceIds = services.map((s: any) => s._id);
+
+    // ── 2. Fetch rotas for those services ──
+    let allRotas: any[] = [];
+    for (const sid of serviceIds) {
+      const entries = await ctx.db
+        .query("rotas")
+        .withIndex("by_service", (q: any) => q.eq("serviceId", sid))
+        .collect();
+      allRotas = allRotas.concat(entries);
+    }
+
+    // Filter by department if scoped
+    if (finalDeptId) {
+      allRotas = allRotas.filter((r: any) => r.departmentId === finalDeptId);
+    }
+
+    const totalShifts = allRotas.length;
+    const assignedShifts = allRotas.filter((r: any) => r.userId).length;
+    const openShifts = totalShifts - assignedShifts;
+    const fillRate = totalShifts > 0 ? Math.round((assignedShifts / totalShifts) * 100) : 0;
+
+    // Status breakdown
+    const pendingCount = allRotas.filter((r: any) => r.status === "Pending").length;
+    const confirmedCount = allRotas.filter((r: any) => r.status === "Confirmed").length;
+    const declinedCount = allRotas.filter((r: any) => r.status === "Declined").length;
+
+    // ── 3. Fetch swap requests in range ──
+    const allSwaps = await ctx.db
+      .query("swapRequests")
+      .withIndex("by_church_status", (q: any) => q.eq("churchId", user.churchId))
+      .collect();
+
+    const swapsInRange = allSwaps.filter((s: any) => s.createdAt >= rangeStart);
+
+    const swapOffered = swapsInRange.length;
+    const swapClaimed = swapsInRange.filter((s: any) => ["claimed", "approved", "declined"].includes(s.status)).length;
+    const swapApproved = swapsInRange.filter((s: any) => s.status === "approved").length;
+    const swapDeclined = swapsInRange.filter((s: any) => s.status === "declined").length;
+    const swapCancelled = swapsInRange.filter((s: any) => s.status === "cancelled").length;
+    const swapPending = swapsInRange.filter((s: any) => s.status === "available").length;
+    const crossDeptSwaps = swapsInRange.filter((s: any) => s.allowCrossDept).length;
+
+    // Avg resolution time (offered → approved/declined)
+    const resolvedSwaps = swapsInRange.filter((s: any) => ["approved", "declined"].includes(s.status));
+    const avgResolutionHours = resolvedSwaps.length > 0
+      ? Math.round(
+          resolvedSwaps.reduce((sum: number, s: any) => sum + (s.updatedAt - s.createdAt), 0) /
+          resolvedSwaps.length / (1000 * 60 * 60)
+        )
+      : 0;
+
+    // ── 4. Weekly trend (fill rate + swaps per week) ──
+    const weeks: { weekLabel: string; fillRate: number; swapsOffered: number; swapsApproved: number }[] = [];
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const numWeeks = Math.min(Math.ceil(args.rangeDays / 7), 12);
+
+    for (let i = numWeeks - 1; i >= 0; i--) {
+      const wEnd = now - i * weekMs;
+      const wStart = wEnd - weekMs;
+      const weekDate = new Date(wStart);
+      const weekLabel = weekDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+      const weekServices = services.filter((s: any) => s.startTime >= wStart && s.startTime < wEnd);
+      const weekServiceIds = new Set(weekServices.map((s: any) => s._id));
+      const weekRotas = allRotas.filter((r: any) => weekServiceIds.has(r.serviceId));
+      const weekAssigned = weekRotas.filter((r: any) => r.userId).length;
+      const weekFill = weekRotas.length > 0 ? Math.round((weekAssigned / weekRotas.length) * 100) : 0;
+
+      const weekSwaps = swapsInRange.filter((s: any) => s.createdAt >= wStart && s.createdAt < wEnd);
+
+      weeks.push({
+        weekLabel,
+        fillRate: weekFill,
+        swapsOffered: weekSwaps.length,
+        swapsApproved: weekSwaps.filter((s: any) => s.status === "approved").length,
+      });
+    }
+
+    // ── 5. Per-department breakdown (SuperAdmin only) ──
+    let deptBreakdown: { name: string; total: number; filled: number; fillRate: number }[] = [];
+    if (userRole === "SuperAdmin" && !finalDeptId) {
+      const departments = await ctx.db
+        .query("departments")
+        .withIndex("by_church", (q: any) => q.eq("churchId", user.churchId))
+        .collect();
+
+      for (const dept of departments) {
+        const deptRotas = allRotas.filter((r: any) => r.departmentId === dept._id);
+        const deptFilled = deptRotas.filter((r: any) => r.userId).length;
+        deptBreakdown.push({
+          name: dept.name,
+          total: deptRotas.length,
+          filled: deptFilled,
+          fillRate: deptRotas.length > 0 ? Math.round((deptFilled / deptRotas.length) * 100) : 0,
+        });
+      }
+      deptBreakdown = deptBreakdown.sort((a, b) => b.total - a.total).slice(0, 8);
+    }
+
+    // ── 6. Top open-shift claimers ──
+    const claimerCounts = new Map<string, number>();
+    for (const swap of swapsInRange.filter((s: any) => s.status === "approved" && s.claimantId)) {
+      const id = swap.claimantId;
+      claimerCounts.set(id, (claimerCounts.get(id) || 0) + 1);
+    }
+    const topClaimers: { name: string; count: number }[] = [];
+    for (const [uid, count] of Array.from(claimerCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5)) {
+      const u = await ctx.db.get(uid as any);
+      topClaimers.push({ name: (u as any)?.name || "Unknown", count });
+    }
+
+    return {
+      // Rota stats
+      totalShifts,
+      assignedShifts,
+      openShifts,
+      fillRate,
+      pendingCount,
+      confirmedCount,
+      declinedCount,
+      // Swap stats
+      swapOffered,
+      swapClaimed,
+      swapApproved,
+      swapDeclined,
+      swapCancelled,
+      swapPending,
+      crossDeptSwaps,
+      avgResolutionHours,
+      // Trend data
+      weeklyTrend: weeks,
+      // Dept breakdown (SuperAdmin only)
+      deptBreakdown,
+      // Top claimers
+      topClaimers,
+    };
+  },
+});
+
+// Lightweight sidebar stats — used on the Rota page
+export const getRotaSidebarStats = query({
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user.churchId) return null;
+
+    const now = Date.now();
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const monthStartMs = monthStart.getTime();
+    const weekStart = now - 7 * 24 * 60 * 60 * 1000;
+
+    // Open shifts (unassigned) that haven't started yet
+    const allRotas = await ctx.db.query("rotas").collect();
+
+    // Fetch services to filter by church + time
+    const upcomingServices = await ctx.db
+      .query("services")
+      .withIndex("by_church", (q: any) => q.eq("churchId", user.churchId))
+      .filter((q: any) => q.gte(q.field("startTime"), now))
+      .collect();
+
+    const upcomingServiceIds = new Set(upcomingServices.map((s: any) => s._id));
+
+    const openShifts = allRotas.filter((r: any) =>
+      !r.userId && upcomingServiceIds.has(r.serviceId)
+    ).length;
+
+    // Pending swap approvals (status = "claimed" = waiting for owner to approve)
+    const pendingSwaps = await ctx.db
+      .query("swapRequests")
+      .withIndex("by_church_status", (q: any) => q.eq("churchId", user.churchId).eq("status", "claimed"))
+      .collect();
+
+    // Approved swaps this week
+    const recentSwaps = await ctx.db
+      .query("swapRequests")
+      .withIndex("by_church_status", (q: any) => q.eq("churchId", user.churchId).eq("status", "approved"))
+      .filter((q: any) => q.gte(q.field("updatedAt"), weekStart))
+      .collect();
+
+    // Fill rate this month
+    const monthServices = await ctx.db
+      .query("services")
+      .withIndex("by_church", (q: any) => q.eq("churchId", user.churchId))
+      .filter((q: any) => q.gte(q.field("startTime"), monthStartMs))
+      .collect();
+
+    const monthServiceIds = new Set(monthServices.map((s: any) => s._id));
+    const monthRotas = allRotas.filter((r: any) => monthServiceIds.has(r.serviceId));
+    const monthFilled = monthRotas.filter((r: any) => r.userId).length;
+    const monthFillRate = monthRotas.length > 0
+      ? Math.round((monthFilled / monthRotas.length) * 100)
+      : 0;
+
+    return {
+      openShifts,
+      pendingSwapApprovals: pendingSwaps.length,
+      approvedSwapsThisWeek: recentSwaps.length,
+      monthFillRate,
+    };
+  },
+});

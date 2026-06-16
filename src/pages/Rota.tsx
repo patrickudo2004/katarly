@@ -75,6 +75,7 @@ export const Rota: React.FC = () => {
   const services = useQuery(api.services.getChurchServices);
   const subunits = useQuery(api.subunits.getSubunits);
   const departments = useQuery(api.departments.getDepartments);
+  const sidebarStats = useQuery(api.reports.getRotaSidebarStats);
 
   // Mutations
   const createShift = useMutation(api.rotas.createRotaEntry);
@@ -552,6 +553,34 @@ export const Rota: React.FC = () => {
               </div>
             )}
           </div>
+
+          {sidebarStats && (
+            <div className={styles.sidebarCard}>
+              <div className={styles.sidebarTitle}><Clock size={18} /> Shift & Swap Overview</div>
+              <div className={styles.auditItem}>
+                <span className={styles.auditLabel}>Open Shifts (Upcoming)</span>
+                <span className={styles.auditValue} style={{ color: sidebarStats.openShifts > 0 ? '#f59e0b' : 'var(--text-primary)' }}>
+                  {sidebarStats.openShifts} open
+                </span>
+              </div>
+              <div className={styles.auditItem}>
+                <span className={styles.auditLabel}>Swaps Pending Approval</span>
+                <span className={styles.auditValue} style={{ color: sidebarStats.pendingSwapApprovals > 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                  {sidebarStats.pendingSwapApprovals} pending
+                </span>
+              </div>
+              <div className={styles.auditItem}>
+                <span className={styles.auditLabel}>Approved Swaps (This Week)</span>
+                <span className={styles.auditValue}>{sidebarStats.approvedSwapsThisWeek} approved</span>
+              </div>
+              <div className={styles.auditItem}>
+                <span className={styles.auditLabel}>Month Fill Rate</span>
+                <span className={styles.auditValue} style={{ color: sidebarStats.monthFillRate > 85 ? '#10b981' : sidebarStats.monthFillRate > 65 ? '#f59e0b' : '#ef4444' }}>
+                  {sidebarStats.monthFillRate}% filled
+                </span>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
 
