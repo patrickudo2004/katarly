@@ -223,3 +223,29 @@
   color: #64748b;
   font-weight: 600;
 }
+
+@media (max-width: 480px) {
+  .marketplaceContainer {
+    padding: 0.5rem;
+  }
+  
+  .swapList {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .swapCard {
+    padding: 1rem;
+  }
+  
+  .swapMain {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+  
+  .requesterInfo {
+    align-self: flex-start;
+  }
+}
+
