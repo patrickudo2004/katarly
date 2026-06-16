@@ -183,6 +183,45 @@ export const acceptInvite = mutation({
 
     await ctx.db.patch(invite._id, { status: "accepted" });
 
+    // Send notifications to SuperAdmin & Inviter
+    try {
+      const church = await ctx.db.get(invite.churchId);
+      const dept = invite.departmentId ? await ctx.db.get(invite.departmentId) : null;
+      const sub = invite.subunitId ? await ctx.db.get(invite.subunitId) : null;
+      
+      const roleName = invite.role || "Volunteer";
+      const teamDetails = sub 
+        ? `${dept?.name} (${sub.name})` 
+        : (dept?.name || "General");
+        
+      const notifMessage = `${user.name || invite.email} has accepted the invitation and joined the church workforce as a ${roleName} in the ${teamDetails} department.`;
+
+      // 1. Notify SuperAdmin
+      if (church?.superAdminId) {
+        await ctx.db.insert("notifications", {
+          userId: church.superAdminId,
+          title: "New Volunteer Registered! 🎉",
+          message: notifMessage,
+          type: "invite_accepted",
+          read: false,
+        });
+      }
+
+      // 2. Notify the inviter (if different from SuperAdmin)
+      if (invite.invitedBy && invite.invitedBy !== church?.superAdminId) {
+        await ctx.db.insert("notifications", {
+          userId: invite.invitedBy,
+          title: "Your Invite Was Accepted! 🤝",
+          message: notifMessage,
+          type: "invite_accepted",
+          read: false,
+        });
+      }
+    } catch (err) {
+      // Fail-safe: don't block the accept transaction if notification fails
+      console.error("Failed to insert registration notifications:", err);
+    }
+
     return { churchId: invite.churchId };
   },
 });
