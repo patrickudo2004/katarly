@@ -4,6 +4,7 @@ import { api } from '../../convex/_generated/api';
 import { X, Check, Loader2, Calendar, User, ShieldAlert, Search, ArrowLeft, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import styles from './MobileAssignShiftModal.module.css';
+import { UrgentConfirmModal } from './UrgentConfirmModal';
 
 interface MobileAssignShiftModalProps {
   isOpen: boolean;
@@ -32,6 +33,14 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
+
+  // Confirm modal state — replaces window.confirm
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    hoursUntil: number;
+  }>({ open: false, hoursUntil: 0 });
+
+  const closeConfirm = () => setConfirmModal({ open: false, hoursUntil: 0 });
 
   // Fetch details of the selected service to verify double-bookings
   const serviceDetails = useQuery(
@@ -141,6 +150,19 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
       return;
     }
 
+    // < 24h urgent scheduling guardrail — show branded modal instead of window.confirm
+    if (activeService) {
+      const hoursUntilService = (activeService.startTime - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntilService > 0 && hoursUntilService < 24) {
+        setConfirmModal({ open: true, hoursUntil: Math.round(hoursUntilService) });
+        return; // modal's onConfirm will call doSubmit
+      }
+    }
+
+    await doSubmit();
+  };
+
+  const doSubmit = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
 
@@ -175,6 +197,7 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
   };
 
   return (
+    <>
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         
@@ -479,5 +502,20 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
         </div>
       </div>
     </div>
+
+    {/* Urgent confirm modal — rendered outside bottom sheet so it stacks above it */}
+    <UrgentConfirmModal
+      isOpen={confirmModal.open}
+      severity="urgent"
+      title="Urgent Scheduling Alert"
+      message={`This service starts in approximately ${confirmModal.hoursUntil} hour(s). This is an urgent scheduling action.`}
+      detail="The volunteer will receive a high-priority email notification immediately after assignment."
+      confirmLabel="Yes, Schedule Now"
+      cancelLabel="Go Back"
+      onConfirm={async () => { closeConfirm(); await doSubmit(); }}
+      onCancel={closeConfirm}
+    />
+  </>
   );
 };
+

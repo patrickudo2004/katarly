@@ -15,14 +15,20 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
   const claimSwap = useMutation(api.shiftSwap.claimSwap);
   const claimOpenShift = useMutation(api.shiftSwap.claimOpenShift);
   const [claimingId, setClaimingId] = React.useState<string | null>(null);
+  const [feedbackMsg, setFeedbackMsg] = React.useState<{ id: string; type: 'success' | 'error'; text: string } | null>(null);
+
+  const showFeedback = (id: string, type: 'success' | 'error', text: string) => {
+    setFeedbackMsg({ id, type, text });
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
 
   const handleClaim = async (swapId: any) => {
     setClaimingId(swapId);
     try {
       await claimSwap({ swapRequestId: swapId });
-      alert('Shift claimed successfully! Waiting for owner approval.');
+      showFeedback(swapId, 'success', 'Shift claimed! Waiting for owner approval.');
     } catch (err: any) {
-      alert(err.message || 'Failed to claim shift');
+      showFeedback(swapId, 'error', err.message || 'Failed to claim shift.');
     } finally {
       setClaimingId(null);
     }
@@ -32,9 +38,9 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
     setClaimingId(rotaId);
     try {
       await claimOpenShift({ rotaId });
-      alert('Open shift claimed successfully! You are now scheduled.');
+      showFeedback(rotaId, 'success', 'Open shift claimed! You are now scheduled.');
     } catch (err: any) {
-      alert(err.message || 'Failed to claim open shift');
+      showFeedback(rotaId, 'error', err.message || 'Failed to claim open shift.');
     } finally {
       setClaimingId(null);
     }
@@ -94,6 +100,21 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
               >
                 {claimingId === rota._id ? 'Claiming...' : 'Claim Open Shift'}
               </button>
+
+              {feedbackMsg?.id === rota._id && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  background: feedbackMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: feedbackMsg.type === 'success' ? '#16a34a' : '#dc2626',
+                  border: `1px solid ${feedbackMsg.type === 'success' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                }}>
+                  {feedbackMsg.text}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -153,6 +174,21 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
               >
                 {claimingId === swap._id ? 'Claiming...' : 'Claim Shift'}
               </button>
+
+              {feedbackMsg?.id === swap._id && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  background: feedbackMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  color: feedbackMsg.type === 'success' ? '#16a34a' : '#dc2626',
+                  border: `1px solid ${feedbackMsg.type === 'success' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                }}>
+                  {feedbackMsg.text}
+                </div>
+              )}
             </div>
           ))}
         </div>

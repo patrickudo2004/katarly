@@ -297,6 +297,21 @@ export const getAvailableSwaps = query({
 
         if (!service || !requester) return null;
 
+        // Temporal Lockout: Must not start in less than 2 hours
+        const cutoff = Date.now() + 2 * 60 * 60 * 1000;
+        if (service.startTime < cutoff) return null;
+
+        // Global admin bypass
+        const isGlobalAdmin = ["SuperAdmin", "DeaconHead", "PastoralOversight"].includes(user.role || "");
+        if (isGlobalAdmin) {
+          return {
+            ...swap,
+            rota,
+            requester,
+            service,
+          };
+        }
+
         // Scoping Logic:
         // 1. If global / cross-department is allowed, show it
         if (swap.allowCrossDept === true) {
@@ -308,18 +323,18 @@ export const getAvailableSwaps = query({
           };
         }
 
-        // 2. Otherwise, check if user is borrowed into requester's department for this service time
+        // 2. Otherwise, check if user is borrowed into the rota's department for this service time
         const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, service.startTime);
-        const isBorrowedInDept = borrowedDeptIds.includes(requester.departmentId);
+        const isBorrowedInDept = borrowedDeptIds.includes(rota!.departmentId);
 
         // 3. Must be same subunit (or same department if unassigned to subunit) unless borrowed
         if (!isBorrowedInDept) {
-          if (requester.subunitId && requester.subunitId !== user.subunitId) {
+          if (rota!.subunitId && rota!.subunitId !== user.subunitId) {
             // Check if matches additionalSubunits
-            const isAdditional = (user.additionalSubunits || []).includes(requester.subunitId.toString());
+            const isAdditional = (user.additionalSubunits || []).includes(rota!.subunitId.toString());
             if (!isAdditional) return null;
           }
-          if (!requester.subunitId && requester.departmentId !== user.departmentId) {
+          if (!rota!.subunitId && rota!.departmentId !== user.departmentId) {
             return null;
           }
         }
@@ -337,18 +352,21 @@ export const getAvailableSwaps = query({
   },
 });
 
-// Query for user's swap history
+// Query for user's own swap history (scoped to authenticated user)
 export const getUserSwaps = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+
     const requested = await ctx.db
       .query("swapRequests")
-      .filter((q) => q.eq(q.field("requesterId"), args.userId))
+      .filter((q) => q.eq(q.field("requesterId"), userId))
       .collect();
 
     const claimed = await ctx.db
       .query("swapRequests")
-      .filter((q) => q.eq(q.field("claimantId"), args.userId))
+      .filter((q) => q.eq(q.field("claimantId"), userId))
       .collect();
 
     return [...requested, ...claimed].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -371,6 +389,41 @@ export const claimOpenShift = mutation({
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
 
+    const service = await ctx.db.get(rota.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    // Church isolation: user must belong to the same church
+    if (service.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church access denied.");
+    }
+
+    // Temporal lockout: cannot claim < 2 hours before service
+    if (service.startTime - Date.now() < 2 * 60 * 60 * 1000) {
+      throw new Error("This shift is locked. Service starts in less than 2 hours.");
+    }
+
+    // Scoping enforcement — mirrors getOpenShifts query logic
+    const isGlobalAdmin = ["SuperAdmin", "DeaconHead", "PastoralOversight"].includes(user.role || "");
+    if (!isGlobalAdmin && rota.allowCrossDept !== true) {
+      // Check primary department
+      const isSameDept = rota.departmentId === user.departmentId;
+      const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, userId, service.startTime);
+      const isBorrowed = borrowedDeptIds.includes(rota.departmentId);
+
+      if (!isSameDept && !isBorrowed) {
+        throw new Error("Unauthorized: This shift is restricted to a different department.");
+      }
+
+      // Subunit check (only if not borrowed into dept and rota has a subunit scope)
+      if (rota.subunitId && !isBorrowed) {
+        const isMatchingSubunit = rota.subunitId === user.subunitId;
+        const isAdditional = (user.additionalSubunits || []).includes(rota.subunitId.toString());
+        if (!isMatchingSubunit && !isAdditional) {
+          throw new Error("Unauthorized: This shift is restricted to a specific subunit.");
+        }
+      }
+    }
+
     // 1. Conflict Check: Double Booking
     const existingEntry = await ctx.db
       .query("rotas")
@@ -382,10 +435,7 @@ export const claimOpenShift = mutation({
       throw new Error("You are already scheduled for a role during this service.");
     }
 
-    // 2. Conflict Check: Time Off
-    const service = await ctx.db.get(rota.serviceId);
-    if (!service) throw new Error("Service not found");
-
+    // 2. Conflict Check: Approved Time Off
     const timeOffRequests = await ctx.db
       .query("timeOffRequests")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -400,14 +450,12 @@ export const claimOpenShift = mutation({
       throw new Error("You cannot claim a shift during your approved time off.");
     }
 
-    // Update rota entry to assign to this user
+    // Assign the shift
     await ctx.db.patch(args.rotaId, {
       userId: userId,
-      status: "Confirmed", // Self-claimed is auto-confirmed
+      status: "Confirmed",
     });
 
-    // Notify Department Head (we'll notify all admins/leads for simplicity, or just a generic notification logic)
-    // Here we'll skip complex head routing and just send a success to the volunteer for now.
     await ctx.db.insert("notifications", {
       userId: userId,
       title: "Open Shift Claimed! 🤝",

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import { auth } from "./auth";
 
 export const createRotaEntry = mutation({
@@ -25,6 +26,10 @@ export const createRotaEntry = mutation({
         throw new Error("Unauthorized: You can only assign shifts within your own department.");
       }
     } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
+      // Must match BOTH their department AND their subunit
+      if (args.departmentId !== user.departmentId) {
+        throw new Error("Unauthorized: You can only assign shifts within your own department.");
+      }
       if (args.subunitId !== user.subunitId) {
         throw new Error("Unauthorized: You can only assign shifts within your own subunit.");
       }
@@ -278,8 +283,18 @@ export const getOpenShifts = query({
         const service = await ctx.db.get(rota.serviceId);
         if (!service || service.churchId !== user.churchId) return null;
 
+        // Temporal Lockout: Must not start in less than 2 hours
+        const cutoff = Date.now() + 2 * 60 * 60 * 1000;
+        if (service.startTime < cutoff) return null;
+
         const department = await ctx.db.get(rota.departmentId);
         const subunit = rota.subunitId ? await ctx.db.get(rota.subunitId) : null;
+
+        // Global admin bypass
+        const isGlobalAdmin = ["SuperAdmin", "DeaconHead", "PastoralOversight"].includes(user.role || "");
+        if (isGlobalAdmin) {
+          return { ...rota, service, department, subunit };
+        }
 
         // Scoping Logic:
         // 1. If global / cross-department is allowed, everyone in the church can see it
@@ -325,6 +340,15 @@ export const assignUserToShift = mutation({
 
     const rota = await ctx.db.get(args.rotaId);
     if (!rota) throw new Error("Rota entry not found");
+
+    const service = await ctx.db.get(rota.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    // Lockout Check (< 2 hours)
+    const now = Date.now();
+    if (service.startTime - now < 2 * 60 * 60 * 1000) {
+      throw new Error("Service starts in less than 2 hours. Roster changes are locked. Please coordinate directly.");
+    }
     
     // Auth: Scoped permissions
     if (admin.role === "SuperAdmin") {
@@ -344,7 +368,7 @@ export const assignUserToShift = mutation({
     // 1. Conflict Check: Double Booking (Is user already scheduled for THIS specific service?)
     const existingEntry = await ctx.db
       .query("rotas")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
       .filter((q) => q.eq(q.field("serviceId"), rota.serviceId))
       .first();
 
@@ -353,12 +377,9 @@ export const assignUserToShift = mutation({
     }
 
     // 2. Conflict Check: Time Off
-    const service = await ctx.db.get(rota.serviceId);
-    if (!service) throw new Error("Service not found");
-
     const timeOffRequests = await ctx.db
       .query("timeOffRequests")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
       .filter((q) => q.eq(q.field("status"), "Approved"))
       .collect();
 
@@ -374,6 +395,36 @@ export const assignUserToShift = mutation({
       userId: args.userId,
       status: "Pending", // Reset status to pending when reassigned
     });
+
+    // Send Email Notification
+    try {
+      const user = await ctx.db.get(args.userId);
+      if (user && user.email && user.emailNotificationsEnabled !== false) {
+        const pref = user.emailPreferences?.shiftAssignments !== false;
+        if (pref) {
+          const isPriority = service.startTime - now < 24 * 60 * 60 * 1000;
+          const subject = isPriority 
+            ? `[URGENT] Shift Assignment: Rota updated for service starting soon` 
+            : `[ServeSync] New Shift Assignment: ${service.name}`;
+          const title = isPriority ? `Urgent Shift Assignment! 🚨` : `New Shift Assignment! 📅`;
+          const body = isPriority 
+            ? `You have been assigned to cover the role of "${rota.role}" for the service "${service.name}" starting in less than 24 hours. Please verify your availability.`
+            : `You have been scheduled for the role of "${rota.role}" for the service "${service.name}".`;
+
+          await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+            toEmail: user.email,
+            toName: user.name || "Steward",
+            subject,
+            title,
+            body,
+            actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/rota`,
+            actionText: "View Schedule",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to dispatch assignment email:", err);
+    }
 
     return args.rotaId;
   },

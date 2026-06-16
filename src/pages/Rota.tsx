@@ -38,6 +38,7 @@ import {
 } from 'date-fns';
 import styles from './Rota.module.css';
 import { RoleBadge } from '../components/RoleBadge';
+import { UrgentConfirmModal } from '../components/UrgentConfirmModal';
 
 type ViewMode = 'week' | 'month' | 'year';
 
@@ -89,6 +90,26 @@ export const Rota: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [rosterSearch, setRosterSearch] = useState('');
+
+  // Confirm modal state — replaces all window.confirm/alert calls
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    severity: 'urgent' | 'warning' | 'danger';
+    title: string;
+    message: string;
+    detail?: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    severity: 'warning',
+    title: '',
+    message: '',
+    confirmLabel: 'Proceed',
+    onConfirm: () => {},
+  });
+
+  const closeConfirm = () => setConfirmModal(prev => ({ ...prev, open: false }));
 
   const [newShift, setNewShift] = useState({
     userId: '',
@@ -153,8 +174,7 @@ export const Rota: React.FC = () => {
     }
   };
 
-  const handleAssign = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doCreateShift = async () => {
     try {
       await createShift({
         serviceId: newShift.serviceId as any,
@@ -162,27 +182,92 @@ export const Rota: React.FC = () => {
         ...(newShift.userId ? { userId: newShift.userId as any } : {}),
         ...(newShift.subunitId ? { subunitId: newShift.subunitId as any } : {}),
         role: newShift.role,
-        allowCrossDept: newShift.userId ? undefined : newShift.allowCrossDept
+        allowCrossDept: newShift.userId ? undefined : newShift.allowCrossDept,
       });
       setIsAssigning(false);
       setNewShift({ userId: '', serviceId: '', departmentId: '', subunitId: '', role: '', allowCrossDept: false });
     } catch (err: any) {
-      alert(err.message || "Failed to assign shift");
+      setConfirmModal(prev => ({ ...prev, open: false }));
+      setConfirmModal({
+        open: true,
+        severity: 'danger',
+        title: 'Assignment Failed',
+        message: err.message || 'Failed to assign shift. Please check for conflicts and try again.',
+        confirmLabel: 'OK',
+        onConfirm: closeConfirm,
+      });
     }
   };
 
-  const handleDelete = async (id: any) => {
-    if (confirm("Remove this shift assignment?")) {
-      await removeShift({ rotaId: id });
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newShift.serviceId) return;
+    const selectedService = services?.find(s => s._id === newShift.serviceId);
+    const hoursUntilService = selectedService
+      ? (selectedService.startTime - Date.now()) / (1000 * 60 * 60)
+      : Infinity;
+
+    if (hoursUntilService > 0 && hoursUntilService < 24) {
+      setConfirmModal({
+        open: true,
+        severity: 'urgent',
+        title: 'Urgent Scheduling Alert',
+        message: `This service starts in approximately ${Math.round(hoursUntilService)} hour(s). Scheduling this close to service time is an urgent action.`,
+        detail: 'The volunteer will receive a high-priority email notification immediately.',
+        confirmLabel: 'Yes, Proceed',
+        onConfirm: async () => { closeConfirm(); await doCreateShift(); },
+      });
+    } else {
+      await doCreateShift();
     }
   };
 
-  const handleDrop = async (rotaId: string, userId: string) => {
-    setDragOverId(null);
+  const handleDelete = (id: any) => {
+    setConfirmModal({
+      open: true,
+      severity: 'danger',
+      title: 'Remove Shift Assignment',
+      message: 'Are you sure you want to remove this shift assignment? The slot will become unassigned.',
+      confirmLabel: 'Remove Shift',
+      onConfirm: async () => { closeConfirm(); await removeShift({ rotaId: id }); },
+    });
+  };
+
+  const doAssignDrop = async (rotaId: string, userId: string) => {
     try {
       await assignShift({ rotaId: rotaId as any, userId: userId as any });
     } catch (err: any) {
-      alert(err.message || "Conflict detected: Assignment rejected.");
+      setConfirmModal({
+        open: true,
+        severity: 'danger',
+        title: 'Assignment Rejected',
+        message: err.message || 'A conflict was detected. This volunteer could not be assigned.',
+        confirmLabel: 'OK',
+        onConfirm: closeConfirm,
+      });
+    }
+  };
+
+  const handleDrop = (rotaId: string, userId: string) => {
+    setDragOverId(null);
+    const targetEntry = rotaEntries?.find(r => r._id === rotaId);
+    const targetService = targetEntry ? services?.find(s => s._id === targetEntry.serviceId) : null;
+    const hoursUntilService = targetService
+      ? (targetService.startTime - Date.now()) / (1000 * 60 * 60)
+      : Infinity;
+
+    if (targetService && hoursUntilService > 0 && hoursUntilService < 24) {
+      setConfirmModal({
+        open: true,
+        severity: 'urgent',
+        title: 'Urgent Assignment',
+        message: `"${targetService.name}" starts in less than 24 hours. This is an urgent scheduling action.`,
+        detail: 'The volunteer will receive a high-priority email notification immediately.',
+        confirmLabel: 'Assign Anyway',
+        onConfirm: async () => { closeConfirm(); await doAssignDrop(rotaId, userId); },
+      });
+    } else {
+      doAssignDrop(rotaId, userId);
     }
   };
 
@@ -611,6 +696,19 @@ export const Rota: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Global Confirm Modal — replaces all window.confirm/alert */}
+      <UrgentConfirmModal
+        isOpen={confirmModal.open}
+        severity={confirmModal.severity}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        detail={confirmModal.detail}
+        confirmLabel={confirmModal.confirmLabel}
+        cancelLabel="Cancel"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 };
