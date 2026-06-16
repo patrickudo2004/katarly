@@ -24,8 +24,13 @@ export const VolunteerProfile: React.FC<VolunteerProfileProps> = ({ userId }) =>
         </div>
         <div className={styles.headerInfo}>
           <h2 className={styles.name}>{user.name}</h2>
-          <p className={styles.role}>{user.role} • {user.department}</p>
+          <p className={styles.role}>
+            {user.role}
+            {user.departmentName && user.departmentName !== "None" && ` • ${user.departmentName}`}
+            {user.subunitName && user.subunitName !== "None" && ` • ${user.subunitName}`}
+          </p>
         </div>
+
       </div>
 
       <div className={styles.statsGrid}>

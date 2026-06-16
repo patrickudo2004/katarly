@@ -38,12 +38,19 @@ export const getById = query({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
+    
+    const dept = user.departmentId ? await ctx.db.get(user.departmentId) : null;
+    const sub = user.subunitId ? await ctx.db.get(user.subunitId) : null;
+
     return {
       ...user,
+      departmentName: dept?.name || user.department || "None",
+      subunitName: sub?.name || user.subunit || "None",
       imageUrl: await resolveImageUrl(ctx, user.image),
     };
   },
 });
+
 
 export const updateProfile = mutation({
   args: {
