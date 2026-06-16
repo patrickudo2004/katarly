@@ -75,6 +75,11 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
                   <User size={16} />
                   <span>Unassigned</span>
                   <span className={styles.roleTag}>{rota.role}</span>
+                  {rota.allowCrossDept ? (
+                    <span className={styles.roleTag} style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', marginLeft: '8px' }}>🌐 Global Help</span>
+                  ) : (
+                    <span className={styles.roleTag} style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', marginLeft: '8px' }}>🏢 Internal Only</span>
+                  )}
                 </div>
               </div>
 
@@ -127,6 +132,11 @@ export const ShiftSwapMarketplace: React.FC<ShiftSwapMarketplaceProps> = ({ chur
                   <User size={16} />
                   <span>{swap.requester?.name}</span>
                   <span className={styles.roleTag}>{swap.rota?.role}</span>
+                  {swap.allowCrossDept ? (
+                    <span className={styles.roleTag} style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', marginLeft: '8px' }}>🌐 Global Help</span>
+                  ) : (
+                    <span className={styles.roleTag} style={{ background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', marginLeft: '8px' }}>🏢 Subunit Only</span>
+                  )}
                 </div>
               </div>
 

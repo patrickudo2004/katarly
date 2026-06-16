@@ -9,6 +9,7 @@ export const createRotaEntry = mutation({
     subunitId: v.optional(v.id("subunits")),
     userId: v.optional(v.id("users")), // Optional for open shifts
     role: v.string(),
+    allowCrossDept: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -69,6 +70,7 @@ export const createRotaEntry = mutation({
       userId: args.userId,
       role: args.role,
       status: "Pending",
+      allowCrossDept: args.allowCrossDept,
     });
   },
 });
@@ -230,37 +232,83 @@ export const getMyShifts = query({
   },
 });
 
+async function getUserBorrowedDepartmentIds(ctx: any, userId: any, serviceTime: number) {
+  const assignments = await ctx.db
+    .query("borrowAssignments")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  const activeAssignments = assignments.filter((a: any) => 
+    a.status === "active" &&
+    serviceTime >= a.startDate &&
+    serviceTime <= a.endDate
+  );
+
+  const deptIds: any[] = [];
+  for (const assignment of activeAssignments) {
+    const request = await ctx.db.get(assignment.requestId);
+    if (request) {
+      const dept = await ctx.db
+        .query("departments")
+        .filter((q: any) => q.eq(q.field("headId"), request.requestingDeptHeadId))
+        .first();
+      if (dept) {
+        deptIds.push(dept._id);
+      }
+    }
+  }
+  return deptIds;
+}
+
 export const getOpenShifts = query({
   handler: async (ctx) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
     
     // We fetch rotas and filter manually because we cannot index on undefined/missing fields easily in convex
-    // In a production app, we would add an explicit `isOpen: boolean` field and index that.
     const allRotas = await ctx.db.query("rotas").collect();
     const openRotas = allRotas.filter(r => !r.userId);
 
     const user = await ctx.db.get(userId);
     if (!user) return [];
 
-    // Join with services, subunits, and filter by church/department
+    // Join with services, subunits, and filter by church/department/borrow status
     const enriched = await Promise.all(
       openRotas.map(async (rota) => {
         const service = await ctx.db.get(rota.serviceId);
+        if (!service || service.churchId !== user.churchId) return null;
+
         const department = await ctx.db.get(rota.departmentId);
         const subunit = rota.subunitId ? await ctx.db.get(rota.subunitId) : null;
-        
-        // Only show if the service belongs to the user's church
-        if (service?.churchId !== user.churchId) return null;
-        
+
+        // Scoping Logic:
+        // 1. If global / cross-department is allowed, everyone in the church can see it
+        if (rota.allowCrossDept === true) {
+          return { ...rota, service, department, subunit };
+        }
+
+        // 2. Otherwise, check if user is in the department (primary or borrowed)
+        const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, service.startTime);
+        const isUserInDept = rota.departmentId === user.departmentId || borrowedDeptIds.includes(rota.departmentId);
+
+        if (!isUserInDept) return null;
+
+        // 3. If rota has subunit, user must match primary subunit (unless they are borrowed into the department)
+        const isBorrowedInDept = borrowedDeptIds.includes(rota.departmentId);
+        if (rota.subunitId && !isBorrowedInDept && rota.subunitId !== user.subunitId) {
+          // Check if it matches additionalSubunits
+          const isAdditional = (user.additionalSubunits || []).includes(rota.subunitId.toString());
+          if (!isAdditional) return null;
+        }
+
         return { ...rota, service, department, subunit };
       })
     );
 
     // Filter out nulls and sort by date
     return enriched
-      .filter(r => r !== null)
-      .sort((a, b) => (a?.service?.startTime || 0) - (b?.service?.startTime || 0));
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => (a.service?.startTime || 0) - (b.service?.startTime || 0));
   },
 });
 

@@ -95,7 +95,8 @@ export const Rota: React.FC = () => {
     serviceId: '',
     departmentId: '',
     subunitId: '',
-    role: ''
+    role: '',
+    allowCrossDept: false
   });
 
   const [newService, setNewService] = useState({
@@ -160,10 +161,11 @@ export const Rota: React.FC = () => {
         departmentId: newShift.departmentId as any,
         ...(newShift.userId ? { userId: newShift.userId as any } : {}),
         ...(newShift.subunitId ? { subunitId: newShift.subunitId as any } : {}),
-        role: newShift.role
+        role: newShift.role,
+        allowCrossDept: newShift.userId ? undefined : newShift.allowCrossDept
       });
       setIsAssigning(false);
-      setNewShift({ userId: '', serviceId: '', departmentId: '', subunitId: '', role: '' });
+      setNewShift({ userId: '', serviceId: '', departmentId: '', subunitId: '', role: '', allowCrossDept: false });
     } catch (err: any) {
       alert(err.message || "Failed to assign shift");
     }
@@ -555,7 +557,23 @@ export const Rota: React.FC = () => {
                 <label>Role</label>
                 <input placeholder="e.g. Lead Vocals" value={newShift.role} onChange={e => setNewShift({...newShift, role: e.target.value})} required />
               </div>
-              <button type="submit" className={styles.submitBtn}>Assign Positions</button>
+              {!newShift.userId && (
+                <div className={styles.field} style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="allowCrossDept" 
+                    checked={newShift.allowCrossDept} 
+                    onChange={e => setNewShift({...newShift, allowCrossDept: e.target.checked})}
+                    style={{ width: 'auto', margin: 0 }}
+                  />
+                  <label htmlFor="allowCrossDept" style={{ cursor: 'pointer', fontSize: '0.875rem' }}>
+                    Allow volunteers from other departments to claim this shift
+                  </label>
+                </div>
+              )}
+              <button type="submit" className={styles.submitBtn}>
+                {newShift.userId ? 'Assign Positions' : 'Create Open Shift'}
+              </button>
             </form>
           </div>
         </div>

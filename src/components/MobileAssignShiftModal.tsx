@@ -26,6 +26,7 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
   const [selectedSubunitId, setSelectedSubunitId] = useState<string>('');
   const [roleName, setRoleName] = useState<string>('');
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string>('');
+  const [allowCrossDept, setAllowCrossDept] = useState<boolean>(false);
   
   const [volunteerSearch, setVolunteerSearch] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -127,6 +128,7 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
     setSelectedServiceId('');
     setRoleName('');
     setSelectedVolunteerId('');
+    setAllowCrossDept(false);
     setVolunteerSearch('');
     setErrorMsg('');
     setSuccessMsg('');
@@ -134,7 +136,7 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
   };
 
   const handleSubmit = async () => {
-    if (!selectedServiceId || !selectedDeptId || !selectedVolunteerId || !roleName.trim()) {
+    if (!selectedServiceId || !selectedDeptId || !roleName.trim()) {
       setErrorMsg('Please fill in all required fields.');
       return;
     }
@@ -147,8 +149,9 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
         serviceId: selectedServiceId as any,
         departmentId: selectedDeptId as any,
         subunitId: selectedSubunitId ? (selectedSubunitId as any) : undefined,
-        userId: selectedVolunteerId as any,
+        userId: selectedVolunteerId ? (selectedVolunteerId as any) : undefined,
         role: roleName.trim(),
+        allowCrossDept: selectedVolunteerId ? undefined : allowCrossDept,
       });
       
       setSuccessMsg('Shift successfully assigned!');
@@ -365,6 +368,27 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
                   </div>
 
                   <div className={styles.volunteerList}>
+                    {/* Open Shift Option */}
+                    <div 
+                      onClick={() => setSelectedVolunteerId('')}
+                      className={`${styles.volunteerCard} ${selectedVolunteerId === '' ? styles.selectedCard : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={styles.avatarMini} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                          🌐
+                        </div>
+                        <div className={styles.volunteerInfo}>
+                          <span className={styles.volunteerName}>Leave Unassigned (Open Shift)</span>
+                          <span className={styles.volunteerRole}>Publish to Marketplace</span>
+                        </div>
+                      </div>
+                      {selectedVolunteerId === '' && (
+                        <div className={styles.checkIcon}>
+                          <Check size={18} />
+                        </div>
+                      )}
+                    </div>
+
                     {allUsers === undefined ? (
                       <div className={styles.loaderContainer}>
                         <Loader2 className="animate-spin text-purple-600" size={24} />
@@ -415,9 +439,26 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
                     )}
                   </div>
 
+                  {selectedVolunteerId === '' && (
+                    <div className={styles.toggleContainer}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginRight: '12px' }}>
+                        <strong style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Allow Cross-Department Claims</strong>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Allow volunteers from any department to claim this shift.</span>
+                      </div>
+                      <label className={styles.switch}>
+                        <input 
+                          type="checkbox" 
+                          checked={allowCrossDept} 
+                          onChange={e => setAllowCrossDept(e.target.checked)}
+                        />
+                        <span className={styles.slider}></span>
+                      </label>
+                    </div>
+                  )}
+
                   <button 
                     className={styles.submitBtn} 
-                    disabled={!selectedVolunteerId || isSubmitting}
+                    disabled={isSubmitting}
                     onClick={handleSubmit}
                   >
                     {isSubmitting ? (
@@ -425,8 +466,10 @@ export const MobileAssignShiftModal: React.FC<MobileAssignShiftModalProps> = ({ 
                         <Loader2 className="animate-spin" size={18} />
                         Scheduling...
                       </>
-                    ) : (
+                    ) : selectedVolunteerId ? (
                       'Assign Shift'
+                    ) : (
+                      'Create Open Shift'
                     )}
                   </button>
                 </div>

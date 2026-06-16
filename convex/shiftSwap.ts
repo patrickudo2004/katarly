@@ -8,6 +8,7 @@ export const offerSwap = mutation({
   args: {
     rotaId: v.id("rotas"),
     note: v.optional(v.string()),
+    allowCrossDept: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -37,6 +38,7 @@ export const offerSwap = mutation({
       churchId: user.churchId!,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      allowCrossDept: args.allowCrossDept,
     });
   },
 });
@@ -245,10 +247,43 @@ export const declineSwap = mutation({
   },
 });
 
+async function getUserBorrowedDepartmentIds(ctx: any, userId: any, serviceTime: number) {
+  const assignments = await ctx.db
+    .query("borrowAssignments")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  const activeAssignments = assignments.filter((a: any) => 
+    a.status === "active" &&
+    serviceTime >= a.startDate &&
+    serviceTime <= a.endDate
+  );
+
+  const deptIds: any[] = [];
+  for (const assignment of activeAssignments) {
+    const request = await ctx.db.get(assignment.requestId);
+    if (request) {
+      const dept = await ctx.db
+        .query("departments")
+        .filter((q: any) => q.eq(q.field("headId"), request.requestingDeptHeadId))
+        .first();
+      if (dept) {
+        deptIds.push(dept._id);
+      }
+    }
+  }
+  return deptIds;
+}
+
 // Query for the marketplace
 export const getAvailableSwaps = query({
   args: { churchId: v.id("churches"), subunitId: v.optional(v.id("subunits")) },
   handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user) return [];
+
     const swaps = await ctx.db
       .query("swapRequests")
       .withIndex("by_church_status", (q) => q.eq("churchId", args.churchId).eq("status", "available"))
@@ -259,8 +294,35 @@ export const getAvailableSwaps = query({
         const rota = await ctx.db.get(swap.rotaId);
         const requester = await ctx.db.get(swap.requesterId);
         const service = rota ? await ctx.db.get(rota.serviceId) : null;
-        
-        if (args.subunitId && requester?.subunitId !== args.subunitId) return null;
+
+        if (!service || !requester) return null;
+
+        // Scoping Logic:
+        // 1. If global / cross-department is allowed, show it
+        if (swap.allowCrossDept === true) {
+          return {
+            ...swap,
+            rota,
+            requester,
+            service,
+          };
+        }
+
+        // 2. Otherwise, check if user is borrowed into requester's department for this service time
+        const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, service.startTime);
+        const isBorrowedInDept = borrowedDeptIds.includes(requester.departmentId);
+
+        // 3. Must be same subunit (or same department if unassigned to subunit) unless borrowed
+        if (!isBorrowedInDept) {
+          if (requester.subunitId && requester.subunitId !== user.subunitId) {
+            // Check if matches additionalSubunits
+            const isAdditional = (user.additionalSubunits || []).includes(requester.subunitId.toString());
+            if (!isAdditional) return null;
+          }
+          if (!requester.subunitId && requester.departmentId !== user.departmentId) {
+            return null;
+          }
+        }
 
         return {
           ...swap,
@@ -271,7 +333,7 @@ export const getAvailableSwaps = query({
       })
     );
 
-    return enrichedSwaps.filter(s => s !== null);
+    return enrichedSwaps.filter((s): s is NonNullable<typeof s> => s !== null);
   },
 });
 

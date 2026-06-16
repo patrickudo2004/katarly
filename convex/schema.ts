@@ -148,6 +148,7 @@ export default defineSchema({
     role: v.string(),
     status: v.union(v.literal("Pending"), v.literal("Confirmed"), v.literal("Declined")),
     roleFormat: v.optional(v.union(v.literal("Physical"), v.literal("Online"))),
+    allowCrossDept: v.optional(v.boolean()),
   }).index("by_service", ["serviceId"])
     .index("by_user", ["userId"])
     .index("by_service_user", ["serviceId", "userId"]),
@@ -219,6 +220,7 @@ export default defineSchema({
     churchId: v.id("churches"),
     createdAt: v.number(),
     updatedAt: v.number(),
+    allowCrossDept: v.optional(v.boolean()),
   }).index("by_rota", ["rotaId"])
     .index("by_church_status", ["churchId", "status"]),
 
