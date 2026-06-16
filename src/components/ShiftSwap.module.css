@@ -84,6 +84,8 @@
 /* Marketplace */
 .marketplaceContainer {
   padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .marketHeader {
@@ -114,9 +116,10 @@
 }
 
 .swapList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .swapCard {
@@ -125,7 +128,17 @@
   border-radius: 16px;
   border: 1px solid var(--border-color);
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+
+.swapCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
 
 .swapMain {
   display: flex;
@@ -192,7 +205,9 @@
   border: none;
   cursor: pointer;
   transition: background 0.2s;
+  margin-top: auto;
 }
+
 
 .claimButton:hover {
   background: #059669;
