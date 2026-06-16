@@ -55,11 +55,22 @@ export const createSubunit = mutation({
     const user = await ctx.db.get(userId);
     if (user?.role !== "SuperAdmin") throw new Error("Unauthorized");
 
-    return await ctx.db.insert("subunits", {
+    const subId = await ctx.db.insert("subunits", {
       churchId: user.churchId!,
       name: args.name,
       departmentId: args.departmentId,
     });
+
+    await ctx.db.insert("channels", {
+      churchId: user.churchId!,
+      type: "subunit",
+      departmentId: args.departmentId,
+      subunitId: subId,
+      name: `${args.name} Chat`,
+      isDisabled: false,
+    });
+
+    return subId;
   },
 });
 

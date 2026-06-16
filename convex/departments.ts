@@ -17,11 +17,21 @@ export const createDepartment = mutation({
   },
   handler: async (ctx, args) => {
     const user = await checkAdmin(ctx);
-    return await ctx.db.insert("departments", {
+    const deptId = await ctx.db.insert("departments", {
       churchId: user.churchId!,
       name: args.name,
       requiresSafeguarding: args.requiresSafeguarding ?? false,
     });
+
+    await ctx.db.insert("channels", {
+      churchId: user.churchId!,
+      type: "department",
+      departmentId: deptId,
+      name: `${args.name} Chat`,
+      isDisabled: false,
+    });
+
+    return deptId;
   },
 });
 

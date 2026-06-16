@@ -10,6 +10,74 @@ async function getAuthenticatedUser(ctx: any) {
   return user;
 }
 
+function hasChannelAccess(user: any, channel: any): boolean {
+  if (channel.churchId !== user.churchId) return false;
+
+  // 1. Announcements: Visible to all church members
+  if (channel.type === "announcement") return true;
+
+  // 2. Deacon Board: Visible ONLY to DeaconHead and SuperAdmin
+  if (channel.type === "deaconBoard") {
+    return user.role === "DeaconHead" || user.role === "SuperAdmin";
+  }
+
+  // 3. SuperAdmin and DeaconHead: Global access to all other channels (departments, subunits)
+  if (user.role === "SuperAdmin" || user.role === "DeaconHead") {
+    return true;
+  }
+
+  // 4. PastoralOversight: Access to all department and subunit channels (no deacon board)
+  if (user.role === "PastoralOversight") {
+    return channel.type === "department" || channel.type === "subunit";
+  }
+
+  // 5. Department leadership: Access to their own department and all subunit channels under their department
+  const isDeptLeader = 
+    user.role === "DepartmentHead" || 
+    user.role === "DepartmentAssistant" || 
+    user.role === "DepartmentSecretary";
+
+  if (isDeptLeader) {
+    if (channel.type === "department") {
+      return channel.departmentId === user.departmentId;
+    }
+    if (channel.type === "subunit") {
+      return channel.departmentId === user.departmentId;
+    }
+  }
+
+  // 6. Subunit leadership: Access to department channel, and specific subunit channels they lead
+  const isSubunitLeader = 
+    user.role === "SubunitLead" || 
+    user.role === "SubunitAssistant";
+
+  if (isSubunitLeader) {
+    if (channel.type === "department") {
+      return channel.departmentId === user.departmentId;
+    }
+    if (channel.type === "subunit") {
+      return (
+        channel.subunitId === user.subunitId ||
+        user.additionalSubunits?.includes(channel.subunitId)
+      );
+    }
+  }
+
+  // 7. Volunteers & others (Volunteer, Probation, OnNotice, etc.):
+  // Access to their department channel, and their subunit channel (plus additional subunits)
+  if (channel.type === "department") {
+    return channel.departmentId === user.departmentId;
+  }
+  if (channel.type === "subunit") {
+    return (
+      channel.subunitId === user.subunitId ||
+      user.additionalSubunits?.includes(channel.subunitId)
+    );
+  }
+
+  return false;
+}
+
 export const getChannels = query({
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
@@ -20,30 +88,8 @@ export const getChannels = query({
       .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
       .collect();
 
-    // Filter based on permissions
-    return channels.filter((channel) => {
-      // Deacon Board channel: accessible to DeaconHead and SuperAdmin
-      if (channel.type === "deaconBoard") {
-        return user.role === "DeaconHead" || user.role === "SuperAdmin";
-      }
-      if (channel.type === "announcement") return true;
-      if (user.role === "SuperAdmin") return true;
-      
-      if (channel.type === "department") {
-        return channel.departmentId === user.departmentId;
-      }
-      
-      if (channel.type === "subunit") {
-        return (
-          (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
-           user.additionalSubunits?.includes(channel.subunitId as any) ||
-           user.role === "SuperAdmin" ||
-           user.role === "PastoralOversight"
-        );
-      }
-      
-      return false;
-    });
+    // Filter based on permissions helper
+    return channels.filter((channel) => hasChannelAccess(user, channel));
   },
 });
 
@@ -54,23 +100,9 @@ export const getChannelMessages = query({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    // Permission check (same as getChannels)
-    let hasAccess = false;
-    if (channel.type === "deaconBoard") {
-      hasAccess = user.role === "DeaconHead" || user.role === "SuperAdmin";
-    } else {
-      hasAccess = 
-        channel.type === "announcement" || 
-        user.role === "SuperAdmin" ||
-        user.role === "PastoralOversight" ||
-        (channel.type === "department" && channel.departmentId === user.departmentId) ||
-        (channel.type === "subunit" && (
-          (channel.departmentId === user.departmentId && channel.subunitId === user.subunitId) || 
-          user.additionalSubunits?.includes(channel.subunitId as any)
-        ));
+    if (!hasChannelAccess(user, channel)) {
+      throw new Error("Unauthorized access to channel");
     }
-
-    if (!hasAccess) throw new Error("Unauthorized access to channel");
 
     const messages = await ctx.db
       .query("messages")
@@ -117,32 +149,12 @@ export const sendMessage = mutation({
     if (!channel) throw new Error("Channel not found");
     if (channel.isDisabled) throw new Error("Channel is disabled");
 
-    // Permission check
+    if (!hasChannelAccess(user, channel)) {
+      throw new Error("Unauthorized to post in this channel");
+    }
+
     if (channel.type === "announcement" && user.role !== "SuperAdmin") {
       throw new Error("Only SuperAdmins can post in announcements");
-    }
-
-    const userRole = user.role || "Volunteer";
-    const userDeptId = user.departmentId;
-    const userSubunitId = user.subunitId;
-    const additionalSubunits = user.additionalSubunits || [];
-
-    let hasAccess = false;
-    if (channel.type === "deaconBoard") {
-      hasAccess = userRole === "DeaconHead" || userRole === "SuperAdmin";
-    } else {
-      hasAccess = 
-        userRole === "SuperAdmin" ||
-        userRole === "PastoralOversight" ||
-        (channel.type === "department" && channel.departmentId === userDeptId) ||
-        (channel.type === "subunit" && (
-          (channel.departmentId === userDeptId && channel.subunitId === userSubunitId) || 
-          additionalSubunits.includes(channel.subunitId as any)
-        ));
-    }
-
-    if (!hasAccess && channel.type !== "announcement") {
-      throw new Error("Unauthorized to post in this channel");
     }
 
     const messageId = await ctx.db.insert("messages", {
@@ -243,6 +255,10 @@ export const ensureChannels = mutation({
   args: { churchId: v.id("churches") },
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
+    if (user.churchId !== args.churchId && user.role !== "SuperAdmin") {
+      throw new Error("Unauthorized to access this church's channels");
+    }
+
     const existing = await ctx.db
       .query("channels")
       .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
@@ -258,29 +274,51 @@ export const ensureChannels = mutation({
       });
     }
 
-    // 2. User's Department
-    if (user.departmentId && !existing.find(c => c.type === "department" && c.departmentId === user.departmentId)) {
-      const dept = await ctx.db.get(user.departmentId as import("./_generated/dataModel").Id<"departments">);
+    // 2. Deacon Board
+    if (!existing.find(c => c.type === "deaconBoard")) {
       await ctx.db.insert("channels", {
         churchId: args.churchId,
-        type: "department",
-        departmentId: user.departmentId,
-        name: `${dept?.name || "Department"} Chat`,
+        type: "deaconBoard",
+        name: "Deacon Board",
         isDisabled: false,
       });
     }
 
-    // 3. User's Subunit
-    if (user.subunitId && !existing.find(c => c.type === "subunit" && c.subunitId === user.subunitId)) {
-      const sub = await ctx.db.get(user.subunitId as import("./_generated/dataModel").Id<"subunits">);
-      await ctx.db.insert("channels", {
-        churchId: args.churchId,
-        type: "subunit",
-        departmentId: user.departmentId,
-        subunitId: user.subunitId,
-        name: `${sub?.name || "Subunit"} Chat`,
-        isDisabled: false,
-      });
+    // 3. Departments
+    const departments = await ctx.db
+      .query("departments")
+      .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
+      .collect();
+
+    for (const dept of departments) {
+      if (!existing.find(c => c.type === "department" && c.departmentId === dept._id)) {
+        await ctx.db.insert("channels", {
+          churchId: args.churchId,
+          type: "department",
+          departmentId: dept._id,
+          name: `${dept.name} Chat`,
+          isDisabled: false,
+        });
+      }
+    }
+
+    // 4. Subunits
+    const subunits = await ctx.db
+      .query("subunits")
+      .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
+      .collect();
+
+    for (const sub of subunits) {
+      if (!existing.find(c => c.type === "subunit" && c.subunitId === sub._id)) {
+        await ctx.db.insert("channels", {
+          churchId: args.churchId,
+          type: "subunit",
+          departmentId: sub.departmentId,
+          subunitId: sub._id,
+          name: `${sub.name} Chat`,
+          isDisabled: false,
+        });
+      }
     }
   },
 });

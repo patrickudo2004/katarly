@@ -6,13 +6,11 @@ import {
   Hash, 
   Megaphone, 
   Users, 
-  User as UserIcon,
-  Plus,
   Paperclip,
   Loader2,
-  MoreVertical,
   Pin,
-  Trash2
+  Trash2,
+  ArrowLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 import styles from './ChatPage.module.css';
@@ -20,6 +18,7 @@ import styles from './ChatPage.module.css';
 export const ChatPage: React.FC = () => {
   const channels = useQuery(api.chat.getChannels);
   const [selectedChannelId, setSelectedChannelId] = useState<any>(null);
+  const [isMobileRoomActive, setIsMobileRoomActive] = useState(false);
   const messages = useQuery(api.chat.getChannelMessages, selectedChannelId ? { channelId: selectedChannelId } : "skip");
   const sendMessage = useMutation(api.chat.sendMessage);
   const deleteMessage = useMutation(api.chat.deleteMessage);
@@ -61,10 +60,7 @@ export const ChatPage: React.FC = () => {
 
     setIsUploading(true);
     try {
-      // 1. Get upload URL
       const postUrl = await generateUploadUrl();
-
-      // 2. Upload to storage
       const result = await fetch(postUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
@@ -72,7 +68,6 @@ export const ChatPage: React.FC = () => {
       });
       const { storageId } = await result.json();
 
-      // 3. Save metadata
       const fileId = await saveFileMetadata({
         storageId,
         mimeType: file.type,
@@ -80,7 +75,6 @@ export const ChatPage: React.FC = () => {
         size: file.size,
       });
 
-      // 4. Send message with file
       await sendMessage({
         channelId: selectedChannelId,
         text: `Shared a file: ${file.name}`,
@@ -100,6 +94,11 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const handleChannelSelect = (channelId: any) => {
+    setSelectedChannelId(channelId);
+    setIsMobileRoomActive(true);
+  };
+
   if (!channels) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -110,47 +109,103 @@ export const ChatPage: React.FC = () => {
 
   const activeChannel = channels.find(c => c._id === selectedChannelId);
 
+  // Group channels
+  const announcements = channels.filter(c => c.type === 'announcement');
+  const leadership = channels.filter(c => c.type === 'deaconBoard');
+  const departments = channels.filter(c => c.type === 'department');
+  const subunits = channels.filter(c => c.type === 'subunit');
+
+  const renderChannelList = () => {
+    return (
+      <div className={styles.channelList}>
+        {announcements.length > 0 && (
+          <div className={styles.categorySection}>
+            <div className={styles.categoryHeader}>📢 Announcements</div>
+            {announcements.map(channel => (
+              <button 
+                key={channel._id} 
+                className={`${styles.channelBtn} ${selectedChannelId === channel._id ? styles.activeChannel : ''}`}
+                onClick={() => handleChannelSelect(channel._id)}
+              >
+                <Megaphone size={18} />
+                <span>{channel.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {leadership.length > 0 && (
+          <div className={styles.categorySection}>
+            <div className={styles.categoryHeader}>🛡️ Leadership</div>
+            {leadership.map(channel => (
+              <button 
+                key={channel._id} 
+                className={`${styles.channelBtn} ${selectedChannelId === channel._id ? styles.activeChannel : ''}`}
+                onClick={() => handleChannelSelect(channel._id)}
+              >
+                <Users size={18} />
+                <span>{channel.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {departments.length > 0 && (
+          <div className={styles.categorySection}>
+            <div className={styles.categoryHeader}>💼 Department Chats</div>
+            {departments.map(channel => (
+              <button 
+                key={channel._id} 
+                className={`${styles.channelBtn} ${selectedChannelId === channel._id ? styles.activeChannel : ''}`}
+                onClick={() => handleChannelSelect(channel._id)}
+              >
+                <Hash size={18} />
+                <span>{channel.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {subunits.length > 0 && (
+          <div className={styles.categorySection}>
+            <div className={styles.categoryHeader}>👥 Subunits / Teams</div>
+            {subunits.map(channel => (
+              <button 
+                key={channel._id} 
+                className={`${styles.channelBtn} ${selectedChannelId === channel._id ? styles.activeChannel : ''}`}
+                onClick={() => handleChannelSelect(channel._id)}
+              >
+                <Users size={18} />
+                <span>{channel.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className={styles.container}>
-      {/* Sidebar - Desktop Only usually, but let's make it a simple row for now or standard sidebar */}
+    <div className={`${styles.container} ${isMobileRoomActive ? styles.mobileShowChat : ''}`}>
+      {/* Sidebar - Rooms List */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h3>Messages</h3>
         </div>
-        <div className={styles.channelList}>
-          {channels.map(channel => (
-            <button 
-              key={channel._id} 
-              className={`${styles.channelBtn} ${selectedChannelId === channel._id ? styles.activeChannel : ''}`}
-              onClick={() => setSelectedChannelId(channel._id)}
-            >
-              {channel.type === 'announcement' ? <Megaphone size={18} /> : 
-               channel.type === 'department' ? <Hash size={18} /> : <Users size={18} />}
-              <span>{channel.name}</span>
-            </button>
-          ))}
-        </div>
+        {renderChannelList()}
       </aside>
-
-      {/* Mobile Channel Selector */}
-      <div className={styles.mobileNav}>
-        {channels.map(channel => (
-          <button 
-            key={channel._id} 
-            className={`${styles.mobileChannelBtn} ${selectedChannelId === channel._id ? styles.activeMobileChannel : ''}`}
-            onClick={() => setSelectedChannelId(channel._id)}
-          >
-            {channel.type === 'announcement' ? <Megaphone size={16} /> : 
-             channel.type === 'department' ? <Hash size={16} /> : <Users size={16} />}
-            <span>{channel.name.split(' ')[0]}</span>
-          </button>
-        ))}
-      </div>
 
       {/* Main Chat Area */}
       <main className={styles.chatArea}>
         <header className={styles.chatHeader}>
           <div className={styles.headerInfo}>
+            <button 
+              className={styles.backBtn}
+              onClick={() => setIsMobileRoomActive(false)}
+              aria-label="Back to channels"
+            >
+              <ArrowLeft size={20} />
+            </button>
             {activeChannel?.type === 'announcement' ? <Megaphone size={20} /> : 
              activeChannel?.type === 'department' ? <Hash size={20} /> : <Users size={20} />}
             <h4>{activeChannel?.name || 'Select a channel'}</h4>
@@ -159,44 +214,57 @@ export const ChatPage: React.FC = () => {
 
         <div className={styles.messageList}>
           {!messages ? (
-            <div className={styles.emptyState}><Loader2 className="animate-spin" /></div>
+            <div className={styles.emptyState}><Loader2 className="animate-spin text-purple-600" /></div>
           ) : messages.length === 0 ? (
             <div className={styles.emptyState}>No messages yet. Start the conversation!</div>
           ) : (
-            messages.map((msg: any) => (
-              <div key={msg._id} className={styles.messageItem}>
-                <div className={styles.avatar}>{msg.author.name[0]}</div>
-                <div className={styles.messageContent}>
-                  <div className={styles.messageHeader}>
-                    <span className={styles.authorName}>{msg.author.name}</span>
-                    <span className={styles.messageRole}>{msg.author.role}</span>
-                    <span className={styles.timestamp}>{format(msg._creationTime, 'p')}</span>
+            messages.map((msg: any) => {
+              const isMe = me?._id === msg.userId;
+              return (
+                <div key={msg._id} className={`${styles.messageItem} ${isMe ? styles.messageMe : styles.messageOther}`}>
+                  {!isMe && (
+                    <div className={styles.avatar} title={`${msg.author.name} (${msg.author.role})`}>
+                      {msg.author.name[0]}
+                    </div>
+                  )}
+                  <div className={styles.messageBubbleContainer}>
+                    {!isMe && (
+                      <div className={styles.messageHeader}>
+                        <span className={styles.authorName}>{msg.author.name}</span>
+                        <span className={styles.messageRole}>{msg.author.role}</span>
+                      </div>
+                    )}
+                    <div className={styles.messageBubble}>
+                      <div className={styles.text}>{msg.text}</div>
+                      {msg.file && (
+                        <div className={styles.fileAttachment}>
+                          {msg.file.mimeType.startsWith('image/') ? (
+                            <img src={msg.file.url} alt={msg.file.name} className={styles.attachedImage} />
+                          ) : (
+                            <a href={msg.file.url} target="_blank" rel="noreferrer" className={styles.fileLink}>
+                              <Paperclip size={14} /> {msg.file.name}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      <div className={styles.bubbleFooter}>
+                        <span className={styles.timestamp}>{format(msg._creationTime, 'p')}</span>
+                        {msg.isPinned && <span className={styles.pinnedBadge}><Pin size={10} /></span>}
+                      </div>
+                    </div>
                   </div>
-                  <div className={styles.text}>{msg.text}</div>
-                  {msg.isPinned && <div className={styles.pinnedBadge}><Pin size={10} /> Pinned</div>}
-                  
-                  {(me?._id === msg.userId || ['SuperAdmin', 'DepartmentHead', 'PastoralOversight'].includes(me?.role || '')) && (
+                  {(isMe || ['SuperAdmin', 'DepartmentHead', 'PastoralOversight'].includes(me?.role || '')) && (
                     <button 
                       className={styles.deleteMsgBtn} 
                       onClick={() => handleDeleteMessage(msg._id)}
+                      title="Delete message"
                     >
                       <Trash2 size={12} />
                     </button>
                   )}
                 </div>
-                {msg.file && (
-                  <div className={styles.fileAttachment}>
-                    {msg.file.mimeType.startsWith('image/') ? (
-                      <img src={msg.file.url} alt={msg.file.name} className={styles.attachedImage} />
-                    ) : (
-                      <a href={msg.file.url} target="_blank" rel="noreferrer" className={styles.fileLink}>
-                        <Paperclip size={14} /> {msg.file.name}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>
