@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 import { v } from "convex/values";
 import { auth } from "./auth";
 
@@ -81,14 +82,30 @@ export const claimSwap = mutation({
       updatedAt: Date.now(),
     });
 
+    const notifMessage = `${user.name} has claimed your shift swap request. Please approve or decline.`;
     // Notify requester
     await ctx.db.insert("notifications", {
       userId: swapRequest.requesterId,
       title: "Shift Swap Claimed! 🤝",
-      message: `${user.name} has claimed your shift swap request. Please approve or decline.`,
+      message: notifMessage,
       type: "swap_claimed",
       read: false,
     });
+
+    if (requester.email && requester.emailNotificationsEnabled !== false) {
+      const pref = requester.emailPreferences?.swapRequests !== false;
+      if (pref) {
+        await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+          toEmail: requester.email,
+          toName: requester.name || "Steward",
+          subject: `[ServeSync] Shift Swap Claimed: ${user.name}`,
+          title: "Shift Swap Claimed! 🤝",
+          body: notifMessage,
+          actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/marketplace`,
+          actionText: "Manage Swap",
+        });
+      }
+    }
   },
 });
 
@@ -146,23 +163,55 @@ async function autoUpdateRota(ctx: any, swapRequest: any) {
   const requester = await ctx.db.get(swapRequest.requesterId);
 
   if (claimant) {
+    const claimantMsg = `Your claim for the shift swap has been approved. You are now scheduled for this service.`;
     await ctx.db.insert("notifications", {
       userId: claimant._id,
       title: "Swap Approved! ✅",
-      message: `Your claim for the shift swap has been approved. You are now scheduled for this service.`,
+      message: claimantMsg,
       type: "swap_approved",
       read: false,
     });
+
+    if (claimant.email && claimant.emailNotificationsEnabled !== false) {
+      const pref = claimant.emailPreferences?.shiftAssignments !== false;
+      if (pref) {
+        await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+          toEmail: claimant.email,
+          toName: claimant.name || "Steward",
+          subject: "[ServeSync] Shift Swap Approved",
+          title: "Swap Approved! ✅",
+          body: claimantMsg,
+          actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/marketplace`,
+          actionText: "View Schedule",
+        });
+      }
+    }
   }
 
   if (requester) {
+    const requesterMsg = `Your shift swap request has been approved and finalized.`;
     await ctx.db.insert("notifications", {
       userId: requester._id,
       title: "Swap Finalized! ✅",
-      message: `Your shift swap request has been approved and finalized.`,
+      message: requesterMsg,
       type: "swap_finalized",
       read: false,
     });
+
+    if (requester.email && requester.emailNotificationsEnabled !== false) {
+      const pref = requester.emailPreferences?.swapRequests !== false;
+      if (pref) {
+        await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+          toEmail: requester.email,
+          toName: requester.name || "Steward",
+          subject: "[ServeSync] Shift Swap Finalized",
+          title: "Swap Finalized! ✅",
+          body: requesterMsg,
+          actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/marketplace`,
+          actionText: "View Shift",
+        });
+      }
+    }
   }
 }
 

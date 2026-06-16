@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video, UserPlus } from 'lucide-react';
+import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
@@ -12,6 +13,7 @@ export const SubunitLeadHome: React.FC = () => {
   const me = useQuery(api.users.me);
   const nextService = useQuery(api.services.getNextService);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   
   // Find the subunit this user leads
   const mySubunitId = me?.subunitId;
@@ -183,6 +185,17 @@ export const SubunitLeadHome: React.FC = () => {
             </div>
             <span className="text-sm font-semibold text-gray-700">Schedule Subunit Meeting</span>
           </button>
+
+          <button 
+            onClick={() => setIsAssignModalOpen(true)}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            style={{ border: '1px solid rgba(139, 92, 246, 0.2)', background: 'rgba(139, 92, 246, 0.02)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <UserPlus size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
+          </button>
         </div>
       </section>
 
@@ -199,6 +212,11 @@ export const SubunitLeadHome: React.FC = () => {
       <button className={styles.floatingBtn} onClick={() => navigate('/attendance')}>
         <QrCode size={24} />
       </button>
+
+      <MobileAssignShiftModal 
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+      />
     </div>
   );
 };

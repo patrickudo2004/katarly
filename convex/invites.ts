@@ -205,6 +205,22 @@ export const acceptInvite = mutation({
           type: "invite_accepted",
           read: false,
         });
+
+        const superAdmin = await ctx.db.get(church.superAdminId);
+        if (superAdmin && superAdmin.email && superAdmin.emailNotificationsEnabled !== false) {
+          const pref = superAdmin.emailPreferences?.newVolunteerSignups !== false;
+          if (pref) {
+            await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+              toEmail: superAdmin.email,
+              toName: superAdmin.name || "Admin",
+              subject: `[ServeSync] New Member Joined: ${user.name || invite.email}`,
+              title: "New Volunteer Registered! 🎉",
+              body: notifMessage,
+              actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/admin`,
+              actionText: "Manage Team",
+            });
+          }
+        }
       }
 
       // 2. Notify the inviter (if different from SuperAdmin)
@@ -216,6 +232,22 @@ export const acceptInvite = mutation({
           type: "invite_accepted",
           read: false,
         });
+
+        const inviter = await ctx.db.get(invite.invitedBy);
+        if (inviter && inviter.email && inviter.emailNotificationsEnabled !== false) {
+          const pref = inviter.emailPreferences?.newVolunteerSignups !== false;
+          if (pref) {
+            await ctx.scheduler.runAfter(0, api.emails.sendNotificationEmail, {
+              toEmail: inviter.email,
+              toName: inviter.name || "Leader",
+              subject: `[ServeSync] Your Invite Was Accepted: ${user.name || invite.email}`,
+              title: "Your Invite Was Accepted! 🤝",
+              body: notifMessage,
+              actionUrl: `${process.env.SITE_URL || "https://servesync-pi.vercel.app"}/admin`,
+              actionText: "Manage Team",
+            });
+          }
+        }
       }
     } catch (err) {
       // Fail-safe: don't block the accept transaction if notification fails

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video } from 'lucide-react';
+import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video, UserPlus } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
+import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
 export const DeptHeadHome: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Subunits');
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const me = useQuery(api.users.me);
   const health = useQuery(api.oversight.getDepartmentHealth, 
     me?.departmentId ? { departmentId: me.departmentId } : "skip"
@@ -133,6 +135,17 @@ export const DeptHeadHome: React.FC = () => {
             </div>
             <span className="text-sm font-semibold text-gray-700">Schedule Department Meeting</span>
           </button>
+
+          <button 
+            onClick={() => setIsAssignModalOpen(true)}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            style={{ border: '1px solid rgba(139, 92, 246, 0.2)', background: 'rgba(139, 92, 246, 0.02)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <UserPlus size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
+          </button>
         </div>
       </section>
 
@@ -251,6 +264,10 @@ export const DeptHeadHome: React.FC = () => {
           box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
       `}} />
+      <MobileAssignShiftModal 
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+      />
     </div>
   );
 };

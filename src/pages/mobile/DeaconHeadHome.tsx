@@ -4,14 +4,16 @@ import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 import {
   Scale, AlertTriangle, BarChart2, MessageSquareLock,
-  ChevronRight, Loader2, CheckCircle, Users, ClipboardList
+  ChevronRight, Loader2, CheckCircle, Users, ClipboardList, UserPlus
 } from 'lucide-react';
 import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
+import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
 export const DeaconHeadHome: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'escalations' | 'board'>('overview');
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const dashboard = useQuery(api.deaconBoard.getDeaconDashboard);
   const boardMessages = useQuery(api.deaconBoard.getDeaconBoardMessages);
   const postAnnouncement = useMutation(api.deaconBoard.postBoardAnnouncement);
@@ -154,6 +156,16 @@ export const DeaconHeadHome: React.FC = () => {
               </div>
               <ChevronRight size={16} color="#9ca3af" />
             </div>
+            <div className={styles.listItem} style={{ cursor: 'pointer' }} onClick={() => setIsAssignModalOpen(true)}>
+              <div className={styles.itemIcon} style={{ background: '#8b5cf618', color: '#8b5cf6' }}>
+                <UserPlus size={20} />
+              </div>
+              <div className={styles.itemInfo}>
+                <p className={styles.itemTitle}>Assign Shift</p>
+                <p className={styles.itemSubtitle}>Schedule workforce roles</p>
+              </div>
+              <ChevronRight size={16} color="#9ca3af" />
+            </div>
             <div className={styles.listItem} style={{ cursor: 'pointer' }} onClick={() => setActiveTab('board')}>
               <div className={styles.itemIcon} style={{ background: '#1e3a5f18', color: '#1e3a5f' }}>
                 <MessageSquareLock size={20} />
@@ -268,6 +280,10 @@ export const DeaconHeadHome: React.FC = () => {
           </div>
         </section>
       )}
+      <MobileAssignShiftModal 
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+      />
     </div>
   );
 };

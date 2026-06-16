@@ -411,3 +411,25 @@ export const deleteAccount = mutation({
     await ctx.db.delete(userId);
   },
 });
+
+export const updateEmailPreferences = mutation({
+  args: {
+    emailNotificationsEnabled: v.boolean(),
+    emailPreferences: v.object({
+      newVolunteerSignups: v.boolean(),
+      shiftAssignments: v.boolean(),
+      swapRequests: v.boolean(),
+      timeOffRequests: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    await ctx.db.patch(userId, {
+      emailNotificationsEnabled: args.emailNotificationsEnabled,
+      emailPreferences: args.emailPreferences,
+    });
+  },
+});
+

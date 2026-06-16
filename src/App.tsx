@@ -136,8 +136,13 @@ function AppContent() {
     switch (me?.role) {
       case 'SuperAdmin': return <SuperAdminHome />;
       case 'DeaconHead': return <DeaconHeadHome />;
-      case 'DepartmentHead': return <DeptHeadHome />;
-      case 'SubunitLead': return <SubunitLeadHome />;
+      case 'DepartmentHead':
+      case 'DepartmentAssistant':
+      case 'DepartmentSecretary':
+        return <DeptHeadHome />;
+      case 'SubunitLead':
+      case 'SubunitAssistant':
+        return <SubunitLeadHome />;
       default: return <VolunteerHome />;
     }
   };

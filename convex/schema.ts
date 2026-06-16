@@ -54,6 +54,13 @@ export default defineSchema({
       targetServiceCount: v.optional(v.number()),
       promotionStatus: v.union(v.literal("pending"), v.literal("approved"), v.literal("extended")),
     })),
+    emailNotificationsEnabled: v.optional(v.boolean()),
+    emailPreferences: v.optional(v.object({
+      newVolunteerSignups: v.optional(v.boolean()),
+      shiftAssignments: v.optional(v.boolean()),
+      swapRequests: v.optional(v.boolean()),
+      timeOffRequests: v.optional(v.boolean()),
+    })),
   }).index("email", ["email"])
     .index("by_church", ["churchId"])
     .index("by_status", ["status"])

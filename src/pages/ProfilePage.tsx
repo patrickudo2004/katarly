@@ -12,8 +12,42 @@ export const ProfilePage: React.FC = () => {
   const updateProfile = useMutation(api.users.updateProfile);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   const deleteAccount = useMutation(api.users.deleteAccount);
+  const updateEmailPrefs = useMutation(api.users.updateEmailPreferences);
   const { signOut } = useAuthActions();
   const navigate = useNavigate();
+
+  const handleToggleMaster = async (checked: boolean) => {
+    try {
+      await updateEmailPrefs({
+        emailNotificationsEnabled: checked,
+        emailPreferences: {
+          newVolunteerSignups: me?.emailPreferences?.newVolunteerSignups ?? true,
+          shiftAssignments: me?.emailPreferences?.shiftAssignments ?? true,
+          swapRequests: me?.emailPreferences?.swapRequests ?? true,
+          timeOffRequests: me?.emailPreferences?.timeOffRequests ?? true,
+        }
+      });
+    } catch (e: any) {
+      alert("Failed to update preferences: " + e.message);
+    }
+  };
+
+  const handleTogglePref = async (key: 'newVolunteerSignups' | 'shiftAssignments' | 'swapRequests' | 'timeOffRequests', checked: boolean) => {
+    try {
+      await updateEmailPrefs({
+        emailNotificationsEnabled: me?.emailNotificationsEnabled ?? true,
+        emailPreferences: {
+          newVolunteerSignups: me?.emailPreferences?.newVolunteerSignups ?? true,
+          shiftAssignments: me?.emailPreferences?.shiftAssignments ?? true,
+          swapRequests: me?.emailPreferences?.swapRequests ?? true,
+          timeOffRequests: me?.emailPreferences?.timeOffRequests ?? true,
+          [key]: checked
+        }
+      });
+    } catch (e: any) {
+      alert("Failed to update preferences: " + e.message);
+    }
+  };
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -145,7 +179,97 @@ export const ProfilePage: React.FC = () => {
           </form>
         </div>
       ) : (
-        <VolunteerProfile userId={me._id} />
+        <>
+          <VolunteerProfile userId={me._id} />
+          
+          <div className={styles.settingsCard}>
+            <h3>✉️ Email Notifications</h3>
+            <p className={styles.cardSubtitle}>Configure how you receive shift alerts and team updates via email.</p>
+            
+            <div className={styles.preferenceRow}>
+              <div className={styles.preferenceLabel}>
+                <strong>Enable Email Notifications</strong>
+                <span>Master toggle for all outbound system emails</span>
+              </div>
+              <label className={styles.switch}>
+                <input 
+                  type="checkbox" 
+                  checked={me.emailNotificationsEnabled ?? true} 
+                  onChange={e => handleToggleMaster(e.target.checked)}
+                />
+                <span className={styles.slider}></span>
+              </label>
+            </div>
+
+            {me.emailNotificationsEnabled !== false && (
+              <div className={styles.preferencesSublist}>
+                <div className={styles.preferenceRow}>
+                  <div className={styles.preferenceLabel}>
+                    <strong>Shift Assignments & Rota Changes</strong>
+                    <span>Get notified when you are added to or removed from a service shift</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={me.emailPreferences?.shiftAssignments ?? true} 
+                      onChange={e => handleTogglePref('shiftAssignments', e.target.checked)}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.preferenceRow}>
+                  <div className={styles.preferenceLabel}>
+                    <strong>Shift Swap Requests</strong>
+                    <span>Get alerts when a team member claims your offered swap or requests cover</span>
+                  </div>
+                  <label className={styles.switch}>
+                    <input 
+                      type="checkbox" 
+                      checked={me.emailPreferences?.swapRequests ?? true} 
+                      onChange={e => handleTogglePref('swapRequests', e.target.checked)}
+                    />
+                    <span className={styles.slider}></span>
+                  </label>
+                </div>
+
+                {['SuperAdmin', 'DeaconHead', 'PastoralOversight', 'DepartmentHead', 'SubunitLead'].includes(me.role || '') && (
+                  <>
+                    <div className={styles.preferenceRow}>
+                      <div className={styles.preferenceLabel}>
+                        <strong>New Volunteer Signups</strong>
+                        <span>Receive alerts when a new member joins your department or church</span>
+                      </div>
+                      <label className={styles.switch}>
+                        <input 
+                          type="checkbox" 
+                          checked={me.emailPreferences?.newVolunteerSignups ?? true} 
+                          onChange={e => handleTogglePref('newVolunteerSignups', e.target.checked)}
+                        />
+                        <span className={styles.slider}></span>
+                      </label>
+                    </div>
+
+                    <div className={styles.preferenceRow}>
+                      <div className={styles.preferenceLabel}>
+                        <strong>Time Off Requests</strong>
+                        <span>Get notified when a member in your team schedules time off</span>
+                      </div>
+                      <label className={styles.switch}>
+                        <input 
+                          type="checkbox" 
+                          checked={me.emailPreferences?.timeOffRequests ?? true} 
+                          onChange={e => handleTogglePref('timeOffRequests', e.target.checked)}
+                        />
+                        <span className={styles.slider}></span>
+                      </label>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
       
       <div className={styles.dangerZone}>

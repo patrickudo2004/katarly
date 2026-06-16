@@ -327,3 +327,24 @@ export const getServiceDetails = query({
   },
 });
 
+export const getUpcomingServices = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user?.churchId) return [];
+
+    const now = Date.now() - 2 * 60 * 60 * 1000; // 2 hours buffer
+    return await ctx.db
+      .query("services")
+      .withIndex("by_church_start_time", (q) => 
+        q.eq("churchId", user.churchId!)
+         .gt("startTime", now)
+      )
+      .order("asc")
+      .take(20);
+  },
+});
+
+

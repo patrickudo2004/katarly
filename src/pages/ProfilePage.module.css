@@ -233,3 +233,123 @@
     grid-template-columns: 1fr;
   }
 }
+
+.settingsCard {
+  background: var(--card-bg);
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.settingsCard h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary);
+}
+
+.cardSubtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.preferenceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preferenceRow:last-child {
+  border-bottom: none;
+}
+
+.preferenceLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-right: 1.5rem;
+}
+
+.preferenceLabel strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.preferenceLabel span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.preferencesSublist {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 0 1rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.preferencesSublist .preferenceRow {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.preferencesSublist .preferenceRow:last-child {
+  border-bottom: none;
+}
+
+/* Toggle Switch Styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+.switch input:checked + .slider {
+  background-color: #8b5cf6;
+}
+
+.switch input:focus + .slider {
+  box-shadow: 0 0 1px #8b5cf6;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+

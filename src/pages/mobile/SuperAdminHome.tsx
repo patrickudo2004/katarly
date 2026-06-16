@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
-import { LayoutGrid, Users, TrendingUp, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
+import { LayoutGrid, Users, TrendingUp, ShieldCheck, ChevronRight, Loader2, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import styles from './mobile.module.css';
+import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
 export const SuperAdminHome: React.FC = () => {
   const navigate = useNavigate();
   const me = useQuery(api.users.me);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const stats = useQuery(api.churches.getChurchStats);
   const subunits = useQuery(api.subunits.getSubunits);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
@@ -113,7 +115,7 @@ export const SuperAdminHome: React.FC = () => {
           <div className={styles.list}>
             <div 
               className={styles.listItem} 
-              style={{ border: 'none', padding: 0, cursor: 'pointer' }}
+              style={{ cursor: 'pointer', padding: '0.75rem 0' }}
               onClick={() => navigate('/invites')}
             >
               <div className={styles.itemIcon} style={{ background: '#fef2f2', color: '#ef4444' }}>
@@ -122,6 +124,21 @@ export const SuperAdminHome: React.FC = () => {
               <div className={styles.itemInfo}>
                 <p className={styles.itemTitle}>Invite Leaders</p>
                 <p className={styles.itemSubtitle}>Add Dept Heads & Oversight</p>
+              </div>
+              <ChevronRight size={16} color="#9ca3af" />
+            </div>
+
+            <div 
+              className={styles.listItem} 
+              style={{ cursor: 'pointer', padding: '0.75rem 0', borderTop: '1px solid var(--border-color)' }}
+              onClick={() => setIsAssignModalOpen(true)}
+            >
+              <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                <UserPlus size={20} />
+              </div>
+              <div className={styles.itemInfo}>
+                <p className={styles.itemTitle}>Assign Shift</p>
+                <p className={styles.itemSubtitle}>Schedule workforce roles</p>
               </div>
               <ChevronRight size={16} color="#9ca3af" />
             </div>
@@ -139,6 +156,10 @@ export const SuperAdminHome: React.FC = () => {
           cursor: pointer;
         }
       `}} />
+      <MobileAssignShiftModal 
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+      />
     </div>
   );
 };

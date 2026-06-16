@@ -16,6 +16,7 @@ import type * as churches from "../churches.js";
 import type * as deaconBoard from "../deaconBoard.js";
 import type * as debug from "../debug.js";
 import type * as departments from "../departments.js";
+import type * as emails from "../emails.js";
 import type * as http from "../http.js";
 import type * as invites from "../invites.js";
 import type * as meetings from "../meetings.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   deaconBoard: typeof deaconBoard;
   debug: typeof debug;
   departments: typeof departments;
+  emails: typeof emails;
   http: typeof http;
   invites: typeof invites;
   meetings: typeof meetings;
