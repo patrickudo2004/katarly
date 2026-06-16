@@ -64,9 +64,39 @@ export const claimSwap = mutation({
     const rota = await ctx.db.get(swapRequest.rotaId);
     if (!rota) throw new Error("Rota not found");
 
-    // Verify eligibility (same subunit)
-    if (!user.subunitId || !requester.subunitId || user.subunitId !== requester.subunitId) {
-      throw new Error("You must be in the same subunit to claim this swap");
+    const service = await ctx.db.get(rota.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    // Church isolation
+    if (service.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church access denied.");
+    }
+
+    // Temporal lockout: cannot claim < 2 hours before service
+    if (service.startTime - Date.now() < 2 * 60 * 60 * 1000) {
+      throw new Error("This swap is locked. Service starts in less than 2 hours.");
+    }
+
+    // Scoping enforcement — mirrors getAvailableSwaps query logic
+    const isGlobalAdmin = ["SuperAdmin", "DeaconHead", "PastoralOversight"].includes(user.role || "");
+    if (!isGlobalAdmin && swapRequest.allowCrossDept !== true) {
+      // Check if user is in the same department or borrowed into it
+      const isSameDept = rota.departmentId === user.departmentId;
+      const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, userId, service.startTime);
+      const isBorrowedInDept = borrowedDeptIds.includes(rota.departmentId);
+
+      if (!isSameDept && !isBorrowedInDept) {
+        throw new Error("Unauthorized: This swap is restricted to a different department.");
+      }
+
+      // Subunit check (only if rota has subunit scope and user is not borrowed into dept)
+      if (rota.subunitId && !isBorrowedInDept) {
+        const isMatchingSubunit = rota.subunitId === user.subunitId;
+        const isAdditional = (user.additionalSubunits || []).includes(rota.subunitId.toString());
+        if (!isMatchingSubunit && !isAdditional) {
+          throw new Error("Unauthorized: This swap is restricted to a specific subunit.");
+        }
+      }
     }
 
     // Prevent conflicts (check if user is already scheduled for this service)
