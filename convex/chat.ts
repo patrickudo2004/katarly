@@ -177,8 +177,23 @@ export const deleteMessage = mutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
+    const channel = await ctx.db.get(message.channelId);
+    if (!channel) throw new Error("Channel not found");
+
     const isAuthor = message.userId === user._id;
-    const isModerator = user.role === "SuperAdmin" || user.role === "DepartmentHead" || user.role === "PastoralOversight";
+    let isModerator = false;
+
+    if (user.role === "SuperAdmin") {
+      isModerator = true;
+    } else if (user.role === "DeaconHead") {
+      isModerator = true;
+    } else if (user.role === "PastoralOversight") {
+      isModerator = channel.type === "department" || channel.type === "subunit";
+    } else if (user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary") {
+      isModerator = channel.departmentId === user.departmentId;
+    } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
+      isModerator = channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId);
+    }
 
     if (!isAuthor && !isModerator) {
       throw new Error("Unauthorized to delete message");
@@ -227,7 +242,25 @@ export const pinMessage = mutation({
     const message = await ctx.db.get(args.messageId);
     if (!message) throw new Error("Message not found");
 
-    if (user.role !== "SuperAdmin" && user.role !== "DepartmentHead" && user.role !== "SubunitLead" && user.role !== "PastoralOversight") {
+    const channel = await ctx.db.get(message.channelId);
+    if (!channel) throw new Error("Channel not found");
+
+    if (!hasChannelAccess(user, channel)) {
+      throw new Error("Unauthorized to access channel");
+    }
+
+    let isModerator = false;
+    if (user.role === "SuperAdmin") {
+      isModerator = true;
+    } else if (user.role === "PastoralOversight") {
+      isModerator = channel.type === "department" || channel.type === "subunit";
+    } else if (user.role === "DepartmentHead") {
+      isModerator = channel.departmentId === user.departmentId;
+    } else if (user.role === "SubunitLead") {
+      isModerator = channel.subunitId === user.subunitId || user.additionalSubunits?.includes(channel.subunitId);
+    }
+
+    if (!isModerator) {
       throw new Error("Unauthorized to pin messages");
     }
 
@@ -242,7 +275,18 @@ export const toggleChannelStatus = mutation({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    if (user.role !== "SuperAdmin" && user.role !== "DepartmentHead") {
+    if (!hasChannelAccess(user, channel)) {
+      throw new Error("Unauthorized to access channel");
+    }
+
+    let isAuthorized = false;
+    if (user.role === "SuperAdmin") {
+      isAuthorized = true;
+    } else if (user.role === "DepartmentHead") {
+      isAuthorized = channel.departmentId === user.departmentId;
+    }
+
+    if (!isAuthorized) {
       throw new Error("Unauthorized to toggle channel status");
     }
 

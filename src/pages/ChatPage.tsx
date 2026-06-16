@@ -28,8 +28,16 @@ export const ChatPage: React.FC = () => {
   
   const [inputText, setInputText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const showError = (msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 5000);
+  };
 
   useEffect(() => {
     if (channels && channels.length > 0 && !selectedChannelId) {
@@ -50,7 +58,7 @@ export const ChatPage: React.FC = () => {
     try {
       await sendMessage({ channelId: selectedChannelId, text });
     } catch (err: any) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -81,16 +89,22 @@ export const ChatPage: React.FC = () => {
         fileId,
       });
     } catch (err: any) {
-      alert("Failed to upload file: " + err.message);
+      showError("Failed to upload file: " + err.message);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleDeleteMessage = async (msgId: any) => {
-    if (confirm("Delete this message?")) {
-      await deleteMessage({ messageId: msgId });
+  const handleConfirmDelete = async () => {
+    if (messageToDelete) {
+      try {
+        await deleteMessage({ messageId: messageToDelete });
+      } catch (err: any) {
+        showError(err.message);
+      } finally {
+        setMessageToDelete(null);
+      }
     }
   };
 
@@ -212,6 +226,13 @@ export const ChatPage: React.FC = () => {
           </div>
         </header>
 
+        {error && (
+          <div className={styles.errorBanner}>
+            <span>{error}</span>
+            <button onClick={() => setError(null)} aria-label="Dismiss error">×</button>
+          </div>
+        )}
+
         <div className={styles.messageList}>
           {!messages ? (
             <div className={styles.emptyState}><Loader2 className="animate-spin text-purple-600" /></div>
@@ -256,7 +277,7 @@ export const ChatPage: React.FC = () => {
                   {(isMe || ['SuperAdmin', 'DepartmentHead', 'PastoralOversight'].includes(me?.role || '')) && (
                     <button 
                       className={styles.deleteMsgBtn} 
-                      onClick={() => handleDeleteMessage(msg._id)}
+                      onClick={() => setMessageToDelete(msg._id)}
                       title="Delete message"
                     >
                       <Trash2 size={12} />
@@ -297,6 +318,30 @@ export const ChatPage: React.FC = () => {
           </button>
         </form>
       </main>
+
+      {/* Styled Delete Confirmation Overlay Modal */}
+      {messageToDelete && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h4>Delete Message</h4>
+            <p>Are you sure you want to permanently delete this message? This action cannot be undone.</p>
+            <div className={styles.modalActions}>
+              <button 
+                className={styles.modalCancelBtn} 
+                onClick={() => setMessageToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.modalDeleteBtn} 
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
