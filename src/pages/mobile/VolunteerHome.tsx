@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { MeetingCard } from '../../components/MeetingCard';
 import { MemberProfileModal } from '../../components/MemberProfileModal';
+import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
 import styles from './mobile.module.css';
 
 export const VolunteerHome: React.FC = () => {
@@ -52,6 +53,9 @@ export const VolunteerHome: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      {/* Borrow assignments — shown prominently at top when pending */}
+      <BorrowAssignmentCard />
+
       {me?.role === "Probation" && (
         <section className={styles.section}>
           <div 

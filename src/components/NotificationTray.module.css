@@ -163,3 +163,11 @@
   align-items: center;
   gap: 1rem;
 }
+
+.actionHint {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b5cf6;
+}

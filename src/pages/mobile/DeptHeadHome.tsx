@@ -5,6 +5,7 @@ import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
+import { BorrowBottomSheet } from '../../components/BorrowBottomSheet';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
@@ -23,6 +24,7 @@ export const DeptHeadHome: React.FC = () => {
   );
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const incomingBorrowRequests = useQuery(api.borrow.getIncomingBorrowRequests);
+  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
 
   // Loading state
   const isMeLoading = me === undefined;
@@ -148,6 +150,17 @@ export const DeptHeadHome: React.FC = () => {
             </div>
             <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
           </button>
+
+          <button
+            onClick={() => setBorrowSheet('request')}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.06)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <ArrowRightLeft size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Request Team Help</span>
+          </button>
         </div>
       </section>
 
@@ -246,7 +259,7 @@ export const DeptHeadHome: React.FC = () => {
                 <div
                   key={req._id}
                   className={styles.listItem}
-                  onClick={() => navigate('/admin?tab=borrow')}
+                  onClick={() => setBorrowSheet('approval')}
                   style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }}
                 >
                   <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
@@ -304,6 +317,15 @@ export const DeptHeadHome: React.FC = () => {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
       />
+
+      {/* Borrow bottom sheet — opens when tapping a request card or the Request Help action */}
+      {borrowSheet && (
+        <BorrowBottomSheet
+          isOpen
+          mode={borrowSheet}
+          onClose={() => setBorrowSheet(null)}
+        />
+      )}
     </div>
   );
 };

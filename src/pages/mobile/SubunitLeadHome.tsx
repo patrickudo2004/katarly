@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video, UserPlus } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video, UserPlus, ArrowRightLeft } from 'lucide-react';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
+import { BorrowBottomSheet } from '../../components/BorrowBottomSheet';
+import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
 import styles from './mobile.module.css';
 
 export const SubunitLeadHome: React.FC = () => {
@@ -14,6 +16,8 @@ export const SubunitLeadHome: React.FC = () => {
   const nextService = useQuery(api.services.getNextService);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
+  const incomingBorrows = useQuery(api.borrow.getIncomingBorrowRequests);
   
   // Find the subunit this user leads
   const mySubunitId = me?.subunitId;
@@ -196,8 +200,66 @@ export const SubunitLeadHome: React.FC = () => {
             </div>
             <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
           </button>
+
+          {/* Request help from another subunit */}
+          <button
+            onClick={() => setBorrowSheet('request')}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            style={{ border: '1px solid rgba(139, 92, 246, 0.25)', background: 'rgba(139, 92, 246, 0.04)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <ArrowRightLeft size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Request Team Help</span>
+          </button>
         </div>
       </section>
+
+      {/* ── Borrow assignments this user has been nominated for ── */}
+      <BorrowAssignmentCard />
+
+      {/* ── Incoming borrow requests to approve ── */}
+      {(incomingBorrows?.length ?? 0) > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Borrow Requests</h2>
+            <span style={{
+              background: '#8b5cf6', color: 'white',
+              borderRadius: '10px', fontSize: '0.7rem',
+              fontWeight: 700, padding: '2px 8px',
+            }}>
+              {incomingBorrows!.length}
+            </span>
+          </div>
+          <div className={styles.list}>
+            {incomingBorrows!.map((req: any) => (
+              <div
+                key={req._id}
+                className={styles.listItem}
+                style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }}
+                onClick={() => setBorrowSheet('approval')}
+              >
+                <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                  <ArrowRightLeft size={18} />
+                </div>
+                <div className={styles.itemInfo}>
+                  <p className={styles.itemTitle}>
+                    {req.requestingDeptName}
+                    {req.requestingSubunitName ? ` › ${req.requestingSubunitName}` : ''}
+                    {' — '}{req.count} {req.role}(s)
+                  </p>
+                  <p className={styles.itemSubtitle}>
+                    {new Date(req.startDate).toLocaleDateString()} – {new Date(req.endDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className={styles.badge} style={{ background: '#fef9c3', color: '#854d0e' }}>
+                  Tap to review
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={styles.section}>
         <div className={styles.card} onClick={() => navigate('/chat')} style={{ cursor: 'pointer' }}>
@@ -213,10 +275,19 @@ export const SubunitLeadHome: React.FC = () => {
         <QrCode size={24} />
       </button>
 
-      <MobileAssignShiftModal 
+      <MobileAssignShiftModal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
       />
+
+      {/* Borrow bottom sheet */}
+      {borrowSheet && (
+        <BorrowBottomSheet
+          isOpen
+          mode={borrowSheet}
+          onClose={() => setBorrowSheet(null)}
+        />
+      )}
     </div>
   );
 };
