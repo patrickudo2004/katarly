@@ -5,11 +5,57 @@
   border: 1px solid var(--border-color);
 }
 
+/* Loading */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  color: var(--text-secondary);
+  padding: 2rem 0;
+  font-size: 0.9rem;
+}
+
+/* Success card */
+.successCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.successIcon {
+  width: 56px;
+  height: 56px;
+  background: #d1fae5;
+  color: #059669;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.successCard h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.successCard p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Header */
 .header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .iconBox {
@@ -21,31 +67,101 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .header p {
   margin: 0.25rem 0 0 0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #6b7280;
 }
 
+/* Borrow type toggle */
+.typeToggle {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 14px;
+  padding: 5px;
+  margin-bottom: 0.75rem;
+}
+
+.typeBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.typeActive {
+  background: var(--card-bg);
+  color: #8b5cf6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.typeHint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+}
+
+/* Error banner */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.errorBanner span { flex: 1; }
+
+.errorClose {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+/* Form */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .field {
@@ -55,12 +171,17 @@
 }
 
 .field label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
-.field input, .field select {
+.field input,
+.field select,
+.textarea {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -71,39 +192,26 @@
   color: var(--text-primary);
 }
 
-.field input:focus, .field select:focus {
+.field input:focus,
+.field select:focus,
+.textarea:focus {
   outline: none;
   border-color: #8b5cf6;
   box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
-.inputWithIcon {
-  position: relative;
-  display: flex;
-  align-items: center;
+.textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
-.inputWithIcon svg {
-  position: absolute;
-  left: 1rem;
-  color: #9ca3af;
-  pointer-events: none;
-}
-
-.inputWithIcon input {
-  padding-left: 2.75rem;
-  width: 100%;
-}
-
-.skillsHint {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+.emptyHint {
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  background: var(--bg-secondary);
   padding: 0.75rem;
+  background: var(--bg-secondary);
   border-radius: 10px;
+  margin: 0;
 }
 
 .submitBtn {
@@ -129,12 +237,13 @@
 }
 
 .submitBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
 .spinner {
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -143,8 +252,7 @@
 }
 
 @media (max-width: 640px) {
-  .row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+  .container { padding: 1.25rem; }
+  .row { grid-template-columns: 1fr; gap: 1rem; }
+  .typeBtn { font-size: 0.75rem; padding: 0.5rem 0.625rem; }
 }

@@ -249,27 +249,43 @@ export default defineSchema({
 
   borrowRequests: defineTable({
     churchId: v.id("churches"),
-    requestingDeptHeadId: v.id("users"),
-    targetDeptHeadId: v.id("users"),
-    targetDept: v.string(),
-    targetSubunit: v.string(),
+    // Who is requesting help
+    requestingUserId: v.id("users"),
+    requestingDeptId: v.id("departments"),
+    requestingSubunitId: v.optional(v.id("subunits")),
+    // Legacy: kept for backwards compatibility during migration
+    requestingDeptHeadId: v.optional(v.id("users")),
+    // Who is being asked for help
+    targetDeptId: v.id("departments"),
+    targetSubunitId: v.optional(v.id("subunits")),
+    targetUserId: v.id("users"), // The dept head or subunit lead being asked
+    // Request details
+    borrowType: v.union(v.literal("inter_dept"), v.literal("intra_dept")),
+    role: v.string(),
+    count: v.number(),
     startDate: v.number(),
     endDate: v.number(),
-    count: v.number(),
-    role: v.string(),
-    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined"), v.literal("active"), v.literal("expired")),
+    note: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined"), v.literal("expired")),
     volunteers: v.optional(v.array(v.id("users"))),
-  }).index("by_church", ["churchId"]),
+  }).index("by_church", ["churchId"])
+    .index("by_requesting_dept", ["requestingDeptId"])
+    .index("by_target_dept", ["targetDeptId"])
+    .index("by_target_user", ["targetUserId"]),
 
   borrowAssignments: defineTable({
     userId: v.id("users"),
     requestId: v.id("borrowRequests"),
     churchId: v.id("churches"),
+    // Store the destination dept/subunit directly for fast scope lookup
+    targetDeptId: v.id("departments"),
+    targetSubunitId: v.optional(v.id("subunits")),
     startDate: v.number(),
     endDate: v.number(),
-    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined"), v.literal("active"), v.literal("expired")),
+    status: v.union(v.literal("pending"), v.literal("active"), v.literal("declined"), v.literal("expired")),
   }).index("by_user", ["userId"])
-    .index("by_church", ["churchId"]),
+    .index("by_church", ["churchId"])
+    .index("by_request", ["requestId"]),
 
   invites: defineTable({
     email: v.string(),

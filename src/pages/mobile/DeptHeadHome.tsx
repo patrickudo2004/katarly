@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
+import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
@@ -21,6 +22,7 @@ export const DeptHeadHome: React.FC = () => {
     church ? { churchId: church._id } : "skip"
   );
   const meetings = useQuery(api.meetings.getMeetingsForUser);
+  const incomingBorrowRequests = useQuery(api.borrow.getIncomingBorrowRequests);
 
   // Loading state
   const isMeLoading = me === undefined;
@@ -157,6 +159,20 @@ export const DeptHeadHome: React.FC = () => {
             onClick={() => setActiveTab(tab)}
           >
             {tab}
+            {tab === 'Approvals' && (incomingBorrowRequests?.length ?? 0) > 0 && (
+              <span style={{
+                marginLeft: '6px',
+                background: '#8b5cf6',
+                color: 'white',
+                borderRadius: '10px',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                padding: '1px 6px',
+                lineHeight: '1.4',
+              }}>
+                {incomingBorrowRequests!.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -212,29 +228,49 @@ export const DeptHeadHome: React.FC = () => {
                 <ChevronRight size={16} color="#8b5cf6" />
               </div>
             ) : null}
-            
-            <div className={styles.listItem}>
-              <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
-                <ArrowRightLeft size={20} />
+
+            {/* Live borrow requests */}
+            {incomingBorrowRequests === undefined ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '1rem', color: '#6b7280', fontSize: '0.85rem' }}>
+                <Loader2 size={16} className="animate-spin" /> Loading borrow requests…
               </div>
-              <div className={styles.itemInfo}>
-                <p className={styles.itemTitle}>Borrow Request</p>
-                <p className={styles.itemSubtitle}>Music Dept needs 2 Media Volunteers</p>
+            ) : incomingBorrowRequests.length === 0 ? (
+              <div className={styles.listItem} style={{ opacity: 0.6 }}>
+                <div className={styles.itemInfo}>
+                  <p className={styles.itemTitle}>No pending borrow requests</p>
+                  <p className={styles.itemSubtitle}>Your team has no incoming requests right now</p>
+                </div>
               </div>
-              <div className={styles.badge} style={{ background: '#fef9c3', color: '#854d0e' }}>
-                Pending
-              </div>
-            </div>
-            <div className={styles.listItem}>
-              <div className={styles.itemIcon} style={{ background: '#fef2f2', color: '#ef4444' }}>
-                <AlertCircle size={20} />
-              </div>
-              <div className={styles.itemInfo}>
-                <p className={styles.itemTitle}>Probation Review</p>
-                <p className={styles.itemSubtitle}>Mark Grayson (Week 4)</p>
-              </div>
-              <ChevronRight size={16} color="#9ca3af" />
-            </div>
+            ) : (
+              incomingBorrowRequests.map((req: any) => (
+                <div
+                  key={req._id}
+                  className={styles.listItem}
+                  onClick={() => navigate('/admin?tab=borrow')}
+                  style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }}
+                >
+                  <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                    <ArrowRightLeft size={20} />
+                  </div>
+                  <div className={styles.itemInfo}>
+                    <p className={styles.itemTitle}>
+                      {req.requestingDeptName}
+                      {req.requestingSubunitName ? ` › ${req.requestingSubunitName}` : ''}
+                      {' '}needs {req.count} {req.role}(s)
+                    </p>
+                    <p className={styles.itemSubtitle}>
+                      From {req.requesterName} · {new Date(req.startDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className={styles.badge} style={{ background: '#fef9c3', color: '#854d0e' }}>
+                    Pending
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Volunteer's own pending assignments */}
+            <BorrowAssignmentCard />
           </div>
         )}
       </section>

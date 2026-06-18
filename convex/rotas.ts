@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { auth } from "./auth";
+import { getUserBorrowedDepartmentIds, isGlobalAdmin } from "./utils";
 
 export const createRotaEntry = mutation({
   args: {
@@ -237,33 +238,6 @@ export const getMyShifts = query({
   },
 });
 
-async function getUserBorrowedDepartmentIds(ctx: any, userId: any, serviceTime: number) {
-  const assignments = await ctx.db
-    .query("borrowAssignments")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-
-  const activeAssignments = assignments.filter((a: any) => 
-    a.status === "active" &&
-    serviceTime >= a.startDate &&
-    serviceTime <= a.endDate
-  );
-
-  const deptIds: any[] = [];
-  for (const assignment of activeAssignments) {
-    const request = await ctx.db.get(assignment.requestId);
-    if (request) {
-      const dept = await ctx.db
-        .query("departments")
-        .filter((q: any) => q.eq(q.field("headId"), request.requestingDeptHeadId))
-        .first();
-      if (dept) {
-        deptIds.push(dept._id);
-      }
-    }
-  }
-  return deptIds;
-}
 
 export const getOpenShifts = query({
   handler: async (ctx) => {

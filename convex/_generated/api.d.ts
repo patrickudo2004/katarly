@@ -13,6 +13,7 @@ import type * as auth from "../auth.js";
 import type * as borrow from "../borrow.js";
 import type * as chat from "../chat.js";
 import type * as churches from "../churches.js";
+import type * as crons from "../crons.js";
 import type * as deaconBoard from "../deaconBoard.js";
 import type * as debug from "../debug.js";
 import type * as departments from "../departments.js";
@@ -34,6 +35,7 @@ import type * as subunits from "../subunits.js";
 import type * as temp from "../temp.js";
 import type * as timeOff from "../timeOff.js";
 import type * as users from "../users.js";
+import type * as utils from "../utils.js";
 
 import type {
   ApiFromModules,
@@ -47,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   borrow: typeof borrow;
   chat: typeof chat;
   churches: typeof churches;
+  crons: typeof crons;
   deaconBoard: typeof deaconBoard;
   debug: typeof debug;
   departments: typeof departments;
@@ -68,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   temp: typeof temp;
   timeOff: typeof timeOff;
   users: typeof users;
+  utils: typeof utils;
 }>;
 
 /**

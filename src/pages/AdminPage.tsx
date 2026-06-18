@@ -4,8 +4,10 @@ import { api } from "../../convex/_generated/api";
 import { Organogram } from '../components/Organogram';
 import { AdminSettings } from '../components/AdminSettings';
 import { BorrowRequestForm } from '../components/BorrowRequestForm';
+import { BorrowApprovalPanel } from '../components/BorrowApprovalPanel';
+import { BorrowAssignmentCard } from '../components/BorrowAssignmentCard';
 import { VerificationCenter } from '../components/VerificationCenter';
-import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search, Award } from 'lucide-react';
+import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search, Award, ArrowRightLeft } from 'lucide-react';
 import { ProbationManager } from '../components/ProbationManager';
 import styles from './AdminPage.module.css';
 
@@ -612,13 +614,33 @@ export const AdminPage: React.FC = () => {
 
         {activeTab === 'borrow' && (
           <div className={styles.tabPane}>
+            {/* Send a request */}
             <section className={styles.section}>
               <div className={styles.sectionHeader}>
                 <Briefcase size={20} />
-                <h2>Inter-Department Borrowing</h2>
+                <h2>Request Team Help</h2>
               </div>
               <BorrowRequestForm />
             </section>
+
+            {/* Incoming requests to approve */}
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <ArrowRightLeft size={20} />
+                <h2>Incoming Requests</h2>
+              </div>
+              <BorrowApprovalPanel />
+            </section>
+
+            {/* Volunteer's own pending assignments */}
+            <section className={styles.section}>
+              <BorrowAssignmentCard />
+            </section>
+
+            {/* SuperAdmin: see all church-wide activity */}
+            {(activeUser?.role === 'SuperAdmin' || activeUser?.role === 'DeaconHead') && (
+              <AllBorrowActivity />
+            )}
           </div>
         )}
 
@@ -646,5 +668,71 @@ export const AdminPage: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// SuperAdmin-only: table of ALL borrow requests across the church
+const AllBorrowActivity: React.FC = () => {
+  const all = useQuery(api.borrow.getActiveBorrowRequests);
+  if (!all || all.length === 0) return null;
+
+  const statusColor: Record<string, string> = {
+    pending: '#854d0e',
+    approved: '#1d4ed8',
+    declined: '#dc2626',
+    expired: '#6b7280',
+  };
+  const statusBg: Record<string, string> = {
+    pending: '#fef9c3',
+    approved: '#dbeafe',
+    declined: '#fef2f2',
+    expired: '#f3f4f6',
+  };
+
+  return (
+    <section style={{ marginTop: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <ArrowRightLeft size={20} />
+        <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700 }}>All Borrow Activity</h2>
+      </div>
+      <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <thead>
+            <tr style={{ background: 'var(--bg-secondary)' }}>
+              {['Type', 'From', 'To', 'Role', 'Count', 'Dates', 'Status'].map((h) => (
+                <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {all.map((r: any) => (
+              <tr key={r._id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: r.borrowType === 'intra_dept' ? '#dbeafe' : '#ede9fe', color: r.borrowType === 'intra_dept' ? '#1d4ed8' : '#7c3aed' }}>
+                    {r.borrowType === 'intra_dept' ? 'Intra' : 'Inter'}
+                  </span>
+                </td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-primary)' }}>
+                  {r.requestingDeptName}{r.requestingSubunitName ? ` › ${r.requestingSubunitName}` : ''}
+                </td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-primary)' }}>
+                  {r.targetDeptName}{r.targetSubunitName ? ` › ${r.targetSubunitName}` : ''}
+                </td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{r.role}</td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', textAlign: 'center' }}>{r.count}</td>
+                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  {new Date(r.startDate).toLocaleDateString()} – {new Date(r.endDate).toLocaleDateString()}
+                </td>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: statusBg[r.status] ?? '#f3f4f6', color: statusColor[r.status] ?? '#6b7280' }}>
+                    {r.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 };
