@@ -69,7 +69,7 @@ export const SuperAdminHome: React.FC = () => {
               <p className={styles.statLabel}>Total Volunteers</p>
             </div>
             <div>
-              <p className={styles.statValue}>{stats?.totalSubunits || 0}</p>
+              <p className={styles.statValue}>{stats?.totalDepartments || 0}</p>
               <p className={styles.statLabel}>Departments</p>
             </div>
           </div>
@@ -83,16 +83,24 @@ export const SuperAdminHome: React.FC = () => {
         </div>
         <div className={styles.list}>
           {subunits === undefined ? (
-            <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
-              <Loader2 className="animate-spin text-purple-600" size={24} />
+            <div className="space-y-3 w-full">
+              <div className={styles.skeleton} style={{ height: '56px', width: '100%' }} />
+              <div className={styles.skeleton} style={{ height: '56px', width: '100%' }} />
             </div>
           ) : safeSubunits.length === 0 ? (
             <div className={styles.emptyState}>
-              No departments created yet.
+              <LayoutGrid size={32} className="mb-2 opacity-30" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>No Departments Found</p>
+              <p style={{ margin: 0, fontSize: '0.8125rem' }}>Create departments from the admin panel to get started.</p>
             </div>
           ) : (
             safeSubunits.map((subunit) => (
-              <div key={subunit._id} className={styles.listItem}>
+              <div 
+                key={subunit._id} 
+                className={styles.listItem}
+                onClick={() => navigate('/subunit/' + subunit._id)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className={styles.itemIcon} style={{ background: '#8b5cf615', color: '#8b5cf6' }}>
                   <Users size={20} />
                 </div>
@@ -146,16 +154,6 @@ export const SuperAdminHome: React.FC = () => {
         </div>
       </section>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .${styles.linkBtn} {
-          background: none;
-          border: none;
-          color: #8b5cf6;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          cursor: pointer;
-        }
-      `}} />
       <MobileAssignShiftModal 
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}

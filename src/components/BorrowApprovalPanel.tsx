@@ -8,12 +8,16 @@ import {
 } from 'lucide-react';
 import styles from './BorrowApprovalPanel.module.css';
 
-export const BorrowApprovalPanel: React.FC = () => {
+interface BorrowApprovalPanelProps {
+  initialRequestId?: string | null;
+}
+
+export const BorrowApprovalPanel: React.FC<BorrowApprovalPanelProps> = ({ initialRequestId }) => {
   const incoming = useQuery(api.borrow.getIncomingBorrowRequests);
   const approveBorrow = useMutation(api.borrow.approveBorrow);
   const declineBorrow = useMutation(api.borrow.declineBorrow);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialRequestId || null);
   const [selectedVolunteers, setSelectedVolunteers] = useState<Record<string, Id<'users'>[]>>({});
   const [declineReason, setDeclineReason] = useState<Record<string, string>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);

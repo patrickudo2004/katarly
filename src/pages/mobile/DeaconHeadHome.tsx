@@ -136,7 +136,7 @@ export const DeaconHeadHome: React.FC = () => {
             <h2 className={styles.sectionTitle}>Quick Actions</h2>
           </div>
           <div className={styles.list}>
-            <div className={styles.listItem} style={{ cursor: 'pointer' }} onClick={() => navigate('/attendance')}>
+            <div className={styles.listItem} style={{ cursor: 'pointer' }} onClick={() => navigate('/reports')}>
               <div className={styles.itemIcon} style={{ background: '#1e3a5f18', color: '#1e3a5f' }}>
                 <BarChart2 size={20} />
               </div>

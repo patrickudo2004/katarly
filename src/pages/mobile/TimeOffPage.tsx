@@ -10,6 +10,7 @@ export const TimeOffPage: React.FC = () => {
   const navigate = useNavigate();
   const requests = useQuery(api.timeOff.getRequests);
   const createRequest = useMutation(api.timeOff.createRequest);
+  const cancelRequest = useMutation(api.timeOff.cancelRequest);
   
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -22,6 +23,11 @@ export const TimeOffPage: React.FC = () => {
     e.preventDefault();
     if (!startDate || !endDate || !reason) {
       setError("Please fill in all fields");
+      return;
+    }
+
+    if (new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      setError("End date cannot be before start date");
       return;
     }
 
@@ -45,13 +51,7 @@ export const TimeOffPage: React.FC = () => {
     }
   };
 
-  if (requests === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-purple-600" size={32} />
-      </div>
-    );
-  }
+
 
   return (
     <div className={styles.page}>
@@ -92,6 +92,7 @@ export const TimeOffPage: React.FC = () => {
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">End Date</label>
               <input 
                 type="date" 
+                min={startDate}
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-purple-500 transition-colors"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -125,26 +126,55 @@ export const TimeOffPage: React.FC = () => {
           <h2 className={styles.sectionTitle}>Your Requests</h2>
         </div>
         <div className={styles.list}>
-          {requests.length === 0 ? (
+          {requests === undefined ? (
+            <div className="space-y-3 w-full">
+              <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+              <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+            </div>
+          ) : requests.length === 0 ? (
             <div className={styles.emptyState}>No time off requests found.</div>
           ) : (
             requests.map((req: any) => (
-              <div key={req._id} className={styles.listItem}>
-                <div className={styles.itemIcon}>
-                  <Clock size={20} />
+              <div key={req._id} className={styles.listItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%' }}>
+                  <div className={styles.itemIcon}>
+                    <Clock size={20} />
+                  </div>
+                  <div className={styles.itemInfo}>
+                    <p className={styles.itemTitle}>{req.reason}</p>
+                    <p className={styles.itemSubtitle}>
+                      {format(req.startDate, 'MMM d')} - {format(req.endDate, 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <div className={styles.badge} style={{ 
+                    background: req.status === 'Approved' ? '#dcfce7' : req.status === 'Rejected' ? '#fee2e2' : '#fef9c3', 
+                    color: req.status === 'Approved' ? '#15803d' : req.status === 'Rejected' ? '#991b1b' : '#a16207',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {req.status}
+                  </div>
                 </div>
-                <div className={styles.itemInfo}>
-                  <p className={styles.itemTitle}>{req.reason}</p>
-                  <p className={styles.itemSubtitle}>
-                    {format(req.startDate, 'MMM d')} - {format(req.endDate, 'MMM d, yyyy')}
+
+                {req.status === 'Rejected' && req.rejectionReason && (
+                  <p className="text-xs text-red-600 bg-red-50/50 p-2.5 rounded-lg border border-red-100/50" style={{ margin: 0 }}>
+                    <strong>Rejection reason:</strong> {req.rejectionReason}
                   </p>
-                </div>
-                <div className={styles.badge} style={{ 
-                  background: req.status === 'Approved' ? '#dcfce7' : req.status === 'Rejected' ? '#fee2e2' : '#fef9c3', 
-                  color: req.status === 'Approved' ? '#15803d' : req.status === 'Rejected' ? '#991b1b' : '#a16207' 
-                }}>
-                  {req.status}
-                </div>
+                )}
+
+                {req.status === 'Pending' && (
+                  <div className="flex justify-end" style={{ width: '100%' }}>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm("Are you sure you want to withdraw this request?")) {
+                          await cancelRequest({ id: req._id });
+                        }
+                      }}
+                      className="px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-lg font-bold active:scale-95 transition-all hover:bg-red-100"
+                    >
+                      Withdraw
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}

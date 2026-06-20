@@ -39,6 +39,7 @@ import { SubunitLeadHome } from './pages/mobile/SubunitLeadHome';
 import { DeptHeadHome } from './pages/mobile/DeptHeadHome';
 import { SuperAdminHome } from './pages/mobile/SuperAdminHome';
 import { DeaconHeadHome } from './pages/mobile/DeaconHeadHome';
+import { PastoralHome } from './pages/mobile/PastoralHome';
 import { TimeOffPage as MobileTimeOff } from './pages/mobile/TimeOffPage';
 import { SubunitDetail } from './pages/mobile/SubunitDetail';
 import { ChurchSelector } from './pages/ChurchSelector';
@@ -136,6 +137,7 @@ function AppContent() {
     switch (me?.role) {
       case 'SuperAdmin': return <SuperAdminHome />;
       case 'DeaconHead': return <DeaconHeadHome />;
+      case 'PastoralOversight': return <PastoralHome />;
       case 'DepartmentHead':
       case 'DepartmentAssistant':
       case 'DepartmentSecretary':

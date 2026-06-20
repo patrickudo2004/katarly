@@ -14,12 +14,13 @@ export const SubunitDetail: React.FC = () => {
   
   const subunit = useQuery(api.subunits.getSubunit, { id: subunitId as any });
   const nextService = useQuery(api.services.getNextService);
-  const liveAttendance = useQuery(api.attendance.getServiceAttendance, 
-    nextService ? { serviceId: nextService._id } : "skip"
+  const liveAttendance = useQuery(api.subunits.getLiveAttendance, 
+    nextService && subunitId ? { serviceId: nextService._id, subunitId: subunitId as any } : "skip"
   );
+  const channels = useQuery(api.chat.getChannels);
   
-  // Filter attendance for this specific subunit
-  const subunitAttendance = liveAttendance?.filter(a => a.subunitId === subunitId) || [];
+  const subunitAttendance = liveAttendance || [];
+  const subunitChannel = channels?.find(c => c.type === 'subunit' && c.subunitId === subunitId);
 
   if (subunit === undefined || nextService === undefined) {
     return (
@@ -99,7 +100,13 @@ export const SubunitDetail: React.FC = () => {
 
       <section className={styles.section}>
         <button 
-          onClick={() => navigate('/chat')}
+          onClick={() => {
+            if (subunitChannel) {
+              navigate(`/chat?channelId=${subunitChannel._id}`);
+            } else {
+              navigate('/chat');
+            }
+          }}
           className="w-full py-4 bg-purple-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-200 active:scale-95 transition-all"
         >
           <MessageSquare size={20} />

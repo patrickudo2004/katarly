@@ -227,6 +227,21 @@ export const BorrowRequestForm: React.FC = () => {
               onChange={(e) => setRole(e.target.value)}
               required
             />
+            <div className={styles.chipsContainer}>
+              {['Leader', 'Assistant', 'Operator', 'Supervisor', 'Support'].map(suggestion => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  className={`${styles.chip} ${role === suggestion ? styles.chipActive : ''}`}
+                  onClick={() => setRole(suggestion)}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+            <p className={styles.roleHelpText}>
+              💡 <strong>Cross-Department Access:</strong> Borrowed volunteers are temporarily added to your team. They can view, swap, and accept shifts in your department, and their home leads must approve their release.
+            </p>
           </div>
           <div className={styles.field}>
             <label><Users size={14} /> Number of People</label>

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video, UserPlus } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
 import { BorrowBottomSheet } from '../../components/BorrowBottomSheet';
+import { format } from 'date-fns';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
@@ -24,7 +25,20 @@ export const DeptHeadHome: React.FC = () => {
   );
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const incomingBorrowRequests = useQuery(api.borrow.getIncomingBorrowRequests);
+  
+  // Time off approvals
+  const timeOffRequests = useQuery(api.timeOff.getRequests);
+  const updateTimeOffStatus = useMutation(api.timeOff.updateRequestStatus);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReasonText, setRejectionReasonText] = useState('');
+
+  // Burnout alerts for reports
+  const burnoutAlerts = useQuery(api.reports.getBurnoutAlerts,
+    me?.departmentId ? { departmentId: me.departmentId } : "skip"
+  );
+
   const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   // Loading state
   const isMeLoading = me === undefined;
@@ -64,12 +78,7 @@ export const DeptHeadHome: React.FC = () => {
       )}
 
       {pendingVerifications === undefined ? (
-        <div 
-          className={styles.card} 
-          style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px dashed rgba(139, 92, 246, 0.3)', marginBottom: '1rem', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}
-        >
-          <Loader2 className="animate-spin text-purple-600" size={20} />
-        </div>
+        <div className={styles.skeleton} style={{ height: '80px', marginBottom: '1rem', width: '100%' }} />
       ) : safePendingVerifications.length > 0 ? (
         <div 
           className={styles.card} 
@@ -89,7 +98,7 @@ export const DeptHeadHome: React.FC = () => {
       <div className={styles.grid}>
         <div className={styles.card + ' ' + styles.statCard}>
           {health === undefined ? (
-            <Loader2 className="animate-spin text-purple-600" size={20} />
+            <div className={styles.skeleton} style={{ height: '24px', width: '60px', margin: '0 auto 4px' }} />
           ) : (
             <span className={styles.statValue}>{health?.attendanceRate ?? 0}%</span>
           )}
@@ -97,11 +106,11 @@ export const DeptHeadHome: React.FC = () => {
         </div>
         <div className={styles.card + ' ' + styles.statCard}>
           {health === undefined ? (
-            <Loader2 className="animate-spin text-purple-600" size={20} />
+            <div className={styles.skeleton} style={{ height: '24px', width: '60px', margin: '0 auto 4px' }} />
           ) : (
             <span className={styles.statValue}>{health?.activeProbations ?? 0}</span>
           )}
-          <span className={styles.statLabel}>Active Gaps</span>
+          <span className={styles.statLabel}>Active Probations</span>
         </div>
       </div>
 
@@ -152,7 +161,10 @@ export const DeptHeadHome: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setBorrowSheet('request')}
+            onClick={() => {
+              setSelectedRequestId(null);
+              setBorrowSheet('request');
+            }}
             className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
             style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.06)' }}
           >
@@ -195,7 +207,9 @@ export const DeptHeadHome: React.FC = () => {
           <div className={styles.list}>
             {mySubunits.length === 0 ? (
               <div className={styles.emptyState}>
-                No subunits in your department yet.
+                <Users size={32} className="mb-2 opacity-30" style={{ margin: '0 auto 8px' }} />
+                <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>No Subunits Found</p>
+                <p style={{ margin: 0, fontSize: '0.8125rem' }}>Subunits will appear here once they are added by a Deacon Head.</p>
               </div>
             ) : (
               mySubunits.map((unit) => (
@@ -222,8 +236,8 @@ export const DeptHeadHome: React.FC = () => {
         {activeTab === 'Approvals' && (
           <div className={styles.list}>
             {pendingVerifications === undefined ? (
-              <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
-                <Loader2 className="animate-spin text-purple-600" size={24} />
+              <div className="space-y-3 w-full">
+                <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
               </div>
             ) : safePendingVerifications.length > 0 ? (
               <div 
@@ -244,8 +258,9 @@ export const DeptHeadHome: React.FC = () => {
 
             {/* Live borrow requests */}
             {incomingBorrowRequests === undefined ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '1rem', color: '#6b7280', fontSize: '0.85rem' }}>
-                <Loader2 size={16} className="animate-spin" /> Loading borrow requests…
+              <div className="space-y-3 w-full">
+                <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+                <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
               </div>
             ) : incomingBorrowRequests.length === 0 ? (
               <div className={styles.listItem} style={{ opacity: 0.6 }}>
@@ -259,7 +274,10 @@ export const DeptHeadHome: React.FC = () => {
                 <div
                   key={req._id}
                   className={styles.listItem}
-                  onClick={() => setBorrowSheet('approval')}
+                  onClick={() => {
+                    setSelectedRequestId(req._id);
+                    setBorrowSheet('approval');
+                  }}
                   style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }}
                 >
                   <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
@@ -282,37 +300,166 @@ export const DeptHeadHome: React.FC = () => {
               ))
             )}
 
+            {/* Time off approvals */}
+            {me?.departmentId && (
+              <>
+                <div className={styles.sectionHeader} style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>
+                  <h4 className={styles.sectionTitle}>Time Off Requests</h4>
+                </div>
+                {timeOffRequests === undefined ? (
+                  <div className="space-y-3 w-full">
+                    <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+                  </div>
+                ) : (timeOffRequests.filter(r => r.status === 'Pending' && r.departmentId === me.departmentId).length === 0) ? (
+                  <div className={styles.listItem} style={{ opacity: 0.6 }}>
+                    <div className={styles.itemInfo}>
+                      <p className={styles.itemTitle}>No pending time-off requests</p>
+                      <p className={styles.itemSubtitle}>All time-off requests for your department are reviewed</p>
+                    </div>
+                  </div>
+                ) : (
+                  timeOffRequests
+                    .filter(r => r.status === 'Pending' && r.departmentId === me.departmentId)
+                    .map((req) => (
+                      <div key={req._id} className={styles.listItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyItems: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                          <div className={styles.itemInfo}>
+                            <p className={styles.itemTitle}>{req.userName}</p>
+                            <p className={styles.itemSubtitle}>
+                              {format(req.startDate, 'MMM d')} – {format(req.endDate, 'MMM d, yyyy')}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1" style={{ fontStyle: 'italic' }}>Reason: "{req.reason}"</p>
+                          </div>
+                          <div className={styles.badge} style={{ background: '#fef9c3', color: '#a16207' }}>
+                            Pending
+                          </div>
+                        </div>
+                        
+                        {rejectingRequestId === req._id ? (
+                          <div className="mt-2 space-y-2 w-100">
+                            <input 
+                              type="text" 
+                              placeholder="Reason for rejection (optional)..." 
+                              value={rejectionReasonText}
+                              onChange={(e) => setRejectionReasonText(e.target.value)}
+                              className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 transition-colors"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button 
+                                onClick={() => {
+                                  setRejectingRequestId(null);
+                                  setRejectionReasonText('');
+                                }}
+                                className="px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded-lg font-semibold"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  await updateTimeOffStatus({ id: req._id, status: 'Rejected', rejectionReason: rejectionReasonText });
+                                  setRejectingRequestId(null);
+                                  setRejectionReasonText('');
+                                }}
+                                className="px-3 py-2 text-xs bg-red-600 text-white rounded-lg font-semibold active:scale-95 transition-all"
+                              >
+                                Confirm Reject
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 justify-end mt-2 w-100" style={{ width: '100%' }}>
+                            <button 
+                              onClick={() => setRejectingRequestId(req._id)}
+                              className="px-4 py-2 text-xs bg-red-50 text-red-600 rounded-xl font-bold active:scale-95 transition-all"
+                            >
+                              Reject
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                await updateTimeOffStatus({ id: req._id, status: 'Approved' });
+                              }}
+                              className="px-4 py-2 text-xs bg-green-600 text-white rounded-xl font-bold active:scale-95 transition-all"
+                            >
+                              Approve
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                )}
+              </>
+            )}
+
             {/* Volunteer's own pending assignments */}
             <BorrowAssignmentCard />
           </div>
         )}
-      </section>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        .${styles.tabs} {
-          display: flex;
-          background: var(--bg-secondary);
-          padding: 4px;
-          border-radius: 12px;
-          margin: 1rem 0;
-        }
-        .${styles.tab} {
-          flex: 1;
-          padding: 8px;
-          border: none;
-          background: transparent;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-secondary);
-          border-radius: 8px;
-          cursor: pointer;
-        }
-        .${styles.activeTab} {
-          background: var(--card-bg);
-          color: var(--text-primary);
-          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-      `}} />
+        {activeTab === 'Reports' && (
+          <div className="space-y-6" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className={styles.grid}>
+              <div className={styles.card + ' ' + styles.statCard}>
+                <span className={styles.statValue} style={{ color: '#15803d' }}>{health?.attendanceRate ?? 0}%</span>
+                <span className={styles.statLabel}>Avg Attendance</span>
+              </div>
+              <div className={styles.card + ' ' + styles.statCard}>
+                <span className={styles.statValue}>{health?.volunteerCount ?? 0}</span>
+                <span className={styles.statLabel}>Total Team</span>
+              </div>
+              <div className={styles.card + ' ' + styles.statCard}>
+                <span className={styles.statValue} style={{ color: '#d97706' }}>{health?.activeProbations ?? 0}</span>
+                <span className={styles.statLabel}>Active Probations</span>
+              </div>
+              <div className={styles.card + ' ' + styles.statCard}>
+                <span className={styles.statValue} style={{ color: '#ef4444' }}>{health?.lowKpis ?? 0}</span>
+                <span className={styles.statLabel}>Low KPIs</span>
+              </div>
+            </div>
+
+            <div className={styles.sectionHeader} style={{ marginTop: '0.5rem' }}>
+              <h2 className={styles.sectionTitle}>Burnout & Wellness Warnings</h2>
+            </div>
+            
+            <div className={styles.list}>
+              {burnoutAlerts === undefined ? (
+                <div className="space-y-3 w-full">
+                  <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+                  <div className={styles.skeleton} style={{ height: '72px', width: '100%' }} />
+                </div>
+              ) : burnoutAlerts.length === 0 ? (
+                <div className={styles.emptyState}>
+                  All volunteers are well within safe serving limits.
+                </div>
+              ) : (
+                burnoutAlerts.map((alert: any) => (
+                  <div 
+                    key={alert.userId} 
+                    className={styles.listItem}
+                    style={{ borderLeft: alert.riskLevel === 'high' ? '4px solid #ef4444' : '4px solid #f59e0b' }}
+                  >
+                    <div className={styles.itemInfo}>
+                      <p className={styles.itemTitle}>{alert.name}</p>
+                      <p className={styles.itemSubtitle}>
+                        {alert.subunitName} · {alert.reasons.join(', ')}
+                      </p>
+                    </div>
+                    <div 
+                      className={styles.badge} 
+                      style={{ 
+                        background: alert.riskLevel === 'high' ? '#fee2e2' : '#fef3c7', 
+                        color: alert.riskLevel === 'high' ? '#991b1b' : '#92400e',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {alert.riskLevel} risk
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </section>
       <MobileAssignShiftModal 
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
@@ -323,7 +470,11 @@ export const DeptHeadHome: React.FC = () => {
         <BorrowBottomSheet
           isOpen
           mode={borrowSheet}
-          onClose={() => setBorrowSheet(null)}
+          selectedRequestId={selectedRequestId}
+          onClose={() => {
+            setBorrowSheet(null);
+            setSelectedRequestId(null);
+          }}
         />
       )}
     </div>

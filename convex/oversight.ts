@@ -187,8 +187,7 @@ export const getDepartmentHealth = query({
       // Ideally borrowRequests should also use departmentId
       .collect();
     
-    const dept = await ctx.db.get(args.departmentId);
-    const pendingBorrows = borrowRequests.filter(b => b.status === "pending" && b.targetDept === dept?.name).length;
+    const pendingBorrows = borrowRequests.filter(b => b.status === "pending" && b.targetDeptId === args.departmentId).length;
 
     // 4. KPI Summary (Needs Improvement / Disapprove)
     const kpis = await ctx.db.query("kpiLogs").collect();

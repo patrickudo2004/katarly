@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from "convex/react";
+import { useSearchParams } from 'react-router-dom';
 import { api } from "../../convex/_generated/api";
 import { 
   Send, 
@@ -16,6 +17,9 @@ import { format } from 'date-fns';
 import styles from './ChatPage.module.css';
 
 export const ChatPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const channelParam = searchParams.get('channelId');
+
   const channels = useQuery(api.chat.getChannels);
   const [selectedChannelId, setSelectedChannelId] = useState<any>(null);
   const [isMobileRoomActive, setIsMobileRoomActive] = useState(false);
@@ -40,10 +44,15 @@ export const ChatPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (channels && channels.length > 0 && !selectedChannelId) {
-      setSelectedChannelId(channels[0]._id);
+    if (channels && channels.length > 0) {
+      if (channelParam && channels.some(c => c._id === channelParam)) {
+        setSelectedChannelId(channelParam);
+        setIsMobileRoomActive(true);
+      } else if (!selectedChannelId) {
+        setSelectedChannelId(channels[0]._id);
+      }
     }
-  }, [channels, selectedChannelId]);
+  }, [channels, selectedChannelId, channelParam]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video, UserPlus, ArrowRightLeft } from 'lucide-react';
+import { Users, QrCode, MessageSquare, Loader2, MapPin, ShieldAlert, ChevronRight, Calendar, RefreshCw, Video, UserPlus, ArrowRightLeft, BarChart3 } from 'lucide-react';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ export const SubunitLeadHome: React.FC = () => {
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const incomingBorrows = useQuery(api.borrow.getIncomingBorrowRequests);
   
   // Find the subunit this user leads
@@ -201,9 +202,23 @@ export const SubunitLeadHome: React.FC = () => {
             <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
           </button>
 
+          <button 
+            onClick={() => navigate('/reports')}
+            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            style={{ border: '1px solid rgba(59, 130, 246, 0.2)', background: 'rgba(59, 130, 246, 0.02)' }}
+          >
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+              <BarChart3 size={20} />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">View Subunit Reports</span>
+          </button>
+
           {/* Request help from another subunit */}
           <button
-            onClick={() => setBorrowSheet('request')}
+            onClick={() => {
+              setSelectedRequestId(null);
+              setBorrowSheet('request');
+            }}
             className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
             style={{ border: '1px solid rgba(139, 92, 246, 0.25)', background: 'rgba(139, 92, 246, 0.04)' }}
           >
@@ -237,7 +252,10 @@ export const SubunitLeadHome: React.FC = () => {
                 key={req._id}
                 className={styles.listItem}
                 style={{ borderLeft: '4px solid #8b5cf6', cursor: 'pointer' }}
-                onClick={() => setBorrowSheet('approval')}
+                onClick={() => {
+                  setSelectedRequestId(req._id);
+                  setBorrowSheet('approval');
+                }}
               >
                 <div className={styles.itemIcon} style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
                   <ArrowRightLeft size={18} />
@@ -271,7 +289,11 @@ export const SubunitLeadHome: React.FC = () => {
         </div>
       </section>
 
-      <button className={styles.floatingBtn} onClick={() => navigate('/attendance')}>
+      <button 
+        className={styles.floatingBtn} 
+        onClick={() => navigate('/attendance')}
+        aria-label="Check In QR Scan"
+      >
         <QrCode size={24} />
       </button>
 
@@ -285,7 +307,11 @@ export const SubunitLeadHome: React.FC = () => {
         <BorrowBottomSheet
           isOpen
           mode={borrowSheet}
-          onClose={() => setBorrowSheet(null)}
+          selectedRequestId={selectedRequestId}
+          onClose={() => {
+            setBorrowSheet(null);
+            setSelectedRequestId(null);
+          }}
         />
       )}
     </div>

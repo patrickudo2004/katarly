@@ -44,6 +44,8 @@ export const getRequests = query({
         ...req,
         userName: requester?.name || requester?.email || "Unknown",
         userRole: requester?.role || "Volunteer",
+        departmentId: requester?.departmentId,
+        subunitId: requester?.subunitId,
       };
     }));
   },
@@ -53,6 +55,7 @@ export const updateRequestStatus = mutation({
   args: {
     id: v.id("timeOffRequests"),
     status: v.union(v.literal("Approved"), v.literal("Rejected")),
+    rejectionReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -82,6 +85,22 @@ export const updateRequestStatus = mutation({
       status: args.status,
       reviewedBy: userId,
       reviewedAt: Date.now(),
+      rejectionReason: args.rejectionReason,
     });
+  },
+});
+
+export const cancelRequest = mutation({
+  args: { id: v.id("timeOffRequests") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    
+    const request = await ctx.db.get(args.id);
+    if (!request) throw new Error("Time off request not found");
+    if (request.userId !== userId) throw new Error("Unauthorized");
+    if (request.status !== "Pending") throw new Error("Only pending requests can be cancelled");
+    
+    await ctx.db.delete(args.id);
   },
 });

@@ -115,7 +115,7 @@ export const createBorrowRequest = mutation({
       status: "pending",
     });
 
-    const requestingDept = await ctx.db.get(currentUser.departmentId!);
+    const requestingDept = (await ctx.db.get(currentUser.departmentId!)) as any;
     const scopeLabel =
       args.borrowType === "intra_dept"
         ? "your subunit"

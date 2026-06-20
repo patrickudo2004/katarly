@@ -46,6 +46,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
             className="relative p-2 rounded-full"
             style={{ color: 'var(--text-secondary)', transition: 'background-color 0.2s' }}
             onClick={() => setShowNotifications(!showNotifications)}
+            aria-label="Notifications"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -57,6 +58,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
           <button 
             className={styles.userTrigger}
             onClick={() => setShowUserMenu(!showUserMenu)}
+            aria-label="User Menu"
           >
             <div className={styles.avatar}>{user?.name?.[0] || '?'}</div>
             <ChevronDown size={14} className={styles.chevron} />

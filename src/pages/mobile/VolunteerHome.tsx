@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Calendar, MapPin, QrCode, Loader2, RefreshCw, TrendingUp } from 'lucide-react';
+import { Calendar, MapPin, QrCode, Loader2, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { MeetingCard } from '../../components/MeetingCard';
@@ -55,6 +55,34 @@ export const VolunteerHome: React.FC = () => {
     <div className={styles.page}>
       {/* Borrow assignments — shown prominently at top when pending */}
       <BorrowAssignmentCard />
+
+      {me?.role === "OnNotice" && (
+        <section className={styles.section}>
+          <div 
+            className={styles.card}
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 191, 36, 0.08) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              padding: '1.25rem',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="text-amber-600" style={{ display: 'flex' }}><AlertCircle size={20} /></span>
+                <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)' }}>Important Status Update</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 750, color: '#d97706', background: 'rgba(245, 158, 11, 0.1)', padding: '0.25rem 0.50rem', borderRadius: '9999px', textTransform: 'uppercase' }}>On Notice</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              Your account has been placed 'On Notice' due to recent attendance patterns. Please contact your department lead or subunit lead as soon as possible to resolve any issues.
+            </p>
+          </div>
+        </section>
+      )}
 
       {me?.role === "Probation" && (
         <section className={styles.section}>
@@ -187,7 +215,11 @@ export const VolunteerHome: React.FC = () => {
         </div>
       </section>
 
-      <button className={styles.floatingBtn} onClick={() => navigate('/attendance')}>
+      <button 
+        className={styles.floatingBtn} 
+        onClick={() => navigate('/attendance')}
+        aria-label="Check In QR Code"
+      >
         <QrCode size={24} />
       </button>
 

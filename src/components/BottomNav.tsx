@@ -46,7 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
         { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-        { icon: <Heart size={24} />, label: 'Oversight', path: '/' },
+        { icon: <Heart size={24} />, label: 'Oversight', path: '/reports' },
       ];
     }
 
@@ -56,7 +56,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
         { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-        { icon: <User size={24} />, label: 'Profile', path: '/profile' },
+        { icon: <Calendar size={24} />, label: 'Rota', path: '/rota' },
       ];
     }
 
@@ -66,7 +66,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
         { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-        { icon: <User size={24} />, label: 'Profile', path: '/profile' },
+        { icon: <Calendar size={24} />, label: 'Rota', path: '/rota' },
       ];
     }
 
@@ -76,7 +76,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
       { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
       { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
       { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-      { icon: <User size={24} />, label: 'Profile', path: '/profile' },
+      { icon: <Calendar size={24} />, label: 'Rota', path: '/rota' },
     ];
   };
 

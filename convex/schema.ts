@@ -372,6 +372,7 @@ export default defineSchema({
     status: v.union(v.literal("Pending"), v.literal("Approved"), v.literal("Rejected")),
     reviewedBy: v.optional(v.id("users")),
     reviewedAt: v.optional(v.number()),
+    rejectionReason: v.optional(v.string()),
   }).index("by_user", ["userId"])
     .index("by_church", ["churchId"])
     .index("by_church_status", ["churchId", "status"]),
