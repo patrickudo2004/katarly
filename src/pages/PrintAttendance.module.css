@@ -288,5 +288,74 @@
   
   .leftSection {
     background: white;
+    padding: 1.25rem !important;
+  }
+
+  .rightSection {
+    padding: 1.25rem !important;
+  }
+
+  .logo {
+    height: 45px !important;
+  }
+
+  .qrWrapper {
+    padding: 0.5rem !important;
+  }
+
+  .qrWrapper svg {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 120px !important;
+  }
+
+  .qrInstruction {
+    margin-top: 0.5rem !important;
+  }
+
+  .mainTitle {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .mainTitle h2 {
+    font-size: 1.75rem !important;
+  }
+
+  .dateInfo {
+    margin-bottom: 0.75rem !important;
+  }
+
+  .value {
+    font-size: 1rem !important;
+  }
+
+  .servicesList {
+    padding-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .listHeader {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .servicesGrid {
+    gap: 0.5rem !important;
+  }
+
+  .serviceItem {
+    padding: 0.35rem 0.75rem !important;
+  }
+
+  .serviceName {
+    font-size: 0.8rem !important;
+  }
+
+  .serviceTime {
+    font-size: 0.7rem !important;
+  }
+
+  .footer {
+    padding-top: 0.75rem !important;
   }
 }
+
