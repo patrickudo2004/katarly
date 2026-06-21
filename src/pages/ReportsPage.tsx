@@ -50,12 +50,14 @@ export const ReportsPage: React.FC = () => {
   const isDeptLevel = ['DeaconHead', 'PastoralOversight', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary'].includes(me?.role || '');
   const isSubunitLevel = ['SubunitLead', 'SubunitAssistant'].includes(me?.role || '');
 
+  const hasAdminAccess = me !== undefined && (isSuperAdmin || isDeptLevel);
+
   // Fetch new operational report data
   const liveCoverage = useQuery(api.reports.getLiveFloorCoverage, { departmentId: deptId as any });
   const burnoutAlerts = useQuery(api.reports.getBurnoutAlerts, { departmentId: deptId as any, subunitId: subunitId as any });
-  const safeguardingLogs = useQuery(api.reports.getSafeguardingAudit, { departmentId: deptId as any });
+  const safeguardingLogs = useQuery(api.reports.getSafeguardingAudit, hasAdminAccess ? { departmentId: deptId as any } : "skip");
   const leaderboards = useQuery(api.reports.getSubunitLeaderboards);
-  const probationList = useQuery(api.reports.getProbationStatusList, { departmentId: deptId as any });
+  const probationList = useQuery(api.reports.getProbationStatusList, hasAdminAccess ? { departmentId: deptId as any } : "skip");
   const meetingAnalytics = useQuery(api.reports.getMeetingAnalytics, {
     rangeDays,
     departmentId: deptId as any,
@@ -314,24 +316,28 @@ export const ReportsPage: React.FC = () => {
         >
           <Activity size={18} /> Wellness Warnings
         </button>
-        <button 
-          className={activeTab === 'compliance' ? styles.activeTab : ''} 
-          onClick={() => setActiveTab('compliance')}
-        >
-          <Shield size={18} /> Compliance Logs
-        </button>
+        {hasAdminAccess && (
+          <button 
+            className={activeTab === 'compliance' ? styles.activeTab : ''} 
+            onClick={() => setActiveTab('compliance')}
+          >
+            <Shield size={18} /> Compliance Logs
+          </button>
+        )}
         <button 
           className={activeTab === 'leaderboard' ? styles.activeTab : ''} 
           onClick={() => setActiveTab('leaderboard')}
         >
           <Award size={18} /> Leaderboards
         </button>
-        <button 
-          className={activeTab === 'probation' ? styles.activeTab : ''} 
-          onClick={() => setActiveTab('probation')}
-        >
-          <Users size={18} /> Probation Tracker
-        </button>
+        {hasAdminAccess && (
+          <button 
+            className={activeTab === 'probation' ? styles.activeTab : ''} 
+            onClick={() => setActiveTab('probation')}
+          >
+            <Users size={18} /> Probation Tracker
+          </button>
+        )}
         <button 
           className={activeTab === 'meetings' ? styles.activeTab : ''} 
           onClick={() => setActiveTab('meetings')}

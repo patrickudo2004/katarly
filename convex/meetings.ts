@@ -418,7 +418,8 @@ export const getMeetingsForUser = query({
       });
     }
 
-    return results;
+    // Sort by startTime descending so latest meetings show at the top
+    return results.sort((a, b) => b.startTime - a.startTime);
   },
 });
 

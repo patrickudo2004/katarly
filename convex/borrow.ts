@@ -33,6 +33,10 @@ export const createBorrowRequest = mutation({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
 
+    if (!currentUser.departmentId) {
+      throw new Error("You must have an assigned department in your profile to request team help.");
+    }
+
     // Auth: who can request what
     const canInterDept =
       currentUser.role === "SuperAdmin" ||

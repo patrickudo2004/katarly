@@ -163,54 +163,54 @@ export const SubunitLeadHome: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/time-off')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <Calendar size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Request Time Off</span>
+            <span className={styles.actionBtnGridText}>Request Time Off</span>
           </button>
           
           <button 
             onClick={() => navigate('/marketplace')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
               <RefreshCw size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Shift Marketplace</span>
+            <span className={styles.actionBtnGridText}>Shift Marketplace</span>
           </button>
 
           <button 
             onClick={() => navigate('/meetings?create=true')}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnRow}
           >
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <Video size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Schedule Subunit Meeting</span>
+            <span className={styles.actionBtnRowText}>Schedule Subunit Meeting</span>
           </button>
 
           <button 
             onClick={() => setIsAssignModalOpen(true)}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
-            style={{ border: '1px solid rgba(139, 92, 246, 0.2)', background: 'rgba(139, 92, 246, 0.02)' }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.05)' }}
           >
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <UserPlus size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
+            <span className={styles.actionBtnRowText}>Assign Team Shift</span>
           </button>
 
           <button 
             onClick={() => navigate('/reports')}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
-            style={{ border: '1px solid rgba(59, 130, 246, 0.2)', background: 'rgba(59, 130, 246, 0.02)' }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(59, 130, 246, 0.3)', background: 'rgba(59, 130, 246, 0.05)' }}
           >
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
               <BarChart3 size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">View Subunit Reports</span>
+            <span className={styles.actionBtnRowText}>View Subunit Reports</span>
           </button>
 
           {/* Request help from another subunit */}
@@ -219,13 +219,13 @@ export const SubunitLeadHome: React.FC = () => {
               setSelectedRequestId(null);
               setBorrowSheet('request');
             }}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
-            style={{ border: '1px solid rgba(139, 92, 246, 0.25)', background: 'rgba(139, 92, 246, 0.04)' }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(139, 92, 246, 0.35)', background: 'rgba(139, 92, 246, 0.06)' }}
           >
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <ArrowRightLeft size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Request Team Help</span>
+            <span className={styles.actionBtnRowText}>Request Team Help</span>
           </button>
         </div>
       </section>

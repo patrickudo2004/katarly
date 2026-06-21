@@ -188,7 +188,20 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }
         </div>
 
         <h3 className={styles.title}>{meeting.name}</h3>
-        {meeting.description && <p className={styles.description}>{meeting.description}</p>}
+        {meeting.description && (
+          <p className={styles.description}>
+            {meeting.description.length > 120 ? (
+              <>
+                {meeting.description.slice(0, 120)}...{' '}
+                <span className={styles.readMore} style={{ color: '#8b5cf6', fontWeight: 600 }}>
+                  Read More
+                </span>
+              </>
+            ) : (
+              meeting.description
+            )}
+          </p>
+        )}
 
         <div className={styles.details}>
           <div className={styles.detailItem}>

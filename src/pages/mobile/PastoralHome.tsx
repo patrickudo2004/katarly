@@ -105,32 +105,32 @@ export const PastoralHome: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/chat')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-green-50 text-green-700 rounded-xl">
               <MessageSquare size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Pastoral Chat</span>
+            <span className={styles.actionBtnGridText}>Pastoral Chat</span>
           </button>
           
           <button 
             onClick={() => navigate('/reports')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <ClipboardList size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">View Reports</span>
+            <span className={styles.actionBtnGridText}>View Reports</span>
           </button>
 
           <button 
             onClick={() => navigate('/rota')}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnRow}
           >
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <Calendar size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">View Department Rota</span>
+            <span className={styles.actionBtnRowText}>View Department Rota</span>
           </button>
         </div>
       </section>

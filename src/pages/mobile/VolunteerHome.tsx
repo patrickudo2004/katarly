@@ -178,22 +178,22 @@ export const VolunteerHome: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/time-off')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <Calendar size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Request Time Off</span>
+            <span className={styles.actionBtnGridText}>Request Time Off</span>
           </button>
           
           <button 
             onClick={() => navigate('/marketplace')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
               <RefreshCw size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Shift Marketplace</span>
+            <span className={styles.actionBtnGridText}>Shift Marketplace</span>
           </button>
         </div>
       </section>

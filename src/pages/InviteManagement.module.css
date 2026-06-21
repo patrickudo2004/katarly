@@ -145,3 +145,14 @@
     font-size: 1.25rem;
   }
 }
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main {
+  min-width: 0;
+  width: 100%;
+}

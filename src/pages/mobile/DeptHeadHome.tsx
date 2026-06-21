@@ -121,43 +121,43 @@ export const DeptHeadHome: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/chat')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
               <MessageSquare size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Dept Chat</span>
+            <span className={styles.actionBtnGridText}>Dept Chat</span>
           </button>
           
           <button 
             onClick={() => navigate('/attendance')}
-            className="flex flex-col items-center gap-2 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnGrid}
           >
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <ClipboardList size={20} />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Attendance</span>
+            <span className={styles.actionBtnGridText}>Attendance</span>
           </button>
 
           <button 
             onClick={() => navigate('/meetings?create=true')}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnRow}
           >
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <Video size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Schedule Department Meeting</span>
+            <span className={styles.actionBtnRowText}>Schedule Department Meeting</span>
           </button>
 
           <button 
             onClick={() => setIsAssignModalOpen(true)}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
-            style={{ border: '1px solid rgba(139, 92, 246, 0.2)', background: 'rgba(139, 92, 246, 0.02)' }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.05)' }}
           >
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <UserPlus size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Assign Team Shift</span>
+            <span className={styles.actionBtnRowText}>Assign Team Shift</span>
           </button>
 
           <button
@@ -165,13 +165,13 @@ export const DeptHeadHome: React.FC = () => {
               setSelectedRequestId(null);
               setBorrowSheet('request');
             }}
-            className="col-span-2 flex items-center justify-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all"
+            className={styles.actionBtnRow}
             style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.06)' }}
           >
             <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
               <ArrowRightLeft size={20} />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Request Team Help</span>
+            <span className={styles.actionBtnRowText}>Request Team Help</span>
           </button>
         </div>
       </section>

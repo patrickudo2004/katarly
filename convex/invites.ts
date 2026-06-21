@@ -145,17 +145,34 @@ export const acceptInvite = mutation({
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .unique();
 
-    if (!invite || invite.status !== "pending") throw new Error("Invalid or expired invite");
-    if (invite.expiresAt < Date.now()) {
-      await ctx.db.patch(invite._id, { status: "expired" });
-      throw new Error("Invite has expired");
-    }
-
+    if (!invite) throw new Error("Invalid invite");
+    
     const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Please sign in to accept invite");
 
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
+
+    // Idempotency: if the invite is already accepted, check if the current user has a membership.
+    if (invite.status === "accepted") {
+      const existingMembership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_church", (q) => q.eq("userId", userId).eq("churchId", invite.churchId))
+        .unique();
+      if (existingMembership) {
+        return { success: true, alreadyMember: true };
+      }
+      throw new Error("This invite has already been redeemed.");
+    }
+
+    if (invite.status !== "pending") {
+      throw new Error("This invite is no longer valid.");
+    }
+
+    if (invite.expiresAt < Date.now()) {
+      await ctx.db.patch(invite._id, { status: "expired" });
+      throw new Error("Invite has expired");
+    }
 
     const existingMembership = await ctx.db
       .query("memberships")
@@ -298,7 +315,9 @@ export const getInvites = query({
       .filter((q) => q.eq(q.field("churchId"), user.churchId))
       .collect();
 
-    return Promise.all(invites.map(async (invite) => {
+    const sortedInvites = invites.sort((a, b) => b._creationTime - a._creationTime);
+
+    return Promise.all(sortedInvites.map(async (invite) => {
       const dept = invite.departmentId ? await ctx.db.get(invite.departmentId) : null;
       const sub = invite.subunitId ? await ctx.db.get(invite.subunitId) : null;
       return {

@@ -23,6 +23,12 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+const cleanErrorMessage = (msg: string) => {
+  if (!msg) return "Attendance marking failed";
+  const match = msg.match(/Server Error:\s*(.+)$/i) || msg.match(/Error:\s*(.+)$/i);
+  return match ? match[1].trim() : msg;
+};
+
 export const AttendancePage: React.FC = () => {
   const navigate = useNavigate();
   const church = useQuery(api.churches.getMyChurch);
@@ -173,7 +179,7 @@ export const AttendancePage: React.FC = () => {
         setStep('success');
       }
     } catch (err: any) {
-      setError(err.message || "Attendance marking failed");
+      setError(cleanErrorMessage(err.message));
     } finally {
       setIsProcessing(false);
     }
@@ -320,24 +326,59 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       <div className={styles.serviceList}>
-        {todayServices?.map(service => (
-          <button 
-            key={service._id} 
-            className={styles.serviceItem}
-            onClick={() => handleCheckIn(service._id)}
-            disabled={isProcessing}
-          >
-            <div className={styles.serviceTime}>
-              <Clock size={16} />
-              <span>{format(new Date(service.startTime), 'HH:mm')}</span>
-            </div>
-            <div className={styles.serviceInfo}>
-              <h3>{service.name}</h3>
-              <p>Scan verified</p>
-            </div>
-            {isProcessing ? <Loader2 className="animate-spin" size={20} /> : <ChevronRight size={20} />}
-          </button>
-        ))}
+        {todayServices?.map(service => {
+          const windowMinutes = church?.settings?.attendanceWindowMinutes || 30;
+          const windowMs = windowMinutes * 60 * 1000;
+          const nowTime = Date.now();
+          const isUpcoming = nowTime < service.startTime - windowMs;
+          const isEnded = nowTime > service.endTime + windowMs;
+          const isOpen = !isUpcoming && !isEnded;
+
+          return (
+            <button 
+              key={service._id} 
+              className={styles.serviceItem}
+              onClick={() => handleCheckIn(service._id)}
+              disabled={isProcessing || !isOpen}
+              style={{ display: 'flex', alignItems: 'center', width: '100%' }}
+            >
+              <div className={styles.serviceTime}>
+                <Clock size={16} />
+                <span>{format(new Date(service.startTime), 'HH:mm')}</span>
+              </div>
+              <div className={styles.serviceInfo} style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>{service.name}</h3>
+                  {isOpen && (
+                    <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', backgroundColor: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #bbf7d0' }}>
+                      Open
+                    </span>
+                  )}
+                  {isUpcoming && (
+                    <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', backgroundColor: '#ffedd5', color: '#c2410c', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #fed7aa' }}>
+                      Upcoming
+                    </span>
+                  )}
+                  {isEnded && (
+                    <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', backgroundColor: '#f3f4f6', color: '#6b7280', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #e5e7eb' }}>
+                      Closed
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px', marginBottom: 0 }}>
+                  {isOpen && "Scan verified • Tap to check in"}
+                  {isUpcoming && `Check-in opens at ${format(new Date(service.startTime - windowMs), 'HH:mm')}`}
+                  {isEnded && `Closed at ${format(new Date(service.endTime + windowMs), 'HH:mm')}`}
+                </p>
+              </div>
+              {isProcessing ? (
+                <Loader2 className="animate-spin" size={20} style={{ color: '#8b5cf6' }} />
+              ) : (
+                <ChevronRight size={20} style={{ color: isOpen ? '#8b5cf6' : 'var(--text-secondary)', opacity: isOpen ? 1 : 0.5 }} />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <p className={styles.hint}>

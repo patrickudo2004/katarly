@@ -26,6 +26,7 @@ export const CreateChurch: React.FC = () => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const acceptInvite = useMutation(api.invites.acceptInvite);
   const [isJoining, setIsJoining] = useState(false);
+  const memberships = useQuery(api.users.getMyMemberships);
 
   React.useEffect(() => {
     const pendingToken = localStorage.getItem('pending_invite_token');
@@ -40,11 +41,16 @@ export const CreateChurch: React.FC = () => {
           console.error("Auto-accept failed:", error);
           localStorage.removeItem('pending_invite_token');
           setIsJoining(false);
+          if (memberships && memberships.length > 0) {
+            window.location.href = '/';
+          }
         }
       };
       autoAccept();
+    } else if (memberships && memberships.length > 0) {
+      window.location.href = '/';
     }
-  }, [acceptInvite]);
+  }, [acceptInvite, memberships]);
 
   React.useEffect(() => {
     if (window.google && inputRef.current && !autoCompleteRef.current) {
