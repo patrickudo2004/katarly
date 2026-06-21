@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import styles from './AttendanceScanner.module.css';
 import { MapPin, Camera, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -11,12 +13,15 @@ interface AttendanceScannerProps {
 export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, isProcessing }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>("You have been successfully checked in.");
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
   const [isInitializing, setIsInitializing] = useState<boolean>(false);
   
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const locationRef = useRef<GeolocationPosition | null>(null);
+
+  const verifyAndMarkCheckIn = useMutation(api.attendance.verifyAndMarkCheckIn);
 
   // Update locationRef whenever location changes
   useEffect(() => {
@@ -67,11 +72,32 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
         async (decodedText) => {
           if (isProcessing) return;
           
-          // We no longer block on GPS. We pass null if not available.
           try {
-            await onScan(decodedText, locationRef.current || undefined as any);
-            setSuccess(true);
-            stopScanner();
+            let isPersonalPass = false;
+            let parsed: any = null;
+            try {
+              parsed = JSON.parse(decodedText);
+              if (parsed && typeof parsed === 'object' && 'userId' in parsed && 'token' in parsed) {
+                isPersonalPass = true;
+              }
+            } catch (jsonErr) {
+              // Not a JSON payload, fall back to standard scan
+            }
+
+            if (isPersonalPass && parsed) {
+              await verifyAndMarkCheckIn({
+                targetUserId: parsed.userId,
+                token: parsed.token
+              });
+              setSuccessMessage("Volunteer check-in completed successfully.");
+              setSuccess(true);
+              await stopScanner();
+            } else {
+              await onScan(decodedText, locationRef.current || undefined as any);
+              setSuccessMessage("You have been successfully checked in.");
+              setSuccess(true);
+              await stopScanner();
+            }
           } catch (err: any) {
             setError(err.message || "Failed to check in");
           }
@@ -132,7 +158,7 @@ export const AttendanceScanner: React.FC<AttendanceScannerProps> = ({ onScan, is
         <div className={styles.success}>
           <CheckCircle2 size={40} />
           <h3>Check-In Successful!</h3>
-          <p>You have been successfully checked in.</p>
+          <p>{successMessage}</p>
           <button onClick={() => setSuccess(false)} className={styles.resetBtn}>Scan Another</button>
         </div>
       )}

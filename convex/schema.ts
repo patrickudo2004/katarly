@@ -61,6 +61,7 @@ export default defineSchema({
       swapRequests: v.optional(v.boolean()),
       timeOffRequests: v.optional(v.boolean()),
     })),
+    tempCheckInToken: v.optional(v.string()),
   }).index("email", ["email"])
     .index("by_church", ["churchId"])
     .index("by_status", ["status"])

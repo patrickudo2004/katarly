@@ -573,3 +573,147 @@ export const getLatestVerificationStatus = query({
     return request;
   },
 });
+
+export const generateCheckInToken = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    
+    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const token = `${randomPart}:${Date.now()}`;
+    await ctx.db.patch(userId, { tempCheckInToken: token });
+    return token;
+  },
+});
+
+export const verifyAndMarkCheckIn = mutation({
+  args: {
+    targetUserId: v.id("users"),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const scannerId = await auth.getUserId(ctx);
+    if (!scannerId) throw new Error("Not authenticated");
+
+    const scannerUser = await ctx.db.get(scannerId);
+    if (!scannerUser) throw new Error("Scanner not found");
+
+    // 1. Verify that scanner has a supervisor role (>= SubunitLead or SubunitAssistant)
+    const supervisorRoles = [
+      "SuperAdmin",
+      "DeaconHead",
+      "PastoralOversight",
+      "DepartmentHead",
+      "DepartmentAssistant",
+      "DepartmentSecretary",
+      "SubunitLead",
+      "SubunitAssistant"
+    ];
+    if (!scannerUser.role || !supervisorRoles.includes(scannerUser.role)) {
+      throw new Error("Unauthorized: Only leaders and supervisors can scan QR passes");
+    }
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser) throw new Error("Target user not found");
+
+    // 2. Verify target volunteer belongs to the same church as the scanner
+    if (!scannerUser.churchId) {
+      throw new Error("Scanner has no church assigned");
+    }
+    if (!targetUser.churchId) {
+      throw new Error("Volunteer has no church assigned");
+    }
+    if (targetUser.churchId !== scannerUser.churchId) {
+      throw new Error("Unauthorized: Volunteer is not in your church");
+    }
+
+    // 3. Match token and verify timestamp (< 5 minutes old)
+    if (!targetUser.tempCheckInToken || targetUser.tempCheckInToken !== args.token) {
+      throw new Error("Invalid or expired check-in pass");
+    }
+
+    const parts = args.token.split(":");
+    if (parts.length < 2) {
+      throw new Error("Malformed check-in token");
+    }
+    const timestamp = parseInt(parts[1], 10);
+    if (isNaN(timestamp) || Date.now() - timestamp > 5 * 60 * 1000) {
+      throw new Error("Check-in token has expired");
+    }
+
+    // 4. Retrieve active service starting in next 2 hours or started in last 30 minutes
+    const nowMs = Date.now();
+    const minStartTime = nowMs - 30 * 60 * 1000;
+    const maxStartTime = nowMs + 2 * 60 * 60 * 1000;
+
+    const services = await ctx.db
+      .query("services")
+      .withIndex("by_church", (q) => q.eq("churchId", scannerUser.churchId!))
+      .filter((q) =>
+        q.and(
+          q.gte(q.field("startTime"), minStartTime),
+          q.lte(q.field("startTime"), maxStartTime)
+        )
+      )
+      .collect();
+
+    if (services.length === 0) {
+      throw new Error("No active service found starting in the next 2 hours or started in the last 30 minutes");
+    }
+
+    // Sort by proximity to nowMs
+    services.sort((a, b) => Math.abs(a.startTime - nowMs) - Math.abs(b.startTime - nowMs));
+    const activeService = services[0];
+
+    // 5. Check if already checked in
+    const existing = await ctx.db
+      .query("attendance")
+      .withIndex("by_service", (q) => q.eq("serviceId", activeService._id))
+      .filter((q) => q.eq(q.field("userId"), args.targetUserId))
+      .first();
+
+    if (existing) {
+      // Clear token and return existing attendance id
+      await ctx.db.patch(args.targetUserId, { tempCheckInToken: undefined });
+      return existing._id;
+    }
+
+    // 6. Determine department and subunit from Rota (or fallback to profile)
+    const rotaEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_service_user", (q) => q.eq("serviceId", activeService._id).eq("userId", args.targetUserId))
+      .first();
+
+    const departmentId = rotaEntry?.departmentId || targetUser.departmentId || undefined;
+    const subunitId = rotaEntry?.subunitId || targetUser.subunitId || undefined;
+
+    // Determine status (Late if current time is service.startTime + lateThresholdMinutes)
+    const church = await ctx.db.get(scannerUser.churchId);
+    const lateThresholdMinutes = church?.settings?.lateThresholdMinutes ?? 15;
+    const status = nowMs > activeService.startTime + lateThresholdMinutes * 60 * 1000 ? "Late" : "Present";
+
+    // Insert attendance record
+    const attendanceId = await ctx.db.insert("attendance", {
+      serviceId: activeService._id,
+      userId: args.targetUserId,
+      churchId: scannerUser.churchId!,
+      departmentId,
+      subunitId,
+      timestamp: nowMs,
+      status,
+      method: "Supervisor QR Scan",
+      markedById: scannerId,
+      verifiedById: scannerId,
+    });
+
+    // Check milestones
+    await checkMilestonesInternal(ctx, args.targetUserId);
+
+    // 7. Clear check-in token on successful check-in
+    await ctx.db.patch(args.targetUserId, { tempCheckInToken: undefined });
+
+    return attendanceId;
+  },
+});
+
