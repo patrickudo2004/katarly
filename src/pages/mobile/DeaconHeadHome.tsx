@@ -7,6 +7,7 @@ import {
   ChevronRight, Loader2, CheckCircle, Users, ClipboardList, UserPlus
 } from 'lucide-react';
 import { MeetingCard } from '../../components/MeetingCard';
+import { UpcomingShiftsCard } from '../../components/UpcomingShiftsCard';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
@@ -105,6 +106,8 @@ export const DeaconHeadHome: React.FC = () => {
           </div>
         ))}
       </div>
+
+      <UpcomingShiftsCard />
 
       {/* Tabs */}
       <div style={{

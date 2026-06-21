@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
 import { BorrowBottomSheet } from '../../components/BorrowBottomSheet';
+import { UpcomingShiftsCard } from '../../components/UpcomingShiftsCard';
 import { format } from 'date-fns';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
@@ -113,6 +114,8 @@ export const DeptHeadHome: React.FC = () => {
           <span className={styles.statLabel}>Active Probations</span>
         </div>
       </div>
+
+      <UpcomingShiftsCard />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

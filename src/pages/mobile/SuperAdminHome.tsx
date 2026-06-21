@@ -5,6 +5,7 @@ import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
 import { LayoutGrid, Users, TrendingUp, ShieldCheck, ChevronRight, Loader2, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
+import { UpcomingShiftsCard } from '../../components/UpcomingShiftsCard';
 import styles from './mobile.module.css';
 import { MobileAssignShiftModal } from '../../components/MobileAssignShiftModal';
 
@@ -75,6 +76,8 @@ export const SuperAdminHome: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <UpcomingShiftsCard />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

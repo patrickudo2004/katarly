@@ -419,4 +419,26 @@ export const assignUserToShift = mutation({
   },
 });
 
+export const confirmShift = mutation({
+  args: { rotaId: v.id("rotas") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const rota = await ctx.db.get(args.rotaId);
+    if (!rota) throw new Error("Rota entry not found");
+
+    if (rota.userId !== userId) {
+      throw new Error("Unauthorized: You can only confirm shifts assigned to you.");
+    }
+
+    await ctx.db.patch(args.rotaId, {
+      status: "Confirmed",
+    });
+
+    return args.rotaId;
+  },
+});
+
+
 

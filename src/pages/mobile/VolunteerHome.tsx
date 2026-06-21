@@ -7,13 +7,13 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { MeetingCard } from '../../components/MeetingCard';
 import { MemberProfileModal } from '../../components/MemberProfileModal';
 import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
+import { UpcomingShiftsCard } from '../../components/UpcomingShiftsCard';
 import styles from './mobile.module.css';
 
 export const VolunteerHome: React.FC = () => {
   const navigate = useNavigate();
   const me = useQuery(api.users.me);
   const nextService = useQuery(api.services.getNextService);
-  const myShifts = useQuery(api.rotas.getMyShifts);
   const church = useQuery(api.churches.getMyChurch);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -26,7 +26,6 @@ export const VolunteerHome: React.FC = () => {
     );
   }
 
-  const safeMyShifts = myShifts || [];
   const now = Date.now();
   const activeMeetings = (meetings || []).filter((meeting: any) => 
     now >= meeting.startTime - 15 * 60 * 1000 && 
@@ -132,44 +131,7 @@ export const VolunteerHome: React.FC = () => {
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Upcoming Shifts</h2>
-        </div>
-        <div className={styles.list}>
-          {myShifts === undefined ? (
-            <div className="flex items-center justify-center py-8 bg-white border border-gray-100 rounded-2xl">
-              <Loader2 className="animate-spin text-purple-600" size={24} />
-            </div>
-          ) : safeMyShifts.length === 0 ? (
-            <div className={styles.emptyState}>
-              No upcoming shifts assigned.
-            </div>
-          ) : (
-            safeMyShifts.map((shift: any) => (
-              <div key={shift._id} className={styles.listItem}>
-                <div className={styles.itemIcon}>
-                  <Calendar size={20} />
-                </div>
-                <div className={styles.itemInfo}>
-                  <p className={styles.itemTitle}>
-                    {(shift.subunit?.name || shift.department?.name || 'General')} - {shift.role}
-                  </p>
-                  <p className={styles.itemSubtitle}>
-                    {formatTimeSafe(shift.service?.startTime)}
-                  </p>
-                </div>
-                <div className={styles.badge} style={{ 
-                  background: shift.status === 'Confirmed' ? '#dcfce7' : '#fee2e2', 
-                  color: shift.status === 'Confirmed' ? '#15803d' : '#991b1b' 
-                }}>
-                  {shift.status}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+      <UpcomingShiftsCard />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

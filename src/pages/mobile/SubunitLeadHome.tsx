@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { MeetingCard } from '../../components/MeetingCard';
 import { BorrowBottomSheet } from '../../components/BorrowBottomSheet';
 import { BorrowAssignmentCard } from '../../components/BorrowAssignmentCard';
+import { UpcomingShiftsCard } from '../../components/UpcomingShiftsCard';
 import styles from './mobile.module.css';
 
 export const SubunitLeadHome: React.FC = () => {
@@ -117,6 +118,8 @@ export const SubunitLeadHome: React.FC = () => {
           <span className={styles.statLabel}>Current Service</span>
         </div>
       </div>
+
+      <UpcomingShiftsCard />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

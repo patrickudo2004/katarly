@@ -654,15 +654,7 @@ export const ReportsPage: React.FC = () => {
             {burnoutAlerts && burnoutAlerts.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {burnoutAlerts.map((alert) => (
-                  <div key={alert.userId} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    background: 'var(--bg-secondary)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '12px', 
-                    padding: '1.25rem'
-                  }}>
+                  <div key={alert.userId} className={styles.burnoutCard}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                         <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{alert.name}</h4>
@@ -680,7 +672,7 @@ export const ReportsPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                    <div className={styles.burnoutStats}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Monthly Shifts</div>
                         <strong style={{ fontSize: '1.125rem', color: 'var(--text-primary)' }}>{alert.shiftsCount}</strong>
@@ -1053,7 +1045,7 @@ export const ReportsPage: React.FC = () => {
                 <Video size={18} /> Gatherings Drill-Down
               </h3>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                <table style={{ width: '100%', minWidth: '750px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                       <th style={{ padding: '0.75rem' }}>Gathering Details</th>
@@ -1332,7 +1324,7 @@ export const ReportsPage: React.FC = () => {
                   <Users size={18} /> Department Shift Coverage Comparison
                 </h4>
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                         <th style={{ padding: '0.75rem' }}>Department Name</th>
