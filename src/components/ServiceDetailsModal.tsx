@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import QRCode from 'react-qr-code';
 import { 
   X, 
   MapPin, 
@@ -10,7 +11,7 @@ import {
   Loader2, 
   CheckCircle2, 
   Users, 
-  QrCode, 
+  QrCode as QrCodeIcon, 
   ExternalLink,
   UserCheck,
   Share2,
@@ -273,7 +274,9 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
               {service.format !== 'Online' && (
                 <div className={styles.qrSection}>
                   <div className={styles.qrCard}>
-                    <QrCode size={48} className={styles.qrWatermark} />
+                    <div style={{ background: '#fff', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', flexShrink: 0 }}>
+                      <QRCode value={qrValue} size={110} level="H" />
+                    </div>
                     <div className={styles.qrDetails}>
                       <h3>Check-In Security Pass</h3>
                       <p>Scan this QR code to confirm attendance. Uses <strong>{service.qrType || 'Unique'}</strong> security.</p>

@@ -203,7 +203,6 @@ export const BorrowRequestForm: React.FC = () => {
                 <select
                   value={targetSubunitId}
                   onChange={(e) => setTargetSubunitId(e.target.value)}
-                  required={borrowType === 'intra_dept'}
                 >
                   <option value="">
                     {borrowType === 'intra_dept' ? 'Select Subunit…' : 'Any subunit (dept-wide)'}

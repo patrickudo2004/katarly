@@ -74,16 +74,31 @@ export const AttendancePage: React.FC = () => {
 
   const handleScan = async (data: string, location: GeolocationPosition | null) => {
     try {
-      // New simplified format: "TYPE:ID:SECRET" or "SERVICE:ID:SECRET"
-      const parts = data.split(':');
-      if (parts.length < 3) throw new Error("Invalid format");
-      
-      const [type, id, secret] = parts;
+      let type: string;
+      let id: string;
+      let secret: string;
+
+      if (data.trim().startsWith('{')) {
+        const parsed = JSON.parse(data);
+        type = parsed.type || 'daily';
+        id = parsed.churchId || parsed.serviceId;
+        secret = parsed.secret;
+      } else {
+        // New simplified format: "TYPE:ID:SECRET" or "SERVICE:ID:SECRET"
+        const parts = data.split(':');
+        if (parts.length < 3) throw new Error("Invalid format");
+        [type, id, secret] = parts;
+      }
+
+      if (!type || !id || !secret) {
+        throw new Error("Missing fields in scanned QR data");
+      }
+
       setScanData({ type, id, secret });
       setUserLocation(location);
       setStep('select');
     } catch (e) {
-      setError("Invalid QR Code format. Please scan a valid Katarly code.");
+      setError("Invalid QR Code format. Please scan a valid ServeSync/Katarly code.");
     }
   };
 

@@ -82,8 +82,8 @@ async function validateAndMark(
   // 5. Determine Department/Subunit from Rota (Multi-role support)
   // Fallback to user's primary dept if no specific rota entry exists for this service
   const user = await ctx.db.get(userId);
-  const departmentId = rotaEntry?.departmentId ?? user?.departmentId ?? undefined;
-  const subunitId = rotaEntry?.subunitId ?? user?.subunitId ?? undefined;
+  const departmentId = rotaEntry?.departmentId || user?.departmentId || undefined;
+  const subunitId = rotaEntry?.subunitId || user?.subunitId || undefined;
 
   // 6. Determine Status (Late vs Present)
   const status = now > service.startTime + 15 * 60 * 1000 ? "Late" : "Present";
@@ -330,8 +330,8 @@ export const approveVerification = mutation({
       .withIndex("by_service_user", (q: any) => q.eq("serviceId", request.serviceId).eq("userId", request.userId))
       .first();
     const requester = await ctx.db.get(request.userId);
-    const departmentId = rotaEntry?.departmentId ?? requester?.departmentId ?? undefined;
-    const subunitId = rotaEntry?.subunitId ?? requester?.subunitId ?? undefined;
+    const departmentId = rotaEntry?.departmentId || requester?.departmentId || undefined;
+    const subunitId = rotaEntry?.subunitId || requester?.subunitId || undefined;
 
     const attendanceId = await ctx.db.insert("attendance", {
       serviceId: request.serviceId,
