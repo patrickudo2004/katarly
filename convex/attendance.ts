@@ -122,6 +122,7 @@ export const markAttendance = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
+    if (!user.churchId) throw new Error("User has no church assigned");
 
     const service = await ctx.db.get(args.serviceId);
     if (!service) throw new Error("Service not found");
@@ -180,24 +181,30 @@ export const manualMark = mutation({
     serviceId: v.id("services"),
     userId: v.id("users"),
     status: v.union(v.literal("Present"), v.literal("Late"), v.literal("Excused")),
-    markedById: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const marker = await ctx.db.get(args.markedById);
-    if (!marker || !["SuperAdmin", "DepartmentHead", "SubunitLead", "PastoralOversight"].includes(marker.role)) {
+    const markedById = await auth.getUserId(ctx);
+    if (!markedById) throw new Error("Not authenticated");
+    
+    const marker = await ctx.db.get(markedById);
+    if (!marker || !marker.role || !["SuperAdmin", "DepartmentHead", "SubunitLead", "PastoralOversight"].includes(marker.role)) {
       throw new Error("Unauthorized to mark attendance manually");
     }
 
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
 
+    if (user.churchId !== marker.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
+
     const attendanceId = await ctx.db.insert("attendance", {
       serviceId: args.serviceId,
       userId: args.userId,
-      churchId: user.churchId,
+      churchId: user.churchId!,
       timestamp: Date.now(),
       method: "Manual",
-      markedById: args.markedById,
+      markedById: markedById,
       status: args.status,
     });
 
@@ -311,10 +318,17 @@ export const approveVerification = mutation({
   handler: async (ctx, args) => {
     const leadId = await auth.getUserId(ctx);
     if (!leadId) throw new Error("Not authenticated");
+    const lead = await ctx.db.get(leadId);
+    if (!lead || !lead.role || !["SuperAdmin", "DeaconHead", "DepartmentHead", "SubunitLead"].includes(lead.role)) {
+      throw new Error("Unauthorized");
+    }
     
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found");
     if (request.status !== "pending") throw new Error("Request already processed");
+    if (request.churchId !== lead.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
 
     // Update request status
     await ctx.db.patch(args.requestId, { status: "approved" });
@@ -353,8 +367,19 @@ export const approveVerification = mutation({
 export const declineVerification = mutation({
   args: { requestId: v.id("verificationRequests") },
   handler: async (ctx, args) => {
+    const leadId = await auth.getUserId(ctx);
+    if (!leadId) throw new Error("Not authenticated");
+    const lead = await ctx.db.get(leadId);
+    if (!lead || !lead.role || !["SuperAdmin", "DeaconHead", "DepartmentHead", "SubunitLead"].includes(lead.role)) {
+      throw new Error("Unauthorized");
+    }
+
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Request not found");
+    if (request.churchId !== lead.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
+
     await ctx.db.patch(args.requestId, { status: "declined" });
   },
 });

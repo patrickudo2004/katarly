@@ -91,6 +91,13 @@ export const removeRotaEntry = mutation({
     // Auth: Only Leads or Admins can remove
     if (user?.role === "Volunteer") throw new Error("Unauthorized");
 
+    const rota = await ctx.db.get(args.rotaId);
+    if (!rota) throw new Error("Rota entry not found");
+    const dept = await ctx.db.get(rota.departmentId);
+    if (!dept || dept.churchId !== user?.churchId) {
+      throw new Error("Unauthorized: Cross-church mutation blocked");
+    }
+
     await ctx.db.delete(args.rotaId);
   },
 });
@@ -317,6 +324,14 @@ export const assignUserToShift = mutation({
 
     const service = await ctx.db.get(rota.serviceId);
     if (!service) throw new Error("Service not found");
+
+    const userToAssign = await ctx.db.get(args.userId);
+    if (!userToAssign || userToAssign.churchId !== admin.churchId) {
+      throw new Error("Unauthorized: Target user belongs to a different church");
+    }
+    if (service.churchId !== admin.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
 
     // Lockout Check (< 2 hours)
     const now = Date.now();

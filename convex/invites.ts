@@ -279,7 +279,11 @@ export const acceptInvite = mutation({
 export const revokeInvite = mutation({
   args: { inviteId: v.id("invites") },
   handler: async (ctx, args) => {
-    await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
+    const user = await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
+    const invite = await ctx.db.get(args.inviteId);
+    if (!invite || invite.churchId !== user.churchId) {
+      throw new Error("Unauthorized");
+    }
     await ctx.db.delete(args.inviteId);
   },
 });
@@ -289,7 +293,7 @@ export const resendInvite = mutation({
   handler: async (ctx, args) => {
     const user = await checkRole(ctx, ["SuperAdmin", "DepartmentHead"]);
     const invite = await ctx.db.get(args.inviteId);
-    if (!invite) throw new Error("Invite not found");
+    if (!invite || invite.churchId !== user.churchId) throw new Error("Unauthorized");
     
     const church = await ctx.db.get(user.churchId as Id<"churches">);
     

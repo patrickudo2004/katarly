@@ -28,8 +28,13 @@ export const getSubunits = query({
 export const getSubunit = query({
   args: { id: v.id("subunits") },
   handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return null;
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+
     const subunit = await ctx.db.get(args.id);
-    if (!subunit) return null;
+    if (!subunit || subunit.churchId !== user.churchId) return null;
 
     const dept = await ctx.db.get(subunit.departmentId);
     const lead = subunit.leadId ? await ctx.db.get(subunit.leadId) : null;
@@ -54,6 +59,11 @@ export const createSubunit = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     if (user?.role !== "SuperAdmin") throw new Error("Unauthorized");
+
+    const dept = await ctx.db.get(args.departmentId);
+    if (!dept || dept.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church department reference blocked");
+    }
 
     const subId = await ctx.db.insert("subunits", {
       churchId: user.churchId!,
@@ -87,7 +97,7 @@ export const updateSubunit = mutation({
     const user = await ctx.db.get(userId);
     
     const subunit = await ctx.db.get(args.id);
-    if (!subunit) throw new Error("Subunit not found");
+    if (!subunit || subunit.churchId !== user?.churchId) throw new Error("Subunit not found");
 
     const isSuperAdmin = user?.role === "SuperAdmin";
     const isMyDept = user?.role === "DeaconHead" && user.departmentId === subunit.departmentId;
@@ -113,6 +123,11 @@ export const deleteSubunit = mutation({
     const user = await ctx.db.get(userId);
     if (user?.role !== "SuperAdmin") throw new Error("Unauthorized");
 
+    const subunit = await ctx.db.get(args.id);
+    if (!subunit || subunit.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church deletion denied");
+    }
+
     await ctx.db.delete(args.id);
   },
 });
@@ -124,6 +139,15 @@ export const getLiveAttendance = query({
   },
   handler: async (ctx, args) => {
     if (!args.serviceId || !args.subunitId) return [];
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user) return [];
+
+    const service = await ctx.db.get(args.serviceId);
+    const subunit = await ctx.db.get(args.subunitId);
+    if (!service || !subunit) return [];
+    if (service.churchId !== user.churchId || subunit.churchId !== user.churchId) return [];
 
     const attendance = await ctx.db
       .query("attendance")

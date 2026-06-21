@@ -161,7 +161,6 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
         serviceId: service._id,
         userId: selectedUserId as any,
         status: manualStatus,
-        markedById: me._id,
       });
       setSelectedUserId('');
       alert("Attendance marked successfully.");

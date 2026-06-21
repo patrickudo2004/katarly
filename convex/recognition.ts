@@ -83,6 +83,13 @@ export const getUserBadges = query({
 export const getHallOfFame = query({
   args: { churchId: v.id("churches"), department: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const callerId = await auth.getUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+    const caller = await ctx.db.get(callerId);
+    if (!caller || caller.churchId !== args.churchId) {
+      throw new Error("Unauthorized");
+    }
+
     let usersQuery = ctx.db
       .query("users")
       .withIndex("by_church", (q) => q.eq("churchId", args.churchId));
@@ -217,6 +224,13 @@ export async function checkMilestonesInternal(ctx: any, userId: any) {
 export const checkMilestones = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const callerId = await auth.getUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+    const caller = await ctx.db.get(callerId);
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.churchId !== caller?.churchId) {
+      throw new Error("Unauthorized");
+    }
     await checkMilestonesInternal(ctx, args.userId);
   },
 });
@@ -225,6 +239,16 @@ export const checkMilestones = mutation({
 export const getUserStats = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const callerId = await auth.getUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+    const caller = await ctx.db.get(callerId);
+    if (!caller) throw new Error("Unauthorized");
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.churchId !== caller.churchId) {
+      throw new Error("Unauthorized");
+    }
+
     const attendance = await ctx.db
       .query("attendance")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

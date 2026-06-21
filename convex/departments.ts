@@ -52,7 +52,11 @@ export const getDepartments = query({
 export const deleteDepartment = mutation({
   args: { id: v.id("departments") },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
+    const user = await checkAdmin(ctx);
+    const dept = await ctx.db.get(args.id);
+    if (!dept || dept.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church deletion denied");
+    }
     
     // Check if any subunits are using this department
     const subunits = await ctx.db
@@ -79,6 +83,11 @@ export const updateDepartmentHeads = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     
+    const dept = await ctx.db.get(args.id);
+    if (!dept || dept.churchId !== user?.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
+    }
+    
     const isSuperAdmin = user?.role === "SuperAdmin";
     const isMyDept = user?.role === "DeaconHead" && user.departmentId === args.id;
 
@@ -101,7 +110,11 @@ export const updateDepartment = mutation({
     requiresSafeguarding: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    await checkAdmin(ctx);
+    const user = await checkAdmin(ctx);
+    const dept = await ctx.db.get(args.id);
+    if (!dept || dept.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
+    }
     await ctx.db.patch(args.id, { 
       name: args.name,
       requiresSafeguarding: args.requiresSafeguarding,

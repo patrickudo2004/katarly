@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { createMeeting } from '../convex/meetings';
+import { manualMark, approveVerification, declineVerification } from '../convex/attendance';
 import { auth } from '../convex/auth';
 
 vi.mock('../convex/auth', () => {
@@ -152,5 +153,99 @@ describe('Meetings createMeeting mutation authorization checks', () => {
         meetingUrl: 'https://example.com',
       })
     ).rejects.toThrow('You can only schedule meetings for your own department');
+  });
+});
+
+describe('Attendance security check mutations', () => {
+  let mockDb: any;
+  let mockCtx: any;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockDb = {
+      get: vi.fn(),
+      insert: vi.fn().mockResolvedValue('attendance-id-123'),
+      patch: vi.fn(),
+      query: vi.fn().mockReturnValue({
+        withIndex: vi.fn().mockReturnThis(),
+        filter: vi.fn().mockReturnThis(),
+        first: vi.fn().mockResolvedValue(null),
+      }),
+    };
+    mockCtx = { db: mockDb };
+  });
+
+  it('manualMark throws "Not authenticated" if user session is invalid', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue(null);
+
+    await expect(
+      (manualMark as any)._handler(mockCtx, {
+        serviceId: 'service-123' as any,
+        userId: 'user-456' as any,
+        status: 'Present',
+      })
+    ).rejects.toThrow('Not authenticated');
+  });
+
+  it('manualMark throws "Unauthorized" if actor is not leadership', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('marker-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'marker-123') return { _id: 'marker-123', role: 'Volunteer', churchId: 'church-123' };
+      return null;
+    });
+
+    await expect(
+      (manualMark as any)._handler(mockCtx, {
+        serviceId: 'service-123' as any,
+        userId: 'user-456' as any,
+        status: 'Present',
+      })
+    ).rejects.toThrow('Unauthorized to mark attendance manually');
+  });
+
+  it('manualMark throws "Unauthorized: Cross-church operation blocked" if target user is from different church', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('marker-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'marker-123') return { _id: 'marker-123', role: 'SuperAdmin', churchId: 'church-123' };
+      if (id === 'user-456') return { _id: 'user-456', churchId: 'church-999' };
+      return null;
+    });
+
+    await expect(
+      (manualMark as any)._handler(mockCtx, {
+        serviceId: 'service-123' as any,
+        userId: 'user-456' as any,
+        status: 'Present',
+      })
+    ).rejects.toThrow('Unauthorized: Cross-church operation blocked');
+  });
+
+  it('approveVerification throws "Unauthorized" if actor is not leader', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('lead-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'lead-123') return { _id: 'lead-123', role: 'Volunteer', churchId: 'church-123' };
+      return null;
+    });
+
+    await expect(
+      (approveVerification as any)._handler(mockCtx, {
+        requestId: 'request-123' as any,
+      })
+    ).rejects.toThrow('Unauthorized');
+  });
+
+  it('declineVerification throws "Unauthorized: Cross-church operation blocked" if request is for different church', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('lead-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'lead-123') return { _id: 'lead-123', role: 'DepartmentHead', churchId: 'church-123' };
+      if (id === 'request-123') return { _id: 'request-123', churchId: 'church-999' };
+      return null;
+    });
+
+    await expect(
+      (declineVerification as any)._handler(mockCtx, {
+        requestId: 'request-123' as any,
+      })
+    ).rejects.toThrow('Unauthorized: Cross-church operation blocked');
   });
 });

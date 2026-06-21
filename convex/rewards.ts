@@ -13,6 +13,11 @@ async function getAuthenticatedUser(ctx: any) {
 export const getAvailableRewards = query({
   args: { churchId: v.id("churches") },
   handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) return [];
+    const user = await ctx.db.get(userId);
+    if (!user || user.churchId !== args.churchId) return [];
+
     return await ctx.db
       .query("rewards")
       .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
@@ -78,6 +83,12 @@ export const redeemReward = mutation({
 export const seedDefaultRewards = mutation({
   args: { churchId: v.id("churches") },
   handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.churchId !== args.churchId || user.role !== "SuperAdmin") {
+      throw new Error("Unauthorized");
+    }
     const defaults = [
       { name: "Free Coffee", description: "A hot cup of coffee from the church cafe.", cost: 50, category: "Food" as const, stock: 999 },
       { name: "Katarly T-Shirt", description: "Official Katarly volunteer team shirt.", cost: 500, category: "Merch" as const, stock: 50 },

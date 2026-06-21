@@ -222,7 +222,9 @@ export default defineSchema({
     updatedAt: v.number(),
     allowCrossDept: v.optional(v.boolean()),
   }).index("by_rota", ["rotaId"])
-    .index("by_church_status", ["churchId", "status"]),
+    .index("by_church_status", ["churchId", "status"])
+    .index("by_requester", ["requesterId"])
+    .index("by_claimant", ["claimantId"]),
 
   probationPeriods: defineTable({
     userId: v.id("users"),
@@ -245,7 +247,8 @@ export default defineSchema({
     date: v.number(),
     score: v.union(v.literal("Excellent"), v.literal("Good"), v.literal("Needs Improvement"), v.literal("Disapprove")),
     note: v.optional(v.string()),
-  }).index("by_probation", ["probationId"]),
+  }).index("by_probation", ["probationId"])
+    .index("by_user", ["userId"]),
 
   borrowRequests: defineTable({
     churchId: v.id("churches"),

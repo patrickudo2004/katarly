@@ -190,8 +190,13 @@ export const getDepartmentHealth = query({
     const pendingBorrows = borrowRequests.filter(b => b.status === "pending" && b.targetDeptId === args.departmentId).length;
 
     // 4. KPI Summary (Needs Improvement / Disapprove)
-    const kpis = await ctx.db.query("kpiLogs").collect();
-    const deptKpis = kpis.filter(k => deptUserIds.has(k.userId));
+    const deptKpiPromises = Array.from(deptUserIds).map(userId =>
+      ctx.db
+        .query("kpiLogs")
+        .withIndex("by_user", (q: any) => q.eq("userId", userId))
+        .collect()
+    );
+    const deptKpis = (await Promise.all(deptKpiPromises)).flat();
     const lowKpis = deptKpis.filter(k => k.score === "Needs Improvement" || k.score === "Disapprove").length;
 
     return {
