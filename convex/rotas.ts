@@ -224,7 +224,11 @@ export const getServiceRota = query({
 });
 
 export const getMyShifts = query({
-  handler: async (ctx) => {
+  args: {
+    upcomingOnly: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
@@ -234,7 +238,7 @@ export const getMyShifts = query({
       .collect();
 
     // Join with service details
-    return await Promise.all(
+    let enriched = await Promise.all(
       shifts.map(async (shift) => {
         const service = await ctx.db.get(shift.serviceId);
         const department = await ctx.db.get(shift.departmentId);
@@ -242,6 +246,26 @@ export const getMyShifts = query({
         return { ...shift, service, department, subunit };
       })
     );
+
+    // Filter out records where services were deleted from DB (safety)
+    enriched = enriched.filter(e => e.service !== null);
+
+    const now = Date.now();
+    if (args.upcomingOnly) {
+      // Keep shifts starting in the future, or active shifts starting up to 2 hours ago
+      enriched = enriched.filter(e => (e.service?.startTime ?? 0) >= now - 2 * 60 * 60 * 1000);
+      // Sort chronologically (closest first)
+      enriched.sort((a, b) => (a.service?.startTime ?? 0) - (b.service?.startTime ?? 0));
+    } else {
+      // Sort reverse-chronological (most recent first) for history ledger
+      enriched.sort((a, b) => (b.service?.startTime ?? 0) - (a.service?.startTime ?? 0));
+    }
+
+    if (args.limit) {
+      enriched = enriched.slice(0, args.limit);
+    }
+
+    return enriched;
   },
 });
 

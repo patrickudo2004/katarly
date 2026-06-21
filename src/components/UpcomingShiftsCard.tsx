@@ -8,7 +8,7 @@ import styles from './UpcomingShiftsCard.module.css';
 
 export const UpcomingShiftsCard: React.FC = () => {
   const navigate = useNavigate();
-  const myShifts = useQuery(api.rotas.getMyShifts);
+  const myShifts = useQuery(api.rotas.getMyShifts, { upcomingOnly: true, limit: 3 });
   const confirmShift = useMutation(api.rotas.confirmShift);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -109,6 +109,15 @@ export const UpcomingShiftsCard: React.FC = () => {
             </div>
           );
         })}
+      </div>
+      <div className={styles.viewAllWrapper}>
+        <button 
+          onClick={() => navigate('/my-schedule')} 
+          className={styles.viewAllBtn}
+          aria-label="View Full Schedule"
+        >
+          View Full Schedule ➜
+        </button>
       </div>
     </section>
   );

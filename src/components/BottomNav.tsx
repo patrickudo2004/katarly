@@ -66,7 +66,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
         { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
         { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
         { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-        { icon: <Calendar size={24} />, label: 'Rota', path: '/rota' },
+        { icon: <Calendar size={24} />, label: 'Schedule', path: '/my-schedule' },
       ];
     }
 
@@ -76,7 +76,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role }) => {
       { icon: <MessageSquare size={24} />, label: 'Chat', path: '/chat' },
       { icon: <QrCode size={24} />, label: 'Check In', path: '/attendance', isAction: true },
       { icon: <Video size={24} />, label: 'Meetings', path: '/meetings' },
-      { icon: <Calendar size={24} />, label: 'Rota', path: '/rota' },
+      { icon: <Calendar size={24} />, label: 'Schedule', path: '/my-schedule' },
     ];
   };
 

@@ -135,3 +135,32 @@
   border-radius: 16px;
   border: 1px solid var(--border-color);
 }
+
+.viewAllWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.viewAllBtn {
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: #8b5cf6;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.viewAllBtn:hover {
+  background: rgba(139, 92, 246, 0.05);
+  border-color: #8b5cf6;
+}
+

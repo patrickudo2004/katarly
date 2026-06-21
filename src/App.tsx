@@ -26,6 +26,7 @@ import { PeoplePage } from './pages/PeoplePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ProbationPage } from './pages/ProbationPage';
 import { DebugAuth } from './pages/DebugAuth';
+import { MySchedule } from './pages/MySchedule';
 import { NetworkPage } from './pages/NetworkPage';
 import { AcceptInvite } from './pages/AcceptInvite';
 import { NfcGateway } from './pages/NfcGateway';
@@ -169,6 +170,11 @@ function AppContent() {
       <Route path="/rota" element={
         <PageLayout user={me as any}>
           <Rota />
+        </PageLayout>
+      } />
+      <Route path="/my-schedule" element={
+        <PageLayout user={me as any}>
+          <MySchedule />
         </PageLayout>
       } />
       <Route path="/time-off" element={

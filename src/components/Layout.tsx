@@ -71,6 +71,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     { label: 'Services', icon: <Calendar size={20} />, path: '/services', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Check In', icon: <UserCheck size={20} />, path: '/attendance', roles: allRoles },
     { label: 'Meetings', icon: <Video size={20} />, path: '/meetings', roles: allRoles },
+    { label: 'My Schedule', icon: <Clock size={20} />, path: '/my-schedule', roles: allRoles },
     { label: 'Rota', icon: <Calendar size={20} />, path: '/rota', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead', 'Volunteer'] },
     { label: 'Time Off', icon: <Clock size={20} />, path: '/time-off', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead', 'Volunteer'] },
     { label: 'Chat', icon: <MessageSquare size={20} />, path: '/chat', roles: allRoles },

@@ -26,7 +26,7 @@ interface MobileDashboardProps {
 
 export const MobileDashboard: React.FC<MobileDashboardProps> = ({ user, church, stats }) => {
   const navigate = useNavigate();
-  const myShifts = useQuery(api.rotas.getMyShifts);
+  const myShifts = useQuery(api.rotas.getMyShifts, { upcomingOnly: true, limit: 1 });
   const myStats = useQuery(api.recognition.getUserStats, { userId: user._id });
   const pendingVerifications = useQuery(api.attendance.getPendingVerifications, { churchId: church._id });
   
