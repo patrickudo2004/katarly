@@ -121,6 +121,12 @@ export default defineSchema({
     platform: v.optional(v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom"))),
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   }).index("by_church", ["churchId"])
     .index("by_church_start_time", ["churchId", "startTime"]),
 
@@ -455,6 +461,12 @@ export default defineSchema({
     locationName: v.optional(v.string()),
     qrCodeSecret: v.optional(v.string()),
     createdBy: v.id("users"),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   })
     .index("by_church", ["churchId"])
     .index("by_church_start_time", ["churchId", "startTime"])

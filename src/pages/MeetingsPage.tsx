@@ -52,6 +52,11 @@ export const MeetingsPage: React.FC = () => {
   const [platform, setPlatform] = useState<'Teams' | 'Zoom' | 'Meet' | 'Custom'>('Custom');
   const [meetingUrl, setMeetingUrl] = useState('');
   const [locationName, setLocationName] = useState('');
+  const [useCustomLocation, setUseCustomLocation] = useState(false);
+  const [customLat, setCustomLat] = useState('');
+  const [customLng, setCustomLng] = useState('');
+  const [customAddress, setCustomAddress] = useState('');
+  const [customGeofenceRadius, setCustomGeofenceRadius] = useState('');
 
   // Multi-date occurrences state
   const [occurrencesDates, setOccurrencesDates] = useState<string[]>([]);
@@ -108,6 +113,11 @@ export const MeetingsPage: React.FC = () => {
     setPlatform(meeting.platform);
     setMeetingUrl(meeting.meetingUrl || '');
     setLocationName(meeting.locationName || '');
+    setUseCustomLocation(!!meeting.customLocation);
+    setCustomLat(meeting.customLocation?.lat?.toString() || '');
+    setCustomLng(meeting.customLocation?.lng?.toString() || '');
+    setCustomAddress(meeting.customLocation?.address || '');
+    setCustomGeofenceRadius(meeting.customLocation?.geofenceRadius?.toString() || '');
 
     const offset = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
     const newStart = new Date(meeting.startTime + offset);
@@ -197,6 +207,29 @@ export const MeetingsPage: React.FC = () => {
       ];
     }
 
+    // Custom Location Parsing and Validation
+    let customLocation = undefined;
+    if (useCustomLocation) {
+      if (!customAddress) {
+        setSubmitError("Please enter a custom location address.");
+        setIsSubmitting(false);
+        return;
+      }
+      const lat = parseFloat(customLat);
+      const lng = parseFloat(customLng);
+      if (isNaN(lat) || isNaN(lng)) {
+        setSubmitError("Please enter valid latitude and longitude numbers.");
+        setIsSubmitting(false);
+        return;
+      }
+      customLocation = {
+        lat,
+        lng,
+        address: customAddress,
+        geofenceRadius: customGeofenceRadius ? parseInt(customGeofenceRadius, 10) : undefined
+      };
+    }
+
     try {
       await createMeeting({
         name,
@@ -211,6 +244,7 @@ export const MeetingsPage: React.FC = () => {
         meetingUrl: (formatType === 'Online' || formatType === 'Hybrid') ? meetingUrl : undefined,
         locationName: (formatType === 'Physical' || formatType === 'Hybrid') ? locationName : undefined,
         occurrences,
+        customLocation,
       });
 
       // Clear Form
@@ -220,6 +254,11 @@ export const MeetingsPage: React.FC = () => {
       setEndDateStr('');
       setMeetingUrl('');
       setLocationName('');
+      setUseCustomLocation(false);
+      setCustomLat('');
+      setCustomLng('');
+      setCustomAddress('');
+      setCustomGeofenceRadius('');
       setOccurrencesDates([]);
       setNewOccurDate('');
       setShowCreateModal(false);
@@ -508,16 +547,78 @@ export const MeetingsPage: React.FC = () => {
               )}
 
               {(formatType === 'Physical' || formatType === 'Hybrid') && (
-                <div className={styles.formGroup}>
-                  <label>Sanctuary/Room Location</label>
-                  <input 
-                    type="text" 
-                    value={locationName} 
-                    onChange={e => setLocationName(e.target.value)} 
-                    placeholder="e.g. Seminar Room B, Main Auditorium" 
-                    required 
-                  />
-                </div>
+                <>
+                  <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+                    <input 
+                      type="checkbox"
+                      id="useCustomLocationMeeting"
+                      checked={useCustomLocation}
+                      onChange={e => setUseCustomLocation(e.target.checked)}
+                      style={{ width: 'auto', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="useCustomLocationMeeting" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>
+                      Use Custom Event Location (e.g. crusade, outreach)
+                    </label>
+                  </div>
+
+                  {useCustomLocation ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', margin: '0.5rem 0' }}>
+                      <div className={styles.formGroup}>
+                        <label>Custom Location Full Address</label>
+                        <input 
+                          placeholder="e.g. 123 Crusade Road, City (Google Address)" 
+                          value={customAddress}
+                          onChange={e => setCustomAddress(e.target.value)}
+                          required={useCustomLocation}
+                        />
+                      </div>
+                      <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                          <label>Latitude</label>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 6.5244" 
+                            value={customLat}
+                            onChange={e => setCustomLat(e.target.value)}
+                            required={useCustomLocation}
+                          />
+                        </div>
+                        <div className={styles.formGroup}>
+                          <label>Longitude</label>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 3.3792" 
+                            value={customLng}
+                            onChange={e => setCustomLng(e.target.value)}
+                            required={useCustomLocation}
+                          />
+                        </div>
+                      </div>
+                      <div className={styles.formGroup}>
+                        <label>Geofence Radius (meters, optional)</label>
+                        <input 
+                          type="number"
+                          placeholder="e.g. 200 (Default: church geofence)" 
+                          value={customGeofenceRadius}
+                          onChange={e => setCustomGeofenceRadius(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.formGroup}>
+                      <label>Sanctuary/Room Location</label>
+                      <input 
+                        type="text" 
+                        value={locationName} 
+                        onChange={e => setLocationName(e.target.value)} 
+                        placeholder="e.g. Seminar Room B, Main Auditorium" 
+                        required 
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>

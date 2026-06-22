@@ -98,7 +98,7 @@ export const AttendancePage: React.FC = () => {
       setUserLocation(location);
       setStep('select');
     } catch (e) {
-      setError("Invalid QR Code format. Please scan a valid ServeSync/Katarly code.");
+      setError("Invalid QR Code format. Please scan a valid Katarly code.");
     }
   };
 

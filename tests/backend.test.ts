@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { createMeeting } from '../convex/meetings';
-import { manualMark, approveVerification, declineVerification, generateCheckInToken, verifyAndMarkCheckIn } from '../convex/attendance';
+import { markAttendance, manualMark, approveVerification, declineVerification, generateCheckInToken, verifyAndMarkCheckIn } from '../convex/attendance';
 import { auth } from '../convex/auth';
 
 vi.mock('../convex/auth', () => {
@@ -378,6 +378,114 @@ describe('Attendance QR check-in mutations', () => {
     expect(mockDb.patch).toHaveBeenCalledWith('target-123', {
       tempCheckInToken: undefined
     });
+  });
+});
+
+describe('Attendance markAttendance geofence verification', () => {
+  let mockDb: any;
+  let mockCtx: any;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockDb = {
+      get: vi.fn(),
+      insert: vi.fn().mockResolvedValue('attendance-id-123'),
+      query: vi.fn().mockReturnValue({
+        withIndex: vi.fn().mockReturnThis(),
+        filter: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        collect: vi.fn().mockResolvedValue([]),
+        first: vi.fn().mockResolvedValue(null),
+      }),
+    };
+    mockCtx = { db: mockDb };
+  });
+
+  it('rejects if coordinates are missing and custom location is specified', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('user-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'user-123') return { _id: 'user-123', churchId: 'church-123' };
+      if (id === 'church-123') return { _id: 'church-123', location: { lat: 10, lng: 20 }, settings: { qrCodeSecret: 'SECRET', attendanceWindowMinutes: 30 } };
+      if (id === 'service-123') return {
+        _id: 'service-123',
+        name: 'Crusade Service',
+        startTime: Date.now(),
+        endTime: Date.now() + 3600000,
+        format: 'Physical',
+        qrCodeSecret: 'SECRET',
+        customLocation: { lat: 5.5, lng: -0.2, address: 'Crusade Ground', geofenceRadius: 150 }
+      };
+      return null;
+    });
+
+    await expect(
+      (markAttendance as any)._handler(mockCtx, {
+        serviceId: 'service-123' as any,
+        qrSecret: 'SECRET',
+      })
+    ).rejects.toThrow('GPS coordinates are required to check in.');
+  });
+
+  it('succeeds if user is within the custom location geofence radius', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('user-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'user-123') return { _id: 'user-123', churchId: 'church-123' };
+      if (id === 'church-123') return { _id: 'church-123', location: { lat: 10, lng: 20 }, settings: { qrCodeSecret: 'SECRET', attendanceWindowMinutes: 30 } };
+      if (id === 'service-123') return {
+        _id: 'service-123',
+        name: 'Crusade Service',
+        startTime: Date.now(),
+        endTime: Date.now() + 3600000,
+        format: 'Physical',
+        qrCodeSecret: 'SECRET',
+        customLocation: { lat: 5.5, lng: -0.2, address: 'Crusade Ground', geofenceRadius: 150 }
+      };
+      return null;
+    });
+
+    // lat 5.5001, lng -0.2 is very close to lat 5.5, lng -0.2 (approx 11 meters)
+    const result = await (markAttendance as any)._handler(mockCtx, {
+      serviceId: 'service-123' as any,
+      qrSecret: 'SECRET',
+      lat: 5.5001,
+      lng: -0.2,
+    });
+
+    expect(result).toEqual('attendance-id-123');
+    expect(mockDb.insert).toHaveBeenCalledWith('attendance', expect.objectContaining({
+      serviceId: 'service-123',
+      userId: 'user-123',
+      churchId: 'church-123',
+      status: 'Present',
+    }));
+  });
+
+  it('fails if user is outside the custom location geofence radius', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('user-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'user-123') return { _id: 'user-123', churchId: 'church-123' };
+      if (id === 'church-123') return { _id: 'church-123', location: { lat: 10, lng: 20 }, settings: { qrCodeSecret: 'SECRET', attendanceWindowMinutes: 30 } };
+      if (id === 'service-123') return {
+        _id: 'service-123',
+        name: 'Crusade Service',
+        startTime: Date.now(),
+        endTime: Date.now() + 3600000,
+        format: 'Physical',
+        qrCodeSecret: 'SECRET',
+        customLocation: { lat: 5.5, lng: -0.2, address: 'Crusade Ground', geofenceRadius: 150 }
+      };
+      return null;
+    });
+
+    // lat 5.6, lng -0.2 is ~11km away, well outside 150m radius
+    await expect(
+      (markAttendance as any)._handler(mockCtx, {
+        serviceId: 'service-123' as any,
+        qrSecret: 'SECRET',
+        lat: 5.6,
+        lng: -0.2,
+      })
+    ).rejects.toThrow(/You are too far from the event site/);
   });
 });
 

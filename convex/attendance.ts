@@ -60,13 +60,23 @@ async function validateAndMark(
 
   const bypassGeofence = isOnlineService || isOnlineSteward;
 
-  if (church.location && !bypassGeofence) {
+  if ((service.customLocation || church.location) && !bypassGeofence) {
     if (userLat === undefined || userLng === undefined) {
-      throw new Error("GPS coordinates are required to check in at this church.");
+      throw new Error("GPS coordinates are required to check in.");
     }
-    const distance = calculateDistance(userLat, userLng, church.location.lat, church.location.lng);
-    if (distance > (church.settings?.geofenceRadius || 100)) {
-      throw new Error(`You are too far from the church (${Math.round(distance)}m away)`);
+    const targetLat = service.customLocation?.lat ?? church.location?.lat;
+    const targetLng = service.customLocation?.lng ?? church.location?.lng;
+    
+    if (targetLat === undefined || targetLng === undefined) {
+      throw new Error("Target location coordinates are missing.");
+    }
+
+    const allowedRadius = service.customLocation?.geofenceRadius ?? church.settings?.geofenceRadius ?? 100;
+    const locationName = service.customLocation ? "event site" : "church";
+
+    const distance = calculateDistance(userLat, userLng, targetLat, targetLng);
+    if (distance > allowedRadius) {
+      throw new Error(`You are too far from the ${locationName} (${Math.round(distance)}m away)`);
     }
   }
 

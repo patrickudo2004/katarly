@@ -34,6 +34,11 @@ export const ServiceManagement: React.FC = () => {
     platform: 'Custom' as 'Teams' | 'Zoom' | 'Meet' | 'Custom',
     meetingUrl: '',
     locationName: '',
+    useCustomLocation: false,
+    customLat: '',
+    customLng: '',
+    customAddress: '',
+    customGeofenceRadius: '',
   });
 
   const [occurrencesDates, setOccurrencesDates] = useState<string[]>([]);
@@ -89,6 +94,27 @@ export const ServiceManagement: React.FC = () => {
       alert("End time must be after start time.");
       return;
     }
+
+    // Custom Location Parsing and Validation
+    let customLocation = undefined;
+    if (formData.useCustomLocation) {
+      if (!formData.customAddress) {
+        alert("Please enter a custom location address.");
+        return;
+      }
+      const lat = parseFloat(formData.customLat);
+      const lng = parseFloat(formData.customLng);
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("Please enter valid latitude and longitude numbers.");
+        return;
+      }
+      customLocation = {
+        lat,
+        lng,
+        address: formData.customAddress,
+        geofenceRadius: formData.customGeofenceRadius ? parseInt(formData.customGeofenceRadius, 10) : undefined
+      };
+    }
     
     try {
       if (editServiceId) {
@@ -103,6 +129,7 @@ export const ServiceManagement: React.FC = () => {
           platform: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.platform : undefined,
           meetingUrl: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.meetingUrl : undefined,
           locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
+          customLocation,
         });
         alert("Service updated successfully.");
       } else {
@@ -142,6 +169,7 @@ export const ServiceManagement: React.FC = () => {
           meetingUrl: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.meetingUrl : undefined,
           locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
           occurrences,
+          customLocation,
         });
         alert("Service scheduled successfully.");
       }
@@ -158,6 +186,11 @@ export const ServiceManagement: React.FC = () => {
         platform: 'Custom',
         meetingUrl: '',
         locationName: '',
+        useCustomLocation: false,
+        customLat: '',
+        customLng: '',
+        customAddress: '',
+        customGeofenceRadius: '',
       });
       setOccurrencesDates([]);
       setNewOccurDate('');
@@ -185,6 +218,11 @@ export const ServiceManagement: React.FC = () => {
       platform: service.platform || 'Custom',
       meetingUrl: service.meetingUrl || '',
       locationName: service.locationName || '',
+      useCustomLocation: !!service.customLocation,
+      customLat: service.customLocation?.lat?.toString() || '',
+      customLng: service.customLocation?.lng?.toString() || '',
+      customAddress: service.customLocation?.address || '',
+      customGeofenceRadius: service.customLocation?.geofenceRadius?.toString() || '',
     });
     setOccurrencesDates([]);
     setIsAdding(true);
@@ -208,6 +246,11 @@ export const ServiceManagement: React.FC = () => {
       platform: service.platform || 'Custom',
       meetingUrl: service.meetingUrl || '',
       locationName: service.locationName || '',
+      useCustomLocation: !!service.customLocation,
+      customLat: service.customLocation?.lat?.toString() || '',
+      customLng: service.customLocation?.lng?.toString() || '',
+      customAddress: service.customLocation?.address || '',
+      customGeofenceRadius: service.customLocation?.geofenceRadius?.toString() || '',
     });
     setEditServiceId(null);
     setOccurrencesDates([]);
@@ -341,11 +384,13 @@ export const ServiceManagement: React.FC = () => {
             <p>Schedule services, assign formats, and generate check-in QR codes.</p>
           </div>
         </div>
-        <div className={styles.headerActions}>
-          <button className={styles.addBtn} onClick={() => { setEditServiceId(null); setIsAdding(true); }}>
-            <Plus size={20} /> Create Service
-          </button>
-        </div>
+        {me && ['SuperAdmin', 'DeaconHead', 'PastoralOversight'].includes(me.role || '') && (
+          <div className={styles.headerActions}>
+            <button className={styles.addBtn} onClick={() => { setEditServiceId(null); setIsAdding(true); }}>
+              <Plus size={20} /> Create Service
+            </button>
+          </div>
+        )}
       </header>
 
       <div className={styles.grid}>
@@ -538,15 +583,77 @@ export const ServiceManagement: React.FC = () => {
               )}
 
               {(formData.format === 'Physical' || formData.format === 'Hybrid') && (
-                <div className={styles.field}>
-                  <label>Sanctuary/Room Location</label>
-                  <input 
-                    placeholder="e.g. Main Sanctuary" 
-                    value={formData.locationName}
-                    onChange={e => setFormData({...formData, locationName: e.target.value})}
-                    required
-                  />
-                </div>
+                <>
+                  <div className={styles.field} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+                    <input 
+                      type="checkbox"
+                      id="useCustomLocation"
+                      checked={formData.useCustomLocation}
+                      onChange={e => setFormData({...formData, useCustomLocation: e.target.checked})}
+                      style={{ width: 'auto', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="useCustomLocation" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>
+                      Use Custom Event Location (e.g. crusade, outreach)
+                    </label>
+                  </div>
+
+                  {formData.useCustomLocation ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', margin: '0.5rem 0' }}>
+                      <div className={styles.field}>
+                        <label>Custom Location Full Address</label>
+                        <input 
+                          placeholder="e.g. 123 Crusade Road, City (Google Address)" 
+                          value={formData.customAddress}
+                          onChange={e => setFormData({...formData, customAddress: e.target.value})}
+                          required={formData.useCustomLocation}
+                        />
+                      </div>
+                      <div className={styles.row}>
+                        <div className={styles.field}>
+                          <label>Latitude</label>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 6.5244" 
+                            value={formData.customLat}
+                            onChange={e => setFormData({...formData, customLat: e.target.value})}
+                            required={formData.useCustomLocation}
+                          />
+                        </div>
+                        <div className={styles.field}>
+                          <label>Longitude</label>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 3.3792" 
+                            value={formData.customLng}
+                            onChange={e => setFormData({...formData, customLng: e.target.value})}
+                            required={formData.useCustomLocation}
+                          />
+                        </div>
+                      </div>
+                      <div className={styles.field}>
+                        <label>Geofence Radius (meters, optional)</label>
+                        <input 
+                          type="number"
+                          placeholder="e.g. 200 (Default: church geofence)" 
+                          value={formData.customGeofenceRadius}
+                          onChange={e => setFormData({...formData, customGeofenceRadius: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.field}>
+                      <label>Sanctuary/Room Location</label>
+                      <input 
+                        placeholder="e.g. Main Sanctuary" 
+                        value={formData.locationName}
+                        onChange={e => setFormData({...formData, locationName: e.target.value})}
+                        required
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div className={styles.field}>

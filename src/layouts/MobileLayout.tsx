@@ -125,8 +125,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
           <div className={styles.drawerContent} onClick={e => e.stopPropagation()}>
             <div className={styles.drawerHeader}>
               <div className={styles.drawerLogo}>
-                <div className={styles.logoIcon}>S</div>
-                <span className={styles.logoText}>ServeSync</span>
+                <div className={styles.logoIcon}>K</div>
+                <span className={styles.logoText}>Katarly</span>
               </div>
               <button className={styles.drawerClose} onClick={() => setShowDrawer(false)}>
                 <X size={20} />

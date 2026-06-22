@@ -52,6 +52,12 @@ export const createService = mutation({
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
     occurrences: v.optional(v.array(v.object({ startTime: v.number(), endTime: v.number() }))),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -95,6 +101,7 @@ export const createService = mutation({
         platform: args.platform,
         meetingUrl: args.meetingUrl,
         locationName: args.locationName,
+        customLocation: args.customLocation,
       });
       createdIds.push(serviceId);
     }
@@ -258,6 +265,12 @@ export const updateService = mutation({
     platform: v.optional(v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom"))),
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -288,6 +301,8 @@ export const updateService = mutation({
       format: args.format,
       platform: args.platform,
       meetingUrl: args.meetingUrl,
+      locationName: args.locationName,
+      customLocation: args.customLocation,
     });
   },
 });

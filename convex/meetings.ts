@@ -58,6 +58,12 @@ export const createMeeting = mutation({
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
     occurrences: v.optional(v.array(v.object({ startTime: v.number(), endTime: v.number() }))),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -136,6 +142,7 @@ export const createMeeting = mutation({
         locationName: args.locationName,
         qrCodeSecret,
         createdBy: userId,
+        customLocation: args.customLocation,
       });
       createdIds.push(meetingId);
     }
@@ -249,6 +256,12 @@ export const updateMeeting = mutation({
     platform: v.union(v.literal("Teams"), v.literal("Zoom"), v.literal("Meet"), v.literal("Custom")),
     meetingUrl: v.optional(v.string()),
     locationName: v.optional(v.string()),
+    customLocation: v.optional(v.object({
+      lat: v.number(),
+      lng: v.number(),
+      address: v.string(),
+      geofenceRadius: v.optional(v.number()),
+    })),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -309,6 +322,7 @@ export const updateMeeting = mutation({
       meetingUrl: args.meetingUrl,
       locationName: args.locationName,
       qrCodeSecret,
+      customLocation: args.customLocation,
     });
   },
 });
@@ -537,16 +551,17 @@ export const checkInToMeeting = mutation({
 
       // 2. Verify Geofence
       const churchDoc = await ctx.db.get(churchId);
-      if (churchDoc?.location && args.lat && args.lng) {
-        const distance = calculateDistance(
-          args.lat,
-          args.lng,
-          churchDoc.location.lat,
-          churchDoc.location.lng
-        );
-        const radius = churchDoc.settings?.geofenceRadius || 100;
-        if (distance > radius) {
-          throw new Error(`You are too far from the campus (${Math.round(distance)}m away) to check in physically.`);
+      if ((meeting.customLocation || churchDoc?.location) && args.lat && args.lng) {
+        const targetLat = meeting.customLocation?.lat ?? churchDoc?.location?.lat;
+        const targetLng = meeting.customLocation?.lng ?? churchDoc?.location?.lng;
+        
+        if (targetLat !== undefined && targetLng !== undefined) {
+          const distance = calculateDistance(args.lat, args.lng, targetLat, targetLng);
+          const radius = meeting.customLocation?.geofenceRadius ?? churchDoc?.settings?.geofenceRadius ?? 100;
+          const locationName = meeting.customLocation ? "event site" : "campus";
+          if (distance > radius) {
+            throw new Error(`You are too far from the ${locationName} (${Math.round(distance)}m away) to check in physically.`);
+          }
         }
       }
       method = "QR";

@@ -47,6 +47,11 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
   const [editLocation, setEditLocation] = useState('');
   const [editStartTime, setEditStartTime] = useState('');
   const [editEndTime, setEditEndTime] = useState('');
+  const [editUseCustomLocation, setEditUseCustomLocation] = useState(false);
+  const [editCustomLat, setEditCustomLat] = useState('');
+  const [editCustomLng, setEditCustomLng] = useState('');
+  const [editCustomAddress, setEditCustomAddress] = useState('');
+  const [editCustomGeofenceRadius, setEditCustomGeofenceRadius] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Form state for manual check-in
@@ -128,6 +133,11 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
     setEditPlatform(meeting.platform);
     setEditUrl(meeting.meetingUrl || '');
     setEditLocation(meeting.locationName || '');
+    setEditUseCustomLocation(!!meeting.customLocation);
+    setEditCustomLat(meeting.customLocation?.lat?.toString() || '');
+    setEditCustomLng(meeting.customLocation?.lng?.toString() || '');
+    setEditCustomAddress(meeting.customLocation?.address || '');
+    setEditCustomGeofenceRadius(meeting.customLocation?.geofenceRadius?.toString() || '');
     
     const timezoneOffset = new Date().getTimezoneOffset() * 60000;
     const localStart = new Date(meeting.startTime - timezoneOffset).toISOString().slice(0, 16);
@@ -137,10 +147,31 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
     
     setIsEditing(true);
   };
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingEdit(true);
+    let customLocation = undefined;
+    if (editUseCustomLocation) {
+      if (!editCustomAddress) {
+        alert("Please enter a custom location address.");
+        setIsSavingEdit(false);
+        return;
+      }
+      const lat = parseFloat(editCustomLat);
+      const lng = parseFloat(editCustomLng);
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("Please enter valid latitude and longitude numbers.");
+        setIsSavingEdit(false);
+        return;
+      }
+      customLocation = {
+        lat,
+        lng,
+        address: editCustomAddress,
+        geofenceRadius: editCustomGeofenceRadius ? parseInt(editCustomGeofenceRadius, 10) : undefined
+      };
+    }
+
     try {
       await updateMeeting({
         meetingId,
@@ -152,6 +183,7 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
         platform: editPlatform,
         meetingUrl: editUrl || undefined,
         locationName: editLocation || undefined,
+        customLocation,
       });
       setIsEditing(false);
       alert("Gathering details updated successfully.");
@@ -391,18 +423,88 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
               )}
 
               {(editFormat === 'Physical' || editFormat === 'Hybrid') && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span className={styles.label}>Physical Location Name</span>
-                  <input 
-                    type="text" 
-                    value={editLocation}
-                    onChange={(e) => setEditLocation(e.target.value)}
-                    placeholder="e.g. Main Sanctuary"
-                    className={styles.select}
-                    style={{ width: '100%', background: 'var(--bg-secondary)' }}
-                    required
-                  />
-                </div>
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+                    <input 
+                      type="checkbox"
+                      id="editUseCustomLocation"
+                      checked={editUseCustomLocation}
+                      onChange={e => setEditUseCustomLocation(e.target.checked)}
+                      style={{ width: 'auto', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="editUseCustomLocation" style={{ margin: 0, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Use Custom Event Location (e.g. crusade, outreach)
+                    </label>
+                  </div>
+
+                  {editUseCustomLocation ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', margin: '0.5rem 0', width: '100%' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className={styles.label}>Custom Location Full Address</span>
+                        <input 
+                          placeholder="e.g. 123 Crusade Road, City" 
+                          value={editCustomAddress}
+                          onChange={e => setEditCustomAddress(e.target.value)}
+                          className={styles.select}
+                          style={{ width: '100%', background: 'var(--input-bg)' }}
+                          required={editUseCustomLocation}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={styles.label}>Latitude</span>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 6.5244" 
+                            value={editCustomLat}
+                            onChange={e => setEditCustomLat(e.target.value)}
+                            className={styles.select}
+                            style={{ width: '100%', background: 'var(--input-bg)' }}
+                            required={editUseCustomLocation}
+                          />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span className={styles.label}>Longitude</span>
+                          <input 
+                            type="number"
+                            step="any"
+                            placeholder="e.g. 3.3792" 
+                            value={editCustomLng}
+                            onChange={e => setEditCustomLng(e.target.value)}
+                            className={styles.select}
+                            style={{ width: '100%', background: 'var(--input-bg)' }}
+                            required={editUseCustomLocation}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span className={styles.label}>Geofence Radius (meters, optional)</span>
+                        <input 
+                          type="number"
+                          placeholder="e.g. 200 (Default: church geofence)" 
+                          value={editCustomGeofenceRadius}
+                          onChange={e => setEditCustomGeofenceRadius(e.target.value)}
+                          className={styles.select}
+                          style={{ width: '100%', background: 'var(--input-bg)' }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                      <span className={styles.label}>Physical Location Name</span>
+                      <input 
+                        type="text" 
+                        value={editLocation}
+                        onChange={(e) => setEditLocation(e.target.value)}
+                        placeholder="e.g. Main Sanctuary"
+                        className={styles.select}
+                        style={{ width: '100%', background: 'var(--bg-secondary)' }}
+                        required
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={{ display: 'flex', gap: '1rem' }}>
