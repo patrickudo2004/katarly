@@ -551,7 +551,10 @@ export const checkInToMeeting = mutation({
 
       // 2. Verify Geofence
       const churchDoc = await ctx.db.get(churchId);
-      if ((meeting.customLocation || churchDoc?.location) && args.lat && args.lng) {
+      if (meeting.customLocation || churchDoc?.location) {
+        if (args.lat === undefined || args.lng === undefined) {
+          throw new Error("GPS coordinates are required to check in physically.");
+        }
         const targetLat = meeting.customLocation?.lat ?? churchDoc?.location?.lat;
         const targetLng = meeting.customLocation?.lng ?? churchDoc?.location?.lng;
         

@@ -108,7 +108,10 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }
     e.stopPropagation();
     const formatDate = format(meeting.startTime, 'EEEE, MMM d');
     const formatTime = `${format(meeting.startTime, 'p')} - ${format(meeting.endTime, 'p')}`;
-    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${meeting.locationName ? `(${meeting.locationName})` : ''}\n\n👉 Tap here to check-in and join the gathering:\nhttps://servesync-pi.vercel.app/meetings?id=${meeting._id}`;
+    const locationStr = meeting.customLocation?.address 
+      ? `(${meeting.locationName ? `${meeting.locationName} - ` : ''}${meeting.customLocation.address})` 
+      : meeting.locationName ? `(${meeting.locationName})` : '';
+    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${locationStr}\n\n👉 Tap here to check-in and join the gathering:\nhttps://katarly.vercel.app/meetings?id=${meeting._id}`;
     
     navigator.clipboard.writeText(inviteText)
       .then(() => {
@@ -211,10 +214,15 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }
             </span>
           </div>
 
-          {meeting.locationName && (meeting.format === 'Physical' || meeting.format === 'Hybrid') && (
+          {(meeting.locationName || meeting.customLocation?.address) && (meeting.format === 'Physical' || meeting.format === 'Hybrid') && (
             <div className={styles.detailItem}>
               <MapPin size={14} className={styles.detailIcon} />
-              <span>{meeting.locationName}</span>
+              <span>
+                {meeting.customLocation?.address 
+                  ? (meeting.locationName ? `${meeting.locationName} (${meeting.customLocation.address})` : meeting.customLocation.address)
+                  : meeting.locationName
+                }
+              </span>
             </div>
           )}
         </div>

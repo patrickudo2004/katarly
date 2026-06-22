@@ -424,10 +424,15 @@ export const ServiceManagement: React.FC = () => {
                         {new Date(service.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    {service.locationName && (
+                    {(service.locationName || service.customLocation?.address) && (
                       <div className={styles.meta} style={{ marginTop: '4px' }}>
                         <MapPin size={14} />
-                        <span>{service.locationName}</span>
+                        <span>
+                          {service.customLocation?.address 
+                            ? (service.locationName ? `${service.locationName} (${service.customLocation.address})` : service.customLocation.address)
+                            : service.locationName
+                          }
+                        </span>
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>

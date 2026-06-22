@@ -114,7 +114,10 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
     if (!meeting) return;
     const formatDate = format(meeting.startTime, 'EEEE, MMM d');
     const formatTime = `${format(meeting.startTime, 'p')} - ${format(meeting.endTime, 'p')}`;
-    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${meeting.locationName ? `(${meeting.locationName})` : ''}\n\n👉 Tap here to check-in and join the gathering:\nhttps://servesync-pi.vercel.app/meetings?id=${meeting._id}`;
+    const locationStr = meeting.customLocation?.address 
+      ? `(${meeting.locationName ? `${meeting.locationName} - ` : ''}${meeting.customLocation.address})` 
+      : meeting.locationName ? `(${meeting.locationName})` : '';
+    const inviteText = `📅 *Gathering Invite*: *${meeting.name}*\n⏰ Date: ${formatDate}\n⏰ Time: ${formatTime}\n📍 Format: *${meeting.format}* ${locationStr}\n\n👉 Tap here to check-in and join the gathering:\nhttps://katarly.vercel.app/meetings?id=${meeting._id}`;
     
     navigator.clipboard.writeText(inviteText)
       .then(() => {
@@ -566,12 +569,15 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
                   </span>
                 </div>
 
-                {meeting.locationName && (meeting.format === 'Physical' || meeting.format === 'Hybrid') && (
+                {(meeting.locationName || meeting.customLocation?.address) && (meeting.format === 'Physical' || meeting.format === 'Hybrid') && (
                   <div className={styles.detailBlock}>
                     <span className={styles.label}>Venue Location</span>
                     <span className={styles.value}>
                       <MapPin size={16} />
-                      {meeting.locationName}
+                      {meeting.customLocation?.address 
+                        ? (meeting.locationName ? `${meeting.locationName} (${meeting.customLocation.address})` : meeting.customLocation.address)
+                        : meeting.locationName
+                      }
                     </span>
                   </div>
                 )}
