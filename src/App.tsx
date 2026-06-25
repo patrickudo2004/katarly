@@ -46,6 +46,7 @@ import { SubunitDetail } from './pages/mobile/SubunitDetail';
 import { ChurchSelector } from './pages/ChurchSelector';
 import { LandingPage } from './pages/LandingPage';
 import { MeetingsPage } from './pages/MeetingsPage';
+import { GuidesPage } from './pages/GuidesPage';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -225,6 +226,11 @@ function AppContent() {
       <Route path="/profile" element={
         <PageLayout user={me as any}>
           <ProfilePage />
+        </PageLayout>
+      } />
+      <Route path="/guides" element={
+        <PageLayout user={me as any}>
+          <GuidesPage />
         </PageLayout>
       } />
       <Route path="/time-off" element={

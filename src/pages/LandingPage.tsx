@@ -114,6 +114,45 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Help & Guides Section */}
+        <section className={styles.helpSection}>
+          <h2>Help & Quick Start Guide</h2>
+          <div className={styles.faqWrapper}>
+            <div className={styles.faqItem}>
+              <details className={styles.details}>
+                <summary className={styles.summary}>How do I join my church department on Katarly?</summary>
+                <div className={styles.answer}>
+                  <p>Ask your Department Head or Subunit Lead to send you an invitation link. Click the link to register and set up your account. Your lead will then assign you to your roles and shift rotations.</p>
+                </div>
+              </details>
+            </div>
+            <div className={styles.faqItem}>
+              <details className={styles.details}>
+                <summary className={styles.summary}>How do I check-in for physical church services?</summary>
+                <div className={styles.answer}>
+                  <p>When you arrive on-site, open the Katarly app, navigate to <strong>Check In</strong>, and scan the venue's QR code. Your device's GPS must be enabled, and you must be within the geofenced area of the sanctuary to complete verification.</p>
+                </div>
+              </details>
+            </div>
+            <div className={styles.faqItem}>
+              <details className={styles.details}>
+                <summary className={styles.summary}>What if my mobile device GPS is not resolving on-site?</summary>
+                <div className={styles.answer}>
+                  <p>No worries! Tap the <strong>QR Pass</strong> icon in your mobile layout header to display your dynamic personal check-in pass. Any supervisor or lead can scan your screen to register your attendance instantly, bypassing the geofence check.</p>
+                </div>
+              </details>
+            </div>
+            <div className={styles.faqItem}>
+              <details className={styles.details}>
+                <summary className={styles.summary}>How do I release or swap an assigned shift?</summary>
+                <div className={styles.answer}>
+                  <p>Navigate to <strong>My Schedule</strong>, select the target shift, and choose <strong>Drop / Swap Shift</strong>. You can release it to the marketplace or request a direct swap with a team member. Note that drops are locked within 2 hours of the start time.</p>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className={styles.footer}>

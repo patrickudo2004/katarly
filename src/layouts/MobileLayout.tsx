@@ -6,7 +6,7 @@ import { NotificationTray } from '../components/NotificationTray';
 import { 
   Bell, LogOut, User, Moon, Sun, ChevronDown, X, Church, TrendingUp, 
   Menu, QrCode, LayoutDashboard, Shield, Settings, BarChart3, Calendar, 
-  UserCheck, Video, Clock, MessageSquare, ShoppingBag, Trophy, Network, Users 
+  UserCheck, Video, Clock, MessageSquare, ShoppingBag, Trophy, Network, Users, HelpCircle
 } from 'lucide-react';
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -67,6 +67,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, user }) =>
     { label: 'People', icon: <Users size={20} />, path: '/people', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Growth Tracks', icon: <TrendingUp size={20} />, path: '/probation', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Profile', icon: <User size={20} />, path: '/profile', roles: allRoles },
+    { label: 'Help & Guides', icon: <HelpCircle size={20} />, path: '/guides', roles: allRoles },
   ];
 
   const filteredNav = navItems.filter(item => item.roles.includes(user.role));

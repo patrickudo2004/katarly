@@ -6,6 +6,7 @@ import { useQuery } from 'convex/react';
 import { ReportsPage } from '../src/pages/ReportsPage';
 import { AttendancePage } from '../src/pages/AttendancePage';
 import { MeetingsPage } from '../src/pages/MeetingsPage';
+import { GuidesPage } from '../src/pages/GuidesPage';
 
 // Mock the generated api reference module
 vi.mock('../convex/_generated/api', () => {
@@ -197,5 +198,28 @@ describe('Page Smoke Tests', () => {
 
     // Verify meeting card name renders
     expect(screen.getByText(/Staff Sync Meeting/i)).toBeInTheDocument();
+  });
+
+  it('renders GuidesPage and shows volunteer-scoped tabs', () => {
+    vi.mocked(useQuery).mockImplementation((apiFunc: any) => {
+      if (apiFunc === 'users:me') {
+        return {
+          _id: 'user-123',
+          role: 'Volunteer',
+          name: 'Volunteer User',
+        };
+      }
+      return null;
+    });
+
+    render(
+      <MemoryRouter>
+        <GuidesPage />
+      </MemoryRouter>
+    );
+
+    // Volunteer tab buttons and guide items should render
+    expect(screen.getByText(/Volunteer Guides/i)).toBeInTheDocument();
+    expect(screen.queryByText(/System Admin Guides/i)).not.toBeInTheDocument();
   });
 });

@@ -21,7 +21,8 @@ import {
   BarChart3,
   Church,
   Video,
-  TrendingUp
+  TrendingUp,
+  HelpCircle
 } from 'lucide-react';
 import { RoleBadge, UserRole } from './RoleBadge';
 import { ThemeToggle } from './ThemeToggle';
@@ -82,6 +83,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     { label: 'People', icon: <Users size={20} />, path: '/people', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Growth Tracks', icon: <TrendingUp size={20} />, path: '/probation', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },
     { label: 'Profile', icon: <User size={20} />, path: '/profile', roles: allRoles },
+    { label: 'Help & Guides', icon: <HelpCircle size={20} />, path: '/guides', roles: allRoles },
   ];
 
   const filteredNav = navItems.filter(item => item.roles.includes(user.role));
