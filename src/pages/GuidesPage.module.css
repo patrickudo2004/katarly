@@ -143,7 +143,6 @@
 .topicsList {
   display: flex;
   flex-direction: column;
-  divide-y: 1px solid var(--border-color);
 }
 
 .topicItem {
