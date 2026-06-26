@@ -121,6 +121,41 @@ export const Rota: React.FC = () => {
     allowCrossDept: false
   });
 
+  // Prefill department/subunit scoping on open
+  React.useEffect(() => {
+    if (isAssigning && me) {
+      const isSubunitLead = ['SubunitLead', 'SubunitAssistant'].includes(me.role || '');
+      const isDeptHead = ['DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary'].includes(me.role || '');
+      
+      setNewShift(prev => ({
+        ...prev,
+        departmentId: (isSubunitLead || isDeptHead) && me.departmentId ? me.departmentId : prev.departmentId,
+        subunitId: isSubunitLead && me.subunitId ? me.subunitId : prev.subunitId,
+      }));
+    }
+  }, [isAssigning, me]);
+
+  // Filter volunteers based on selected department/subunit
+  const eligibleVolunteers = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(u => {
+      // Must be active
+      if (u.status === 'archived') return false;
+
+      // Filter by department
+      if (newShift.departmentId && u.departmentId !== newShift.departmentId) return false;
+
+      // Filter by subunit
+      if (newShift.subunitId) {
+        const belongs = u.subunitId === newShift.subunitId ||
+          (u.additionalSubunits && u.additionalSubunits.includes(newShift.subunitId));
+        if (!belongs) return false;
+      }
+
+      return true;
+    });
+  }, [allUsers, newShift.departmentId, newShift.subunitId]);
+
   const [newService, setNewService] = useState({
     name: '',
     time: '09:00',
@@ -644,14 +679,19 @@ export const Rota: React.FC = () => {
                 <label>Volunteer (Optional)</label>
                 <select value={newShift.userId} onChange={e => setNewShift({...newShift, userId: e.target.value})}>
                   <option value="">Leave Unassigned (Open Shift)</option>
-                  {allUsers?.map(u => (
+                  {eligibleVolunteers?.map(u => (
                     <option key={u._id} value={u._id}>{u.name || u.email}</option>
                   ))}
                 </select>
               </div>
               <div className={styles.field}>
                 <label>Department</label>
-                <select value={newShift.departmentId} onChange={e => setNewShift({...newShift, departmentId: e.target.value, subunitId: ''})} required>
+                <select 
+                  value={newShift.departmentId} 
+                  onChange={e => setNewShift({...newShift, departmentId: e.target.value, subunitId: ''})} 
+                  required
+                  disabled={['SubunitLead', 'SubunitAssistant', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary'].includes(me?.role || '')}
+                >
                   <option value="">Select Department</option>
                   {departments?.map(d => (
                     <option key={d._id} value={d._id}>{d.name}</option>
@@ -660,7 +700,11 @@ export const Rota: React.FC = () => {
               </div>
               <div className={styles.field}>
                 <label>Unit (Optional)</label>
-                <select value={newShift.subunitId} onChange={e => setNewShift({...newShift, subunitId: e.target.value})} disabled={!newShift.departmentId}>
+                <select 
+                  value={newShift.subunitId} 
+                  onChange={e => setNewShift({...newShift, subunitId: e.target.value})} 
+                  disabled={!newShift.departmentId || ['SubunitLead', 'SubunitAssistant'].includes(me?.role || '')}
+                >
                   <option value="">General (No Subunit)</option>
                   {subunits?.filter(s => s.departmentId === newShift.departmentId).map(sub => (
                     <option key={sub._id} value={sub._id}>{sub.name}</option>

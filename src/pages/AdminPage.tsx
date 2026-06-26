@@ -12,8 +12,19 @@ import { ProbationManager } from '../components/ProbationManager';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'probations' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
   const activeUser = useQuery(api.users.me);
+  const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'probations' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
+  const [hasDefaultedTab, setHasDefaultedTab] = useState(false);
+
+  React.useEffect(() => {
+    if (activeUser && !hasDefaultedTab) {
+      const isGlobal = activeUser.role === 'SuperAdmin' || activeUser.role === 'DeaconHead';
+      if (!isGlobal) {
+        setActiveTab('borrow');
+      }
+      setHasDefaultedTab(true);
+    }
+  }, [activeUser, hasDefaultedTab]);
   const myChurch = useQuery(api.churches.getMyChurch);
   const organogramData = useQuery(api.churches.getOrganogram);
   const departments = useQuery(api.departments.getDepartments);
@@ -156,13 +167,7 @@ export const AdminPage: React.FC = () => {
       alert("Failed to update subunit");
     }
   };
-          <button 
-            className={`${styles.tab} ${activeTab === 'probations' ? styles.active : ''}`}
-            onClick={() => setActiveTab('probations')}
-          >
-            <Award size={20} />
-            <span>Probations</span>
-          </button>
+
 
   const handleCreateSubunit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +180,7 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  if (organogramData === undefined || subunits === undefined || users === undefined || departments === undefined) {
+  if (activeUser === undefined || organogramData === undefined || subunits === undefined || users === undefined || departments === undefined) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="animate-spin text-purple-600" size={32} />
@@ -195,13 +200,19 @@ export const AdminPage: React.FC = () => {
           </div>
         </div>
         <div className={styles.tabSwitcher}>
-          <button className={activeTab === 'hierarchy' ? styles.activeTab : ''} onClick={() => setActiveTab('hierarchy')}>Hierarchy</button>
-          <button className={activeTab === 'users' ? styles.activeTab : ''} onClick={() => setActiveTab('users')}>Users</button>
-          {activeUser?.role !== 'Volunteer' && (
-            <button className={activeTab === 'verifications' ? styles.activeTab : ''} onClick={() => setActiveTab('verifications')}>Verifications</button>
+          {(activeUser?.role === 'SuperAdmin' || activeUser?.role === 'DeaconHead') && (
+            <>
+              <button className={activeTab === 'hierarchy' ? styles.activeTab : ''} onClick={() => setActiveTab('hierarchy')}>Hierarchy</button>
+              <button className={activeTab === 'users' ? styles.activeTab : ''} onClick={() => setActiveTab('users')}>Users</button>
+              <button className={activeTab === 'verifications' ? styles.activeTab : ''} onClick={() => setActiveTab('verifications')}>Verifications</button>
+            </>
           )}
-          <button className={activeTab === 'borrow' ? styles.activeTab : ''} onClick={() => setActiveTab('borrow')}>Borrow Teams</button>
-          <button className={activeTab === 'settings' ? styles.activeTab : ''} onClick={() => setActiveTab('settings')}>Settings</button>
+          {['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'SubunitLead', 'SubunitAssistant'].includes(activeUser?.role || '') && (
+            <button className={activeTab === 'borrow' ? styles.activeTab : ''} onClick={() => setActiveTab('borrow')}>Borrow Teams</button>
+          )}
+          {activeUser?.role === 'SuperAdmin' && (
+            <button className={activeTab === 'settings' ? styles.activeTab : ''} onClick={() => setActiveTab('settings')}>Settings</button>
+          )}
         </div>
       </header>
 

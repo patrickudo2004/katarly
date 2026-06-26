@@ -20,9 +20,9 @@ export const createRotaEntry = mutation({
     if (!user?.churchId) throw new Error("User has no church");
     
     // Auth: Scoped permissions
-    if (user.role === "SuperAdmin") {
+    if (user.role === "SuperAdmin" || isGlobalAdmin(user.role)) {
       // Full access
-    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "PastoralOversight") {
+    } else if (user.role === "DepartmentHead" || user.role === "DepartmentAssistant") {
       if (args.departmentId !== user.departmentId) {
         throw new Error("Unauthorized: You can only assign shifts within your own department.");
       }

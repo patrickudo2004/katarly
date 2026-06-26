@@ -66,7 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user }) => {
     ...(memberships && memberships.length > 1 ? [
       { label: 'Switch Campus', icon: <Church size={20} />, path: '/select-church', roles: allRoles }
     ] : []),
-    { label: 'Admin', icon: <Shield size={20} />, path: '/admin', roles: ['SuperAdmin', 'DeaconHead'] },
+    { label: 'Admin', icon: <Shield size={20} />, path: '/admin', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'SubunitLead', 'SubunitAssistant'] },
     { label: 'Church Settings', icon: <Settings size={20} />, path: '/admin/settings', roles: ['SuperAdmin'] },
     { label: 'Reports', icon: <BarChart3 size={20} />, path: '/reports', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'PastoralOversight', 'SubunitLead', 'SubunitAssistant'] },
     { label: 'Services', icon: <Calendar size={20} />, path: '/services', roles: ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead'] },

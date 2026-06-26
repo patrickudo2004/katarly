@@ -1,12 +1,12 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 
 async function getAuthenticatedUser(ctx: any) {
   const userId = await auth.getUserId(ctx);
-  if (!userId) throw new Error("Not authenticated");
+  if (!userId) throw new ConvexError("Not authenticated");
   const user = await ctx.db.get(userId);
-  if (!user) throw new Error("User not found");
+  if (!user) throw new ConvexError("User not found");
   return user;
 }
 
@@ -35,7 +35,7 @@ export const createBorrowRequest = mutation({
     const currentUser = await getAuthenticatedUser(ctx);
 
     if (!currentUser.departmentId) {
-      throw new Error("You must have an assigned department in your profile to request team help.");
+      throw new ConvexError("You must have an assigned department in your profile to request team help.");
     }
 
     // Auth: who can request what
@@ -52,19 +52,19 @@ export const createBorrowRequest = mutation({
       currentUser.role === "SubunitAssistant";
 
     if (args.borrowType === "inter_dept" && !canInterDept) {
-      throw new Error("Unauthorized: Only Department Heads can request inter-department help.");
+      throw new ConvexError("Unauthorized: Only Department Heads can request inter-department help.");
     }
     if (args.borrowType === "intra_dept" && !canIntraDept) {
-      throw new Error("Unauthorized: Only SubunitLeads or above can request intra-department help.");
+      throw new ConvexError("Unauthorized: Only SubunitLeads or above can request intra-department help.");
     }
 
     // For intra_dept, the target must be in the same department
     if (args.borrowType === "intra_dept") {
       if (args.targetDeptId !== currentUser.departmentId) {
-        throw new Error("Intra-department requests must target a subunit within your own department.");
+        throw new ConvexError("Intra-department requests must target a subunit within your own department.");
       }
       if (!args.targetSubunitId) {
-        throw new Error("Intra-department requests must specify a target subunit.");
+        throw new ConvexError("Intra-department requests must specify a target subunit.");
       }
     }
 
@@ -73,14 +73,14 @@ export const createBorrowRequest = mutation({
       args.targetSubunitId &&
       args.targetSubunitId === currentUser.subunitId
     ) {
-      throw new Error("You cannot borrow from your own subunit.");
+      throw new ConvexError("You cannot borrow from your own subunit.");
     }
 
     // Validate target dept + subunit exist
     const targetDept = await ctx.db.get(args.targetDeptId);
-    if (!targetDept) throw new Error("Target department not found.");
+    if (!targetDept) throw new ConvexError("Target department not found.");
     if (targetDept.churchId !== currentUser.churchId) {
-      throw new Error("Unauthorized: Cross-church access denied.");
+      throw new ConvexError("Unauthorized: Cross-church access denied.");
     }
 
     // Find the target user to notify/approve:
@@ -90,20 +90,20 @@ export const createBorrowRequest = mutation({
 
     if (args.borrowType === "intra_dept" && args.targetSubunitId) {
       const targetSubunit = await ctx.db.get(args.targetSubunitId);
-      if (!targetSubunit) throw new Error("Target subunit not found.");
+      if (!targetSubunit) throw new ConvexError("Target subunit not found.");
       targetUserId = targetSubunit.leadId;
       if (!targetUserId) {
         // Fallback to department head if subunit has no lead
         targetUserId = targetDept.headId;
       }
       if (!targetUserId) {
-        throw new Error("Target subunit has no assigned lead, and target department has no assigned head.");
+        throw new ConvexError("Target subunit has no assigned lead, and target department has no assigned head.");
       }
     } else {
       // inter_dept — target the dept head
       targetUserId = targetDept.headId;
       if (!targetUserId) {
-        throw new Error("Target department has no assigned head. Please contact a SuperAdmin.");
+        throw new ConvexError("Target department has no assigned head. Please contact a SuperAdmin.");
       }
     }
 
@@ -112,12 +112,14 @@ export const createBorrowRequest = mutation({
     let targetVolName = "";
     if (args.targetVolunteerId) {
       const targetVol = await ctx.db.get(args.targetVolunteerId);
-      if (!targetVol) throw new Error("Target volunteer not found.");
+      if (!targetVol) throw new ConvexError("Target volunteer not found.");
       if (targetVol.departmentId !== args.targetDeptId) {
-        throw new Error("Target volunteer does not belong to the target department.");
+        throw new ConvexError("Target volunteer does not belong to the target department.");
       }
-      if (args.targetSubunitId && targetVol.subunitId !== args.targetSubunitId) {
-        throw new Error("Target volunteer does not belong to the target subunit.");
+      const belongsToSubunit = targetVol.subunitId === args.targetSubunitId ||
+        (targetVol.additionalSubunits && targetVol.additionalSubunits.includes(args.targetSubunitId));
+      if (args.targetSubunitId && !belongsToSubunit) {
+        throw new ConvexError("Target volunteer does not belong to the target subunit.");
       }
       finalCount = 1;
       targetVolName = targetVol.name || targetVol.email || "a volunteer";
@@ -176,8 +178,8 @@ export const approveBorrow = mutation({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     const request = await ctx.db.get(args.requestId);
-    if (!request) throw new Error("Request not found.");
-    if (request.status !== "pending") throw new Error("This request is no longer pending.");
+    if (!request) throw new ConvexError("Request not found.");
+    if (request.status !== "pending") throw new ConvexError("This request is no longer pending.");
 
     // Auth: must be the target user, or a DeptHead of the target dept, or SuperAdmin
     const isSuperAdmin = currentUser.role === "SuperAdmin" || currentUser.role === "DeaconHead";
@@ -187,19 +189,19 @@ export const approveBorrow = mutation({
       currentUser.departmentId === request.targetDeptId;
 
     if (!isSuperAdmin && !isTargetUser && !isTargetDeptHead) {
-      throw new Error("Unauthorized: You cannot approve this request.");
+      throw new ConvexError("Unauthorized: You cannot approve this request.");
     }
 
     if (args.volunteerIds.length === 0) {
-      throw new Error("You must nominate at least one volunteer.");
+      throw new ConvexError("You must nominate at least one volunteer.");
     }
     if (args.volunteerIds.length > request.count) {
-      throw new Error(`You can nominate at most ${request.count} volunteer(s) for this request.`);
+      throw new ConvexError(`You can nominate at most ${request.count} volunteer(s) for this request.`);
     }
 
     if (request.targetVolunteerId) {
       if (args.volunteerIds.length !== 1 || args.volunteerIds[0] !== request.targetVolunteerId) {
-        throw new Error("Nominated volunteer must match the requested volunteer.");
+        throw new ConvexError("Nominated volunteer must match the requested volunteer.");
       }
     }
 
@@ -254,8 +256,8 @@ export const declineBorrow = mutation({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     const request = await ctx.db.get(args.requestId);
-    if (!request) throw new Error("Request not found.");
-    if (request.status !== "pending") throw new Error("This request is no longer pending.");
+    if (!request) throw new ConvexError("Request not found.");
+    if (request.status !== "pending") throw new ConvexError("This request is no longer pending.");
 
     const isSuperAdmin = currentUser.role === "SuperAdmin" || currentUser.role === "DeaconHead";
     const isTargetUser = currentUser._id === request.targetUserId;
@@ -264,7 +266,7 @@ export const declineBorrow = mutation({
       currentUser.departmentId === request.targetDeptId;
 
     if (!isSuperAdmin && !isTargetUser && !isTargetDeptHead) {
-      throw new Error("Unauthorized: You cannot decline this request.");
+      throw new ConvexError("Unauthorized: You cannot decline this request.");
     }
 
     await ctx.db.patch(args.requestId, { status: "declined" });
@@ -289,12 +291,12 @@ export const cancelBorrowRequest = mutation({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
     const request = await ctx.db.get(args.requestId);
-    if (!request) throw new Error("Request not found.");
+    if (!request) throw new ConvexError("Request not found.");
     if (request.requestingUserId !== currentUser._id && currentUser.role !== "SuperAdmin") {
-      throw new Error("Unauthorized: Only the requester can cancel this request.");
+      throw new ConvexError("Unauthorized: Only the requester can cancel this request.");
     }
     if (request.status !== "pending") {
-      throw new Error("Only pending requests can be cancelled.");
+      throw new ConvexError("Only pending requests can be cancelled.");
     }
     await ctx.db.patch(args.requestId, { status: "expired" });
   },
@@ -313,10 +315,10 @@ export const respondToAssignment = mutation({
     const currentUser = await getAuthenticatedUser(ctx);
     const assignment = await ctx.db.get(args.assignmentId);
     if (!assignment || assignment.userId !== currentUser._id) {
-      throw new Error("Assignment not found or unauthorized.");
+      throw new ConvexError("Assignment not found or unauthorized.");
     }
     if (assignment.status !== "pending") {
-      throw new Error("This assignment has already been responded to.");
+      throw new ConvexError("This assignment has already been responded to.");
     }
 
     const newStatus = args.accept ? "active" : "declined";
@@ -486,7 +488,7 @@ export const getAvailableVolunteers = query({
       currentUser.role === "SubunitLead" ||
       currentUser.role === "SubunitAssistant";
 
-    if (!canView) throw new Error("Unauthorized: Only leaders can view available volunteers.");
+    if (!canView) throw new ConvexError("Unauthorized: Only leaders can view available volunteers.");
 
     let volunteers = await ctx.db
       .query("users")
@@ -496,7 +498,11 @@ export const getAvailableVolunteers = query({
 
     // Filter to subunit if specified
     if (args.subunitId) {
-      volunteers = volunteers.filter((u) => u.subunitId === args.subunitId);
+      volunteers = volunteers.filter(
+        (u) =>
+          u.subunitId === args.subunitId ||
+          (u.additionalSubunits && u.additionalSubunits.includes(args.subunitId))
+      );
     }
 
     // Filter out users already borrowed out during this period
