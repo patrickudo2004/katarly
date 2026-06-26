@@ -6,6 +6,7 @@ import { AdminSettings } from '../components/AdminSettings';
 import { BorrowRequestForm } from '../components/BorrowRequestForm';
 import { BorrowApprovalPanel } from '../components/BorrowApprovalPanel';
 import { BorrowAssignmentCard } from '../components/BorrowAssignmentCard';
+import { BorrowRequestTracker } from '../components/BorrowRequestTracker';
 import { VerificationCenter } from '../components/VerificationCenter';
 import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search, Award, ArrowRightLeft } from 'lucide-react';
 import { ProbationManager } from '../components/ProbationManager';
@@ -632,6 +633,11 @@ export const AdminPage: React.FC = () => {
                 <h2>Request Team Help</h2>
               </div>
               <BorrowRequestForm />
+            </section>
+
+            {/* Track Outgoing Requests */}
+            <section className={styles.section}>
+              <BorrowRequestTracker />
             </section>
 
             {/* Incoming requests to approve */}

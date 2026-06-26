@@ -18,6 +18,16 @@ export const createRotaEntry = mutation({
     if (!userId) throw new Error("Not authenticated");
     const user = await ctx.db.get(userId);
     if (!user?.churchId) throw new Error("User has no church");
+
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) throw new Error("Service not found");
+
+    // Past Date Guardrail: Only SuperAdmin and DeaconHead can schedule past services
+    const isPast = service.startTime < Date.now();
+    const canManagePast = user.role === "SuperAdmin" || user.role === "DeaconHead";
+    if (isPast && !canManagePast) {
+      throw new Error("Unauthorized: Only SuperAdmins and DeaconHeads can assign shifts to past services.");
+    }
     
     // Auth: Scoped permissions
     if (user.role === "SuperAdmin" || isGlobalAdmin(user.role)) {
@@ -51,9 +61,6 @@ export const createRotaEntry = mutation({
       }
 
       // 2. Conflict Check: Time Off
-      const service = await ctx.db.get(args.serviceId);
-      if (!service) throw new Error("Service not found");
-
       const timeOffRequests = await ctx.db
         .query("timeOffRequests")
         .withIndex("by_user", (q) => q.eq("userId", args.userId as any))
@@ -357,9 +364,16 @@ export const assignUserToShift = mutation({
       throw new Error("Unauthorized: Cross-church operation blocked");
     }
 
-    // Lockout Check (< 2 hours)
+    // Past Date Guardrail: Only SuperAdmin and DeaconHead can schedule past services
     const now = Date.now();
-    if (service.startTime - now < 2 * 60 * 60 * 1000) {
+    const isPast = service.startTime < now;
+    const canManagePast = admin.role === "SuperAdmin" || admin.role === "DeaconHead";
+    if (isPast && !canManagePast) {
+      throw new Error("Unauthorized: Only SuperAdmins and DeaconHeads can assign shifts to past services.");
+    }
+
+    // Lockout Check (< 2 hours, only applicable to future services)
+    if (!isPast && service.startTime - now < 2 * 60 * 60 * 1000) {
       throw new Error("Service starts in less than 2 hours. Roster changes are locked. Please coordinate directly.");
     }
     

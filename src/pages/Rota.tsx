@@ -89,6 +89,7 @@ export const Rota: React.FC = () => {
   const [isLoggingKpi, setIsLoggingKpi] = useState<any>(null); // holds the entry
   const [kpiForm, setKpiForm] = useState({ score: 'Good', note: '' });
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDayDetails, setSelectedDayDetails] = useState<Date | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [rosterSearch, setRosterSearch] = useState('');
 
@@ -134,6 +135,18 @@ export const Rota: React.FC = () => {
       }));
     }
   }, [isAssigning, me]);
+
+  // Filter services to show only future services for non-admins
+  const visibleServices = useMemo(() => {
+    if (!services || !me) return [];
+    
+    // SuperAdmin and DeaconHead can see/schedule past services
+    const canManagePast = me.role === 'SuperAdmin' || me.role === 'DeaconHead';
+    if (canManagePast) return services;
+    
+    const now = Date.now();
+    return services.filter(s => s.startTime >= now);
+  }, [services, me]);
 
   // Filter volunteers based on selected department/subunit
   const eligibleVolunteers = useMemo(() => {
@@ -411,11 +424,28 @@ export const Rota: React.FC = () => {
                       </div>
                     );
                   })}
-                {!isVolunteer && (
-                  <button className={styles.emptySlot} onClick={() => setIsAssigning(true)}>
-                    <Plus size={14} /> <span>Assign</span>
-                  </button>
-                )}
+                {!isVolunteer && (() => {
+                  const isDayPast = day.getTime() < new Date().setHours(0, 0, 0, 0);
+                  const canManagePast = me?.role === 'SuperAdmin' || me?.role === 'DeaconHead';
+                  if (isDayPast && !canManagePast) return null;
+                  return (
+                    <button 
+                      className={styles.emptySlot} 
+                      onClick={() => {
+                        setSelectedDay(day);
+                        const dayServices = services?.filter(s => isSameDay(new Date(s.startTime), day)) || [];
+                        if (dayServices.length > 0) {
+                          setNewShift(prev => ({ ...prev, serviceId: dayServices[0]._id }));
+                        } else {
+                          setNewShift(prev => ({ ...prev, serviceId: '' }));
+                        }
+                        setIsAssigning(true);
+                      }}
+                    >
+                      <Plus size={14} /> <span>Assign</span>
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           );
@@ -435,29 +465,55 @@ export const Rota: React.FC = () => {
       <div className={styles.monthGrid}>
         {days.map(day => {
           const dayServices = services?.filter(s => isSameDay(new Date(s.startTime), day)) || [];
+          const visibleDayServices = dayServices.slice(0, 2);
+          const hasMore = dayServices.length > 2;
+
           return (
-            <div key={day.toString()} className={`
-              ${styles.monthDay} 
-              ${!isSameMonth(day, currentDate) ? styles.otherMonth : ''} 
-              ${isSameDay(day, new Date()) ? styles.today : ''}
-            `}>
+            <div 
+              key={day.toString()} 
+              className={`
+                ${styles.monthDay} 
+                ${!isSameMonth(day, currentDate) ? styles.otherMonth : ''} 
+                ${isSameDay(day, new Date()) ? styles.today : ''}
+                ${dayServices.length > 0 ? styles.clickableDay : ''}
+              `}
+              onClick={() => {
+                if (dayServices.length > 0) {
+                  setSelectedDayDetails(day);
+                }
+              }}
+            >
               <div className={styles.monthDayHeader}>
                 <span className={styles.monthDayNumber}>{format(day, 'd')}</span>
                 {!isVolunteer && (
-                  <button className={styles.dayAddBtn} onClick={() => { setSelectedDay(day); setIsAddingService(true); }}>
+                  <button 
+                    className={styles.dayAddBtn} 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setSelectedDay(day); 
+                      setIsAddingService(true); 
+                    }}
+                  >
                     <Plus size={12} />
                   </button>
                 )}
               </div>
-              {dayServices.map(s => {
-                const filled = rotaEntries?.filter(r => r.serviceId === s._id).length || 0;
-                const coverageClass = filled === 0 ? styles.serviceInfoEmpty : filled < 3 ? styles.serviceInfoPartial : styles.serviceInfoFull;
-                return (
-                  <div key={s._id} className={`${styles.monthServiceItem} ${coverageClass}`}>
-                    {s.name} ({filled})
+              <div className={styles.monthServicesContainer}>
+                {visibleDayServices.map(s => {
+                  const filled = rotaEntries?.filter(r => r.serviceId === s._id).length || 0;
+                  const coverageClass = filled === 0 ? styles.serviceInfoEmpty : filled < 3 ? styles.serviceInfoPartial : styles.serviceInfoFull;
+                  return (
+                    <div key={s._id} className={`${styles.monthServiceItem} ${coverageClass}`}>
+                      {s.name} ({filled})
+                    </div>
+                  );
+                })}
+                {hasMore && (
+                  <div className={styles.monthServiceMore}>
+                    + {dayServices.length - 2} more
                   </div>
-                );
-              })}
+                )}
+              </div>
             </div>
           );
         })}
@@ -670,7 +726,7 @@ export const Rota: React.FC = () => {
                 <label>Service</label>
                 <select value={newShift.serviceId} onChange={e => setNewShift({...newShift, serviceId: e.target.value})} required>
                   <option value="">Select Service</option>
-                  {services?.map(s => (
+                  {visibleServices?.map(s => (
                     <option key={s._id} value={s._id}>{s.name} ({format(s.startTime, 'MMM d')})</option>
                   ))}
                 </select>
@@ -766,6 +822,101 @@ export const Rota: React.FC = () => {
               </div>
               <button type="submit" className={styles.submitBtn}>Save Log Entry</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Day Details Modal */}
+      {selectedDayDetails && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedDayDetails(null)}>
+          <div className={`${styles.modal} ${styles.detailsModal}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 style={{ margin: 0 }}>Day Services Details</h2>
+                <p className={styles.detailsSubtitle}>
+                  {format(selectedDayDetails, 'eeee, MMMM d, yyyy')}
+                </p>
+              </div>
+              <button onClick={() => setSelectedDayDetails(null)}><X size={20} /></button>
+            </div>
+            
+            <div className={styles.detailsBody}>
+              {(() => {
+                const dayServices = services?.filter(s => isSameDay(new Date(s.startTime), selectedDayDetails)) || [];
+                if (dayServices.length === 0) {
+                  return <p className={styles.emptyText}>No services scheduled for this day.</p>;
+                }
+                
+                return (
+                  <div className={styles.detailsList}>
+                    {dayServices.map(s => {
+                      const serviceRotas = rotaEntries?.filter(r => r.serviceId === s._id) || [];
+                      const filledCount = serviceRotas.length;
+                      
+                      const isPast = s.startTime < Date.now();
+                      const canManagePast = me?.role === 'SuperAdmin' || me?.role === 'DeaconHead';
+                      const showAssignBtn = !isVolunteer && (!isPast || canManagePast);
+
+                      return (
+                        <div key={s._id} className={styles.detailsServiceCard}>
+                          <div className={styles.detailsServiceHeader}>
+                            <div>
+                              <h4 className={styles.detailsServiceName}>{s.name}</h4>
+                              <span className={styles.detailsServiceTime}>
+                                <Clock size={12} />
+                                {format(s.startTime, 'p')} – {format(s.endTime, 'p')}
+                              </span>
+                            </div>
+                            {showAssignBtn && (
+                              <button 
+                                className={styles.detailsAssignBtn}
+                                onClick={() => {
+                                  setSelectedDayDetails(null);
+                                  setSelectedDay(selectedDayDetails);
+                                  setNewShift(prev => ({
+                                    ...prev,
+                                    serviceId: s._id,
+                                  }));
+                                  setIsAssigning(true);
+                                }}
+                              >
+                                <UserPlus size={14} />
+                                <span>Assign Shift</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className={styles.detailsServiceMeta}>
+                            <span className={`${styles.formatBadge} ${styles[s.format || 'Physical']}`}>
+                              {s.format || 'Physical'}
+                            </span>
+                            <span className={styles.coverageText}>
+                              {filledCount} volunteer(s) assigned
+                            </span>
+                          </div>
+
+                          <div className={styles.detailsVolSection}>
+                            <span className={styles.detailsVolLabel}>Assignments:</span>
+                            {serviceRotas.length === 0 ? (
+                              <p className={styles.detailsNoVols}>No shifts assigned to this service yet.</p>
+                            ) : (
+                              <div className={styles.detailsVolChips}>
+                                {serviceRotas.map(r => (
+                                  <div key={r._id} className={`${styles.volChip} ${styles[r.status || 'Pending']}`}>
+                                    <span className={styles.volChipName}>{r.userName}</span>
+                                    <span className={styles.volChipRole}>({r.role})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

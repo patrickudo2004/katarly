@@ -3,9 +3,10 @@ import { X } from 'lucide-react';
 import { BorrowApprovalPanel } from './BorrowApprovalPanel';
 import { BorrowAssignmentCard } from './BorrowAssignmentCard';
 import { BorrowRequestForm } from './BorrowRequestForm';
+import { BorrowRequestTracker } from './BorrowRequestTracker';
 import styles from './BorrowBottomSheet.module.css';
 
-export type BorrowSheetMode = 'approval' | 'assignment' | 'request';
+export type BorrowSheetMode = 'approval' | 'assignment' | 'request' | 'tracker';
 
 interface BorrowBottomSheetProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const TITLES: Record<BorrowSheetMode, string> = {
   approval: 'Incoming Requests',
   assignment: 'Your Assignments',
   request: 'Request Team Help',
+  tracker: 'Sent Help Requests',
 };
 
 export const BorrowBottomSheet: React.FC<BorrowBottomSheetProps> = ({
@@ -142,6 +144,7 @@ export const BorrowBottomSheet: React.FC<BorrowBottomSheetProps> = ({
           {mode === 'approval' && <BorrowApprovalPanel initialRequestId={selectedRequestId} />}
           {mode === 'assignment' && <BorrowAssignmentCard />}
           {mode === 'request' && <BorrowRequestForm />}
+          {mode === 'tracker' && <BorrowRequestTracker />}
         </div>
       </div>
     </>

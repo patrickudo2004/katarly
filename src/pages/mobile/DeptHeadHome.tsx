@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video, UserPlus } from 'lucide-react';
+import { BarChart3, Users, AlertCircle, ArrowRightLeft, ChevronRight, Loader2, ShieldAlert, MessageSquare, ClipboardList, Video, UserPlus, RefreshCw } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +38,7 @@ export const DeptHeadHome: React.FC = () => {
     me?.departmentId ? { departmentId: me.departmentId } : "skip"
   );
 
-  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
+  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | 'tracker' | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   // Loading state
@@ -175,6 +175,21 @@ export const DeptHeadHome: React.FC = () => {
               <ArrowRightLeft size={20} />
             </div>
             <span className={styles.actionBtnRowText}>Request Team Help</span>
+          </button>
+
+          {/* Track outgoing borrow requests */}
+          <button
+            onClick={() => {
+              setSelectedRequestId(null);
+              setBorrowSheet('tracker');
+            }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(139, 92, 246, 0.3)', background: 'rgba(139, 92, 246, 0.06)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <RefreshCw size={20} />
+            </div>
+            <span className={styles.actionBtnRowText}>Sent Help Requests</span>
           </button>
         </div>
       </section>

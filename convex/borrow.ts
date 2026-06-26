@@ -540,6 +540,26 @@ async function enrichRequests(ctx: any, requests: any[], currentUser: any) {
       const requestingSubunit = r.requestingSubunitId ? await ctx.db.get(r.requestingSubunitId) : null;
       const requester = await ctx.db.get(r.requestingUserId);
       const targetVolunteer = r.targetVolunteerId ? await ctx.db.get(r.targetVolunteerId) : null;
+
+      // Fetch related borrow assignments
+      const assignments = await ctx.db
+        .query("borrowAssignments")
+        .withIndex("by_request", (q) => q.eq("requestId", r._id))
+        .collect();
+
+      const enrichedAssignments = await Promise.all(
+        assignments.map(async (a: any) => {
+          const user = await ctx.db.get(a.userId);
+          return {
+            _id: a._id,
+            userId: a.userId,
+            userName: user?.name ?? user?.email ?? "Unknown Volunteer",
+            userEmail: user?.email ?? "",
+            status: a.status,
+          };
+        })
+      );
+
       return {
         ...r,
         requestingDeptName: requestingDept?.name ?? "Unknown",
@@ -549,6 +569,7 @@ async function enrichRequests(ctx: any, requests: any[], currentUser: any) {
         requesterName: requester?.name ?? "Unknown",
         targetVolunteerName: targetVolunteer?.name ?? null,
         targetVolunteerEmail: targetVolunteer?.email ?? null,
+        assignments: enrichedAssignments,
       };
     })
   );

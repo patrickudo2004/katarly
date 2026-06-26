@@ -17,7 +17,7 @@ export const SubunitLeadHome: React.FC = () => {
   const nextService = useQuery(api.services.getNextService);
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | null>(null);
+  const [borrowSheet, setBorrowSheet] = useState<'approval' | 'request' | 'tracker' | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const incomingBorrows = useQuery(api.borrow.getIncomingBorrowRequests);
   
@@ -229,6 +229,21 @@ export const SubunitLeadHome: React.FC = () => {
               <ArrowRightLeft size={20} />
             </div>
             <span className={styles.actionBtnRowText}>Request Team Help</span>
+          </button>
+
+          {/* Track outgoing borrow requests */}
+          <button
+            onClick={() => {
+              setSelectedRequestId(null);
+              setBorrowSheet('tracker');
+            }}
+            className={styles.actionBtnRow}
+            style={{ border: '1px solid rgba(139, 92, 246, 0.35)', background: 'rgba(139, 92, 246, 0.06)' }}
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+              <RefreshCw size={20} />
+            </div>
+            <span className={styles.actionBtnRowText}>Sent Help Requests</span>
           </button>
         </div>
       </section>
