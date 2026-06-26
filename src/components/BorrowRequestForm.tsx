@@ -29,17 +29,27 @@ export const BorrowRequestForm: React.FC = () => {
   const [isTargeted, setIsTargeted] = useState(false);
   const [targetVolunteerId, setTargetVolunteerId] = useState<string>('');
 
+  const parseDateTimestamp = (dateStr: string): number | undefined => {
+    if (!dateStr) return undefined;
+    const ts = new Date(dateStr).getTime();
+    return isNaN(ts) ? undefined : ts;
+  };
+
+  const startTimestamp = parseDateTimestamp(startDate);
+  const endTimestamp = parseDateTimestamp(endDate);
+
   const availableVolunteers = useQuery(
     api.borrow.getAvailableVolunteers,
-    targetDeptId && startDate && endDate
+    targetDeptId && startTimestamp !== undefined && endTimestamp !== undefined
       ? {
           deptId: targetDeptId as Id<'departments'>,
           subunitId: targetSubunitId ? (targetSubunitId as Id<'subunits'>) : undefined,
-          startDate: new Date(startDate).getTime(),
-          endDate: new Date(endDate).getTime(),
+          startDate: startTimestamp,
+          endDate: endTimestamp,
         }
       : "skip"
   );
+
 
   const isSubunitLead =
     me?.role === 'SubunitLead' || me?.role === 'SubunitAssistant';
@@ -85,6 +95,13 @@ export const BorrowRequestForm: React.FC = () => {
       return;
     }
 
+    const startTs = parseDateTimestamp(startDate);
+    const endTs = parseDateTimestamp(endDate);
+    if (!startTs || !endTs) {
+      setError('Please select valid start and end dates.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     try {
@@ -95,8 +112,8 @@ export const BorrowRequestForm: React.FC = () => {
         borrowType,
         role: role.trim(),
         count: isTargeted ? 1 : count,
-        startDate: new Date(startDate).getTime(),
-        endDate: new Date(endDate).getTime(),
+        startDate: startTs,
+        endDate: endTs,
         note: note.trim() || undefined,
       });
       setSuccess(true);

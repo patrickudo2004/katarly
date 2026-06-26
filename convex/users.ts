@@ -185,22 +185,36 @@ export const getAllChurchUsers = query({
     if (user.role === "SuperAdmin") {
       // Sees everyone
     } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary" || user.role === "PastoralOversight") {
-      if (user.departmentId) {
-        usersQuery = usersQuery.filter((q) => q.eq(q.field("departmentId"), user.departmentId));
-      } else {
-        return [];
-      }
+      if (!user.departmentId) return [];
     } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
-      if (user.subunitId) {
-        usersQuery = usersQuery.filter((q) => q.eq(q.field("subunitId"), user.subunitId));
-      } else {
-        return [];
-      }
+      if (!user.subunitId) return [];
     } else {
       return [];
     }
 
     let users = await usersQuery.collect();
+
+    // Scoping filtering in JavaScript to support cross-coverage (additionalSubunits)
+    if (user.role !== "SuperAdmin") {
+      if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
+        users = users.filter((u) => 
+          u.subunitId === user.subunitId ||
+          (u.additionalSubunits && u.additionalSubunits.includes(user.subunitId!))
+        );
+      } else {
+        // Department Head: primarily in department OR has cross-coverage in a subunit belonging to department
+        const subunitDocs = await ctx.db
+          .query("subunits")
+          .withIndex("by_department", (q) => q.eq("departmentId", user.departmentId!))
+          .collect();
+        const deptSubunitIds = new Set(subunitDocs.map((s: any) => s._id.toString()));
+
+        users = users.filter((u) => 
+          u.departmentId === user.departmentId ||
+          (u.additionalSubunits && u.additionalSubunits.some((subId: string) => deptSubunitIds.has(subId)))
+        );
+      }
+    }
 
     // 2. Search Filter
     if (args.searchTerm) {
