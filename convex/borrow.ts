@@ -23,6 +23,7 @@ export const createBorrowRequest = mutation({
   args: {
     targetDeptId: v.id("departments"),
     targetSubunitId: v.optional(v.id("subunits")),
+    targetVolunteerId: v.optional(v.id("users")),
     borrowType: v.union(v.literal("inter_dept"), v.literal("intra_dept")),
     role: v.string(),
     count: v.number(),
@@ -102,6 +103,22 @@ export const createBorrowRequest = mutation({
       }
     }
 
+    // Target volunteer validation:
+    let finalCount = args.count;
+    let targetVolName = "";
+    if (args.targetVolunteerId) {
+      const targetVol = await ctx.db.get(args.targetVolunteerId);
+      if (!targetVol) throw new Error("Target volunteer not found.");
+      if (targetVol.departmentId !== args.targetDeptId) {
+        throw new Error("Target volunteer does not belong to the target department.");
+      }
+      if (args.targetSubunitId && targetVol.subunitId !== args.targetSubunitId) {
+        throw new Error("Target volunteer does not belong to the target subunit.");
+      }
+      finalCount = 1;
+      targetVolName = targetVol.name || targetVol.email || "a volunteer";
+    }
+
     const requestId = await ctx.db.insert("borrowRequests", {
       churchId: currentUser.churchId!,
       requestingUserId: currentUser._id,
@@ -110,9 +127,10 @@ export const createBorrowRequest = mutation({
       targetDeptId: args.targetDeptId,
       targetSubunitId: args.targetSubunitId,
       targetUserId,
+      targetVolunteerId: args.targetVolunteerId,
       borrowType: args.borrowType,
       role: args.role,
-      count: args.count,
+      count: finalCount,
       startDate: args.startDate,
       endDate: args.endDate,
       note: args.note,
@@ -125,10 +143,14 @@ export const createBorrowRequest = mutation({
         ? "your subunit"
         : `${requestingDept?.name ?? "another"} Department`;
 
+    const message = args.targetVolunteerId
+      ? `${currentUser.name ?? "A team lead"} from ${scopeLabel} is requesting to borrow ${targetVolName} as a ${args.role} (${new Date(args.startDate).toLocaleDateString()} – ${new Date(args.endDate).toLocaleDateString()}).`
+      : `${currentUser.name ?? "A team lead"} from ${scopeLabel} is requesting ${args.count} ${args.role}(s) from ${args.borrowType === "intra_dept" ? "your subunit" : "your department"} (${new Date(args.startDate).toLocaleDateString()} – ${new Date(args.endDate).toLocaleDateString()}).`;
+
     await ctx.db.insert("notifications", {
       userId: targetUserId,
       title: "📋 Borrow Request Received",
-      message: `${currentUser.name ?? "A team lead"} from ${scopeLabel} is requesting ${args.count} ${args.role}(s) from ${args.borrowType === "intra_dept" ? "your subunit" : "your department"} (${new Date(args.startDate).toLocaleDateString()} – ${new Date(args.endDate).toLocaleDateString()}).`,
+      message,
       type: "borrow_request",
       read: false,
     });
@@ -169,6 +191,12 @@ export const approveBorrow = mutation({
     }
     if (args.volunteerIds.length > request.count) {
       throw new Error(`You can nominate at most ${request.count} volunteer(s) for this request.`);
+    }
+
+    if (request.targetVolunteerId) {
+      if (args.volunteerIds.length !== 1 || args.volunteerIds[0] !== request.targetVolunteerId) {
+        throw new Error("Nominated volunteer must match the requested volunteer.");
+      }
     }
 
     await ctx.db.patch(args.requestId, {
@@ -443,15 +471,18 @@ export const getAvailableVolunteers = query({
   handler: async (ctx, args) => {
     const currentUser = await getAuthenticatedUser(ctx);
 
-    // Auth: only dept heads, subunit leads, or admins can view volunteers in a dept
+    // Auth: SuperAdmin, DeaconHead, PastoralOversight, OR any department/subunit lead/assistant (so they can browse borrow options)
     const canView =
       currentUser.role === "SuperAdmin" ||
       currentUser.role === "DeaconHead" ||
       currentUser.role === "PastoralOversight" ||
-      currentUser.departmentId === args.deptId ||
-      currentUser.subunitId === args.subunitId;
+      currentUser.role === "DepartmentHead" ||
+      currentUser.role === "DepartmentAssistant" ||
+      currentUser.role === "DepartmentSecretary" ||
+      currentUser.role === "SubunitLead" ||
+      currentUser.role === "SubunitAssistant";
 
-    if (!canView) throw new Error("Unauthorized.");
+    if (!canView) throw new Error("Unauthorized: Only leaders can view available volunteers.");
 
     let volunteers = await ctx.db
       .query("users")
@@ -498,6 +529,7 @@ async function enrichRequests(ctx: any, requests: any[], currentUser: any) {
       const targetSubunit = r.targetSubunitId ? await ctx.db.get(r.targetSubunitId) : null;
       const requestingSubunit = r.requestingSubunitId ? await ctx.db.get(r.requestingSubunitId) : null;
       const requester = await ctx.db.get(r.requestingUserId);
+      const targetVolunteer = r.targetVolunteerId ? await ctx.db.get(r.targetVolunteerId) : null;
       return {
         ...r,
         requestingDeptName: requestingDept?.name ?? "Unknown",
@@ -505,6 +537,8 @@ async function enrichRequests(ctx: any, requests: any[], currentUser: any) {
         targetDeptName: targetDept?.name ?? "Unknown",
         targetSubunitName: targetSubunit?.name ?? null,
         requesterName: requester?.name ?? "Unknown",
+        targetVolunteerName: targetVolunteer?.name ?? null,
+        targetVolunteerEmail: targetVolunteer?.email ?? null,
       };
     })
   );

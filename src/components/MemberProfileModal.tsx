@@ -19,7 +19,8 @@ import {
   Sparkles, 
   Lock, 
   Send,
-  Check
+  Check,
+  Layers
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { BadgeDisplay } from './BadgeDisplay';
@@ -51,8 +52,10 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
   const rotateSubunit = useMutation(api.probation.rotateProbationSubunit);
   const graduateProbationer = useMutation(api.probation.graduateProbationer);
   const initializeProbation = useMutation(api.probation.initializeProbation);
+  const updateAdditionalSubunits = useMutation(api.users.updateAdditionalSubunits);
 
   // Form States
+  const [isUpdatingSubunits, setIsUpdatingSubunits] = useState(false);
   const [remarkContent, setRemarkContent] = useState('');
   const [privateNote, setPrivateNote] = useState('');
   const [remarkSentiment, setRemarkSentiment] = useState<'Good' | 'Fair' | 'Concern'>('Good');
@@ -197,6 +200,37 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
       alert(error.message || 'Failed to initiate Growth Track');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const canEditAdditionalSubunits = 
+    (currentUser.role === 'SuperAdmin' || 
+     currentUser.role === 'DeaconHead' || 
+     (currentUser.role === 'DepartmentHead' && currentUser.departmentId === user.departmentId)) && 
+    !isSelf;
+
+  const deptSubunits = subunits?.filter(
+    (s) => s.departmentId === user.departmentId && s._id !== user.subunitId
+  ) || [];
+
+  const handleToggleSubunit = async (subId: string, checked: boolean) => {
+    const current = user.additionalSubunits || [];
+    let updated;
+    if (checked) {
+      updated = [...current.filter(id => id !== subId), subId];
+    } else {
+      updated = current.filter(id => id !== subId);
+    }
+    setIsUpdatingSubunits(true);
+    try {
+      await updateAdditionalSubunits({
+        userId,
+        subunitIds: updated,
+      });
+    } catch (err: any) {
+      alert(err.message || 'Failed to update additional subunits');
+    } finally {
+      setIsUpdatingSubunits(false);
     }
   };
 
@@ -421,6 +455,35 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
                       </button>
                     </div>
                   )}
+                </section>
+              )}
+
+              {canEditAdditionalSubunits && deptSubunits.length > 0 && (
+                <section className={styles.rotationSection}>
+                  <div className={styles.rotationHeader}>
+                    <h4>Additional Subunits (Cross-Coverage)</h4>
+                    <Layers size={16} style={{ color: 'var(--accent)' }} />
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                    Select secondary subunits within your department where this member is permanently allowed to serve, claim shifts, and access chat channels.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '0.5rem' }}>
+                    {deptSubunits.map((sub: any) => {
+                      const isChecked = user.additionalSubunits?.includes(sub._id) ?? false;
+                      return (
+                        <label key={sub._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                          <input
+                            type="checkbox"
+                            style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
+                            checked={isChecked}
+                            disabled={isUpdatingSubunits}
+                            onChange={(e) => handleToggleSubunit(sub._id, e.target.checked)}
+                          />
+                          <span>{sub.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </section>
               )}
             </>

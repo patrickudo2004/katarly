@@ -23,6 +23,18 @@ export const BorrowApprovalPanel: React.FC<BorrowApprovalPanelProps> = ({ initia
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Record<string, { type: 'success' | 'error'; msg: string }>>({});
 
+  React.useEffect(() => {
+    if (incoming) {
+      const prefilled: Record<string, Id<'users'>[]> = {};
+      incoming.forEach((req: any) => {
+        if (req.targetVolunteerId && req.status === 'pending') {
+          prefilled[req._id] = [req.targetVolunteerId];
+        }
+      });
+      setSelectedVolunteers((prev) => ({ ...prefilled, ...prev }));
+    }
+  }, [incoming]);
+
   if (incoming === undefined) {
     return (
       <div className={styles.loading}>
@@ -131,15 +143,32 @@ export const BorrowApprovalPanel: React.FC<BorrowApprovalPanelProps> = ({ initia
                     </div>
                   )}
 
-                  <VolunteerPicker
-                    deptId={req.targetDeptId}
-                    subunitId={req.targetSubunitId}
-                    startDate={req.startDate}
-                    endDate={req.endDate}
-                    selected={selectedVolunteers[req._id] ?? []}
-                    onToggle={(vId) => toggleVolunteer(req._id, vId)}
-                    max={req.count}
-                  />
+                  {req.targetVolunteerId ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.875rem', backgroundColor: 'var(--card-bg-hover)', border: '1px dashed var(--border-color)', borderRadius: '8px', marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        Targeted Rota Assignment:
+                      </span>
+                      <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                        {req.targetVolunteerName || 'Unknown volunteer'}
+                      </strong>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {req.targetVolunteerEmail || ''}
+                      </span>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                        💡 This request specifically targets this individual. Approving will directly assign them.
+                      </p>
+                    </div>
+                  ) : (
+                    <VolunteerPicker
+                      deptId={req.targetDeptId}
+                      subunitId={req.targetSubunitId}
+                      startDate={req.startDate}
+                      endDate={req.endDate}
+                      selected={selectedVolunteers[req._id] ?? []}
+                      onToggle={(vId) => toggleVolunteer(req._id, vId)}
+                      max={req.count}
+                    />
+                  )}
 
                   <div className={styles.declineField}>
                     <label>Decline reason (optional)</label>

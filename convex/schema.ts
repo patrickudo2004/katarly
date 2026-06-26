@@ -269,6 +269,7 @@ export default defineSchema({
     targetDeptId: v.id("departments"),
     targetSubunitId: v.optional(v.id("subunits")),
     targetUserId: v.id("users"), // The dept head or subunit lead being asked
+    targetVolunteerId: v.optional(v.id("users")),
     // Request details
     borrowType: v.union(v.literal("inter_dept"), v.literal("intra_dept")),
     role: v.string(),

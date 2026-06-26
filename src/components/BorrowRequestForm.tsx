@@ -26,6 +26,21 @@ export const BorrowRequestForm: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isTargeted, setIsTargeted] = useState(false);
+  const [targetVolunteerId, setTargetVolunteerId] = useState<string>('');
+
+  const availableVolunteers = useQuery(
+    api.borrow.getAvailableVolunteers,
+    targetDeptId && startDate && endDate
+      ? {
+          deptId: targetDeptId as Id<'departments'>,
+          subunitId: targetSubunitId ? (targetSubunitId as Id<'subunits'>) : undefined,
+          startDate: new Date(startDate).getTime(),
+          endDate: new Date(endDate).getTime(),
+        }
+      : "skip"
+  );
+
   const isSubunitLead =
     me?.role === 'SubunitLead' || me?.role === 'SubunitAssistant';
 
@@ -65,6 +80,10 @@ export const BorrowRequestForm: React.FC = () => {
       setError('Please select the target subunit for an intra-department request.');
       return;
     }
+    if (isTargeted && !targetVolunteerId) {
+      setError('Please select the specific volunteer you wish to borrow.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -72,9 +91,10 @@ export const BorrowRequestForm: React.FC = () => {
       await createBorrowRequest({
         targetDeptId: targetDeptId as Id<'departments'>,
         targetSubunitId: targetSubunitId ? (targetSubunitId as Id<'subunits'>) : undefined,
+        targetVolunteerId: isTargeted && targetVolunteerId ? (targetVolunteerId as Id<'users'>) : undefined,
         borrowType,
         role: role.trim(),
-        count,
+        count: isTargeted ? 1 : count,
         startDate: new Date(startDate).getTime(),
         endDate: new Date(endDate).getTime(),
         note: note.trim() || undefined,
@@ -89,6 +109,8 @@ export const BorrowRequestForm: React.FC = () => {
       setStartDate('');
       setEndDate('');
       setNote('');
+      setIsTargeted(false);
+      setTargetVolunteerId('');
     } catch (err: any) {
       setError(err?.message ?? 'Failed to send request. Please try again.');
     } finally {
@@ -216,6 +238,31 @@ export const BorrowRequestForm: React.FC = () => {
           )}
         </div>
 
+        {targetDeptId && (
+          <div className={styles.field} style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={isTargeted}
+                onChange={(e) => {
+                  setIsTargeted(e.target.checked);
+                  if (!e.target.checked) {
+                    setTargetVolunteerId('');
+                    setCount(1);
+                  }
+                }}
+                style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Borrow a Specific Volunteer (Matrix Assignment)
+              </span>
+            </label>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '1.5rem', marginTop: '0.25rem' }}>
+              Enable this if you want to request a specific individual by name. Otherwise, request a general count.
+            </p>
+          </div>
+        )}
+
         <div className={styles.row}>
           <div className={styles.field}>
             <label><Briefcase size={14} /> Role Needed</label>
@@ -243,15 +290,55 @@ export const BorrowRequestForm: React.FC = () => {
             </p>
           </div>
           <div className={styles.field}>
-            <label><Users size={14} /> Number of People</label>
-            <input
-              type="number"
-              min={1}
-              max={20}
-              value={count}
-              onChange={(e) => setCount(parseInt(e.target.value))}
-              required
-            />
+            {!isTargeted ? (
+              <>
+                <label><Users size={14} /> Number of People</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={count}
+                  onChange={(e) => setCount(parseInt(e.target.value))}
+                  required
+                />
+              </>
+            ) : (
+              <>
+                <label><Users size={14} /> Target Volunteer *</label>
+                {!targetDeptId || !startDate || !endDate ? (
+                  <p className={styles.emptyHint} style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', padding: '0.5rem', border: '1px dashed var(--border-color)', borderRadius: '8px', textAlign: 'center' }}>
+                    Select department & dates first to load volunteers.
+                  </p>
+                ) : availableVolunteers === undefined ? (
+                  <p className={styles.emptyHint} style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', padding: '0.5rem', border: '1px dashed var(--border-color)', borderRadius: '8px', textAlign: 'center' }}>
+                    Loading available volunteers…
+                  </p>
+                ) : availableVolunteers.length === 0 ? (
+                  <p className={styles.emptyHint} style={{ fontSize: '0.8125rem', color: 'var(--accent)', fontWeight: 600, padding: '0.5rem', border: '1px dashed var(--accent)', borderRadius: '8px', textAlign: 'center' }}>
+                    No available volunteers found.
+                  </p>
+                ) : (
+                  <select
+                    value={targetVolunteerId}
+                    onChange={(e) => {
+                      setTargetVolunteerId(e.target.value);
+                      const selectedVol = availableVolunteers.find((v: any) => v._id === e.target.value);
+                      if (selectedVol && selectedVol.role) {
+                        setRole(selectedVol.role);
+                      }
+                    }}
+                    required
+                  >
+                    <option value="">Select volunteer…</option>
+                    {availableVolunteers.map((v: any) => (
+                      <option key={v._id} value={v._id}>
+                        {v.name ?? 'Unknown'} ({v.email ?? ''}) - {v.role}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -261,7 +348,10 @@ export const BorrowRequestForm: React.FC = () => {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setEndDate('');
+              }}
               required
             />
           </div>
@@ -276,6 +366,37 @@ export const BorrowRequestForm: React.FC = () => {
             />
           </div>
         </div>
+
+        {startDate && (
+          <div className={styles.presetsRow} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', alignSelf: 'center', marginRight: '0.25rem' }}>Preset Duration:</span>
+            {[
+              { label: '2 Weeks', days: 14 },
+              { label: '1 Month', months: 1 },
+              { label: '3 Months', months: 3 },
+              { label: '6 Months', months: 6 },
+              { label: '1 Year', months: 12 },
+            ].map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                className={styles.chip}
+                style={{ padding: '0.25rem 0.625rem', fontSize: '0.75rem', borderRadius: '9999px', height: 'auto', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', cursor: 'pointer' }}
+                onClick={() => {
+                  const start = new Date(startDate);
+                  if ('days' in preset) {
+                    start.setDate(start.getDate() + preset.days);
+                  } else if ('months' in preset) {
+                    start.setMonth(start.getMonth() + preset.months);
+                  }
+                  setEndDate(start.toISOString().split('T')[0]);
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={styles.field}>
           <label><FileText size={14} /> Note (optional)</label>

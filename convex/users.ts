@@ -433,3 +433,41 @@ export const updateEmailPreferences = mutation({
   },
 });
 
+export const updateAdditionalSubunits = mutation({
+  args: {
+    userId: v.id("users"),
+    subunitIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const adminId = await auth.getUserId(ctx);
+    if (!adminId) throw new Error("Not authenticated");
+    const admin = await ctx.db.get(adminId);
+    if (!admin) throw new Error("Admin user not found");
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) throw new Error("Target user not found");
+
+    const isSuperAdmin = admin.role === "SuperAdmin" || admin.role === "DeaconHead";
+    const isDeptHead = admin.role === "DepartmentHead" && admin.departmentId === targetUser.departmentId;
+
+    if (!isSuperAdmin && !isDeptHead) {
+      throw new Error("Unauthorized to edit additional subunits for this user");
+    }
+
+    // Validate that all subunitIds exist and belong to targetUser's department
+    for (const subId of args.subunitIds) {
+      const sub = (await ctx.db.get(subId as any)) as any;
+      if (!sub) throw new Error(`Subunit ${subId} not found`);
+      if (sub.departmentId !== targetUser.departmentId) {
+        throw new Error(`Subunit ${sub.name} is not in the user's department`);
+      }
+    }
+
+    await ctx.db.patch(args.userId, {
+      additionalSubunits: args.subunitIds,
+    });
+
+    return { success: true };
+  },
+});
+

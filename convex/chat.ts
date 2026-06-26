@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
+import { getUserBorrowedDepartmentIds } from "./utils";
 
 async function getAuthenticatedUser(ctx: any) {
   const userId = await auth.getUserId(ctx);
@@ -10,7 +11,7 @@ async function getAuthenticatedUser(ctx: any) {
   return user;
 }
 
-function hasChannelAccess(user: any, channel: any): boolean {
+function hasChannelAccess(user: any, channel: any, borrowedDeptIds: string[]): boolean {
   if (channel.churchId !== user.churchId) return false;
 
   // 1. Announcements: Visible to all church members
@@ -31,6 +32,9 @@ function hasChannelAccess(user: any, channel: any): boolean {
     return channel.type === "department" || channel.type === "subunit";
   }
 
+  // Check if they are borrowed into this channel's department
+  const isBorrowedInDept = channel.departmentId && borrowedDeptIds.includes(channel.departmentId.toString());
+
   // 5. Department leadership: Access to their own department and all subunit channels under their department
   const isDeptLeader = 
     user.role === "DepartmentHead" || 
@@ -39,10 +43,10 @@ function hasChannelAccess(user: any, channel: any): boolean {
 
   if (isDeptLeader) {
     if (channel.type === "department") {
-      return channel.departmentId === user.departmentId;
+      return channel.departmentId === user.departmentId || isBorrowedInDept;
     }
     if (channel.type === "subunit") {
-      return channel.departmentId === user.departmentId;
+      return channel.departmentId === user.departmentId || isBorrowedInDept;
     }
   }
 
@@ -53,12 +57,13 @@ function hasChannelAccess(user: any, channel: any): boolean {
 
   if (isSubunitLeader) {
     if (channel.type === "department") {
-      return channel.departmentId === user.departmentId;
+      return channel.departmentId === user.departmentId || isBorrowedInDept;
     }
     if (channel.type === "subunit") {
       return (
         channel.subunitId === user.subunitId ||
-        user.additionalSubunits?.includes(channel.subunitId)
+        user.additionalSubunits?.includes(channel.subunitId) ||
+        isBorrowedInDept
       );
     }
   }
@@ -66,12 +71,13 @@ function hasChannelAccess(user: any, channel: any): boolean {
   // 7. Volunteers & others (Volunteer, Probation, OnNotice, etc.):
   // Access to their department channel, and their subunit channel (plus additional subunits)
   if (channel.type === "department") {
-    return channel.departmentId === user.departmentId;
+    return channel.departmentId === user.departmentId || isBorrowedInDept;
   }
   if (channel.type === "subunit") {
     return (
       channel.subunitId === user.subunitId ||
-      user.additionalSubunits?.includes(channel.subunitId)
+      user.additionalSubunits?.includes(channel.subunitId) ||
+      isBorrowedInDept
     );
   }
 
@@ -83,13 +89,16 @@ export const getChannels = query({
     const user = await getAuthenticatedUser(ctx);
     if (!user.churchId) return [];
 
+    const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
+    const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());
+
     const channels = await ctx.db
       .query("channels")
       .withIndex("by_church", (q) => q.eq("churchId", user.churchId!))
       .collect();
 
     // Filter based on permissions helper
-    return channels.filter((channel) => hasChannelAccess(user, channel));
+    return channels.filter((channel) => hasChannelAccess(user, channel, borrowedDeptIdStrings));
   },
 });
 
@@ -100,7 +109,10 @@ export const getChannelMessages = query({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    if (!hasChannelAccess(user, channel)) {
+    const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
+    const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());
+
+    if (!hasChannelAccess(user, channel, borrowedDeptIdStrings)) {
       throw new Error("Unauthorized access to channel");
     }
 
@@ -149,7 +161,10 @@ export const sendMessage = mutation({
     if (!channel) throw new Error("Channel not found");
     if (channel.isDisabled) throw new Error("Channel is disabled");
 
-    if (!hasChannelAccess(user, channel)) {
+    const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
+    const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());
+
+    if (!hasChannelAccess(user, channel, borrowedDeptIdStrings)) {
       throw new Error("Unauthorized to post in this channel");
     }
 
@@ -245,7 +260,10 @@ export const pinMessage = mutation({
     const channel = await ctx.db.get(message.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    if (!hasChannelAccess(user, channel)) {
+    const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
+    const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());
+
+    if (!hasChannelAccess(user, channel, borrowedDeptIdStrings)) {
       throw new Error("Unauthorized to access channel");
     }
 
@@ -275,7 +293,10 @@ export const toggleChannelStatus = mutation({
     const channel = await ctx.db.get(args.channelId);
     if (!channel) throw new Error("Channel not found");
 
-    if (!hasChannelAccess(user, channel)) {
+    const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
+    const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());
+
+    if (!hasChannelAccess(user, channel, borrowedDeptIdStrings)) {
       throw new Error("Unauthorized to access channel");
     }
 
