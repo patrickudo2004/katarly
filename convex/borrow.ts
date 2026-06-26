@@ -93,7 +93,11 @@ export const createBorrowRequest = mutation({
       if (!targetSubunit) throw new Error("Target subunit not found.");
       targetUserId = targetSubunit.leadId;
       if (!targetUserId) {
-        throw new Error("Target subunit has no assigned lead. Please contact your Department Head.");
+        // Fallback to department head if subunit has no lead
+        targetUserId = targetDept.headId;
+      }
+      if (!targetUserId) {
+        throw new Error("Target subunit has no assigned lead, and target department has no assigned head.");
       }
     } else {
       // inter_dept — target the dept head

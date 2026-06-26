@@ -174,4 +174,30 @@ describe('createBorrowRequest targeted borrowing validations', () => {
     }));
     expect(result).toEqual('request-id-123');
   });
+
+  it('falls back to target department head if target subunit has no lead', async () => {
+    vi.mocked(auth.getUserId).mockResolvedValue('admin-123' as any);
+    mockDb.get.mockImplementation(async (id: string) => {
+      if (id === 'admin-123') return { _id: 'admin-123', role: 'SubunitLead', departmentId: 'dept-123', subunitId: 'subunit-123', churchId: 'church-123' };
+      if (id === 'subunit-999') return { _id: 'subunit-999', departmentId: 'dept-123', name: 'Prayer', leadId: undefined }; // No lead
+      if (id === 'dept-123') return { _id: 'dept-123', churchId: 'church-123', headId: 'dept-head-123', name: 'A/V' };
+      return null;
+    });
+
+    const result = await (createBorrowRequest as any)._handler(mockCtx, {
+      targetDeptId: 'dept-123' as any,
+      targetSubunitId: 'subunit-999' as any,
+      borrowType: 'intra_dept',
+      role: 'Intercessor',
+      count: 2,
+      startDate: Date.now(),
+      endDate: Date.now() + 86400000,
+    });
+
+    expect(mockDb.insert).toHaveBeenCalledWith('borrowRequests', expect.objectContaining({
+      targetUserId: 'dept-head-123', // Fell back to department head
+      count: 2,
+    }));
+    expect(result).toEqual('request-id-123');
+  });
 });
