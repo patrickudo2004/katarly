@@ -44,6 +44,15 @@ function validateMeetingUrl(platform: string, url: string) {
   }
 }
 
+export const generateMeetingFlyerUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const createMeeting = mutation({
   args: {
     name: v.string(),
@@ -64,6 +73,7 @@ export const createMeeting = mutation({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -143,6 +153,7 @@ export const createMeeting = mutation({
         qrCodeSecret,
         createdBy: userId,
         customLocation: args.customLocation,
+        flyerStorageId: args.flyerStorageId,
       });
       createdIds.push(meetingId);
     }
@@ -262,6 +273,7 @@ export const updateMeeting = mutation({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -323,6 +335,7 @@ export const updateMeeting = mutation({
       locationName: args.locationName,
       qrCodeSecret,
       customLocation: args.customLocation,
+      flyerStorageId: args.flyerStorageId,
     });
   },
 });
@@ -417,8 +430,11 @@ export const getMeetingsForUser = query({
         .withIndex("by_meeting_user", (q) => q.eq("meetingId", meeting._id).eq("userId", userId))
         .first();
 
+      const flyerUrl = meeting.flyerStorageId ? await ctx.storage.getUrl(meeting.flyerStorageId) : undefined;
+
       results.push({
         ...meeting,
+        flyerUrl,
         userAttendance: attendance ? {
           status: attendance.status,
           timestamp: attendance.timestamp,
@@ -452,8 +468,11 @@ export const getMeetingDetails = query({
       .withIndex("by_meeting_user", (q) => q.eq("meetingId", args.meetingId).eq("userId", userId))
       .first();
 
+    const flyerUrl = meeting.flyerStorageId ? await ctx.storage.getUrl(meeting.flyerStorageId) : undefined;
+
     return {
       ...meeting,
+      flyerUrl,
       userAttendance: attendance ? {
         status: attendance.status,
         timestamp: attendance.timestamp,

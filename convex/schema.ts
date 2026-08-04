@@ -127,6 +127,7 @@ export default defineSchema({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   }).index("by_church", ["churchId"])
     .index("by_church_start_time", ["churchId", "startTime"]),
 
@@ -468,6 +469,7 @@ export default defineSchema({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   })
     .index("by_church", ["churchId"])
     .index("by_church_start_time", ["churchId", "startTime"])

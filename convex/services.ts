@@ -25,6 +25,15 @@ function validateMeetingUrl(platform: string, url: string) {
   }
 }
 
+export const generateFlyerUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const getChurchServices = query({
   args: {},
   handler: async (ctx) => {
@@ -33,11 +42,18 @@ export const getChurchServices = query({
     const user = await ctx.db.get(userId);
     if (!user?.churchId) return [];
 
-    return await ctx.db
+    const services = await ctx.db
       .query("services")
       .withIndex("by_church_start_time", (q) => q.eq("churchId", user.churchId!))
       .order("desc")
       .collect();
+
+    return await Promise.all(
+      services.map(async (s) => ({
+        ...s,
+        flyerUrl: s.flyerStorageId ? await ctx.storage.getUrl(s.flyerStorageId) : undefined,
+      }))
+    );
   },
 });
 
@@ -58,6 +74,7 @@ export const createService = mutation({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -102,6 +119,7 @@ export const createService = mutation({
         meetingUrl: args.meetingUrl,
         locationName: args.locationName,
         customLocation: args.customLocation,
+        flyerStorageId: args.flyerStorageId,
       });
       createdIds.push(serviceId);
     }
@@ -271,6 +289,7 @@ export const updateService = mutation({
       address: v.string(),
       geofenceRadius: v.optional(v.number()),
     })),
+    flyerStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await auth.getUserId(ctx);
@@ -303,6 +322,7 @@ export const updateService = mutation({
       meetingUrl: args.meetingUrl,
       locationName: args.locationName,
       customLocation: args.customLocation,
+      flyerStorageId: args.flyerStorageId,
     });
   },
 });
@@ -317,6 +337,8 @@ export const getServiceDetails = query({
 
     const service = await ctx.db.get(args.serviceId);
     if (!service || service.churchId !== user.churchId) return null;
+
+    const flyerUrl = service.flyerStorageId ? await ctx.storage.getUrl(service.flyerStorageId) : undefined;
 
     // Fetch active rota slots for this service
     const rotas = await ctx.db
@@ -337,6 +359,7 @@ export const getServiceDetails = query({
 
     return {
       ...service,
+      flyerUrl,
       rotas: rotaDetails,
     };
   },

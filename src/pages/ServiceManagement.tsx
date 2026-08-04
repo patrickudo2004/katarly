@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { 
   Calendar, Plus, QrCode, Clock, MapPin, 
-  Loader2, X, Printer, Copy, Trash2, Edit, Laptop, Share2, MoreHorizontal 
+  Loader2, X, Printer, Copy, Trash2, Edit, Laptop, Share2, MoreHorizontal, Upload, Image as ImageIcon 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AttendanceTicket } from '../components/AttendanceTicket';
@@ -17,12 +17,18 @@ export const ServiceManagement: React.FC = () => {
   const createService = useMutation(api.services.createService);
   const updateService = useMutation(api.services.updateService);
   const deleteService = useMutation(api.services.deleteService);
+  const generateFlyerUploadUrl = useMutation(api.services.generateFlyerUploadUrl);
   
   const [isAdding, setIsAdding] = useState(false);
   const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  
+  const [flyerFile, setFlyerFile] = useState<File | null>(null);
+  const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
+  const [existingFlyerStorageId, setExistingFlyerStorageId] = useState<string | null>(null);
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -80,6 +86,25 @@ export const ServiceManagement: React.FC = () => {
     }));
   };
 
+  const handleFlyerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      alert("Invalid file format. Please upload a JPG, PNG, or WebP image.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert("File size exceeds 3MB limit. Please upload a smaller flyer image.");
+      return;
+    }
+
+    setFlyerFile(file);
+    setFlyerPreview(URL.createObjectURL(file));
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const start = new Date(`${formData.date}T${formData.startTime}`).getTime();
@@ -115,8 +140,23 @@ export const ServiceManagement: React.FC = () => {
         geofenceRadius: formData.customGeofenceRadius ? parseInt(formData.customGeofenceRadius, 10) : undefined
       };
     }
-    
+
+    let flyerStorageId: any = existingFlyerStorageId || undefined;
+
     try {
+      if (flyerFile) {
+        setIsUploadingFlyer(true);
+        const postUrl = await generateFlyerUploadUrl();
+        const result = await fetch(postUrl, {
+          method: "POST",
+          headers: { "Content-Type": flyerFile.type },
+          body: flyerFile,
+        });
+        const { storageId } = await result.json();
+        flyerStorageId = storageId;
+        setIsUploadingFlyer(false);
+      }
+
       if (editServiceId) {
         // Edit Mode
         await updateService({
@@ -130,6 +170,7 @@ export const ServiceManagement: React.FC = () => {
           meetingUrl: (formData.format === 'Online' || formData.format === 'Hybrid') ? formData.meetingUrl : undefined,
           locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
           customLocation,
+          flyerStorageId,
         });
         alert("Service updated successfully.");
       } else {
@@ -170,12 +211,16 @@ export const ServiceManagement: React.FC = () => {
           locationName: (formData.format === 'Physical' || formData.format === 'Hybrid') ? formData.locationName : undefined,
           occurrences,
           customLocation,
+          flyerStorageId,
         });
         alert("Service scheduled successfully.");
       }
 
       setIsAdding(false);
       setEditServiceId(null);
+      setFlyerFile(null);
+      setFlyerPreview(null);
+      setExistingFlyerStorageId(null);
       setFormData({ 
         name: '', 
         date: '', 
@@ -195,6 +240,7 @@ export const ServiceManagement: React.FC = () => {
       setOccurrencesDates([]);
       setNewOccurDate('');
     } catch (err: any) {
+      setIsUploadingFlyer(false);
       alert(err.message || "Failed to process service. Please check your inputs.");
     }
   };
@@ -224,6 +270,9 @@ export const ServiceManagement: React.FC = () => {
       customAddress: service.customLocation?.address || '',
       customGeofenceRadius: service.customLocation?.geofenceRadius?.toString() || '',
     });
+    setExistingFlyerStorageId(service.flyerStorageId || null);
+    setFlyerPreview(service.flyerUrl || null);
+    setFlyerFile(null);
     setOccurrencesDates([]);
     setIsAdding(true);
   };
@@ -749,6 +798,44 @@ export const ServiceManagement: React.FC = () => {
                   <option value="Generic">Generic (Fixed code)</option>
                 </select>
                 <p className={styles.hint}>Unique codes change per service to prevent attendance fraud.</p>
+              </div>
+
+              {/* Flyer Attachment Input */}
+              <div className={styles.field}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ImageIcon size={16} /> Service Flyer Picture (Optional)
+                </label>
+                <div className={styles.flyerUploadBox}>
+                  <input 
+                    type="file" 
+                    id="serviceFlyerInput"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFlyerChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="serviceFlyerInput" className={styles.flyerSelectBtn}>
+                    <Upload size={16} /> {flyerPreview ? "Replace Flyer Image" : "Choose Flyer (JPG, PNG, WebP ≤ 3MB)"}
+                  </label>
+                  {flyerPreview && (
+                    <div className={styles.flyerFormPreview}>
+                      <img src={flyerPreview} alt="Flyer preview" />
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setFlyerFile(null);
+                          setFlyerPreview(null);
+                          setExistingFlyerStorageId(null);
+                        }}
+                        className={styles.removeFlyerBtn}
+                      >
+                        <X size={14} /> Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className={styles.privacyNoticeBanner}>
+                  ⚠️ <strong>Privacy Guardrail:</strong> Do not upload identifiable photos of minors or individuals who have not consented to digital storage.
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>

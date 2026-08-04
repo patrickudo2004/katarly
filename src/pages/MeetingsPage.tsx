@@ -6,7 +6,7 @@ import { AttendanceScanner } from '../components/AttendanceScanner';
 import { MeetingCard } from '../components/MeetingCard';
 import { 
   Calendar, Plus, X, Video, MapPin, Clock, 
-  Laptop, Info, ArrowLeft, Loader2, CheckCircle2 
+  Laptop, Info, ArrowLeft, Loader2, CheckCircle2, Upload, Image as ImageIcon 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import styles from './MeetingsPage.module.css';
@@ -19,6 +19,7 @@ export const MeetingsPage: React.FC = () => {
   const meetings = useQuery(api.meetings.getMeetingsForUser);
   const createMeeting = useMutation(api.meetings.createMeeting);
   const checkIn = useMutation(api.meetings.checkInToMeeting);
+  const generateMeetingFlyerUploadUrl = useMutation(api.meetings.generateMeetingFlyerUploadUrl);
 
   const departments = useQuery(api.departments.getDepartments) || []; 
   const allDepartments = useQuery(api.churches.getMyChurch) ? departments : []; // safely fallback
@@ -28,6 +29,10 @@ export const MeetingsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [flyerFile, setFlyerFile] = useState<File | null>(null);
+  const [flyerPreview, setFlyerPreview] = useState<string | null>(null);
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
 
   // Auto-open modal if requested via URL search param
   useEffect(() => {
@@ -159,6 +164,26 @@ export const MeetingsPage: React.FC = () => {
     setOccurrencesDates(prev => prev.filter(d => d !== dateStr));
   };
 
+  const handleFlyerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      setSubmitError("Invalid file format. Please upload a JPG, PNG, or WebP image.");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setSubmitError("File size exceeds 3MB limit. Please upload a smaller flyer image.");
+      return;
+    }
+
+    setFlyerFile(file);
+    setFlyerPreview(URL.createObjectURL(file));
+    setSubmitError(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -188,7 +213,6 @@ export const MeetingsPage: React.FC = () => {
         { startTime: start, endTime: end },
         ...occurrencesDates.map(dateStr => {
           const [year, month, day] = dateStr.split('-').map(Number);
-          // Use constructor to avoid intermediate state rollover bugs
           const occurDate = new Date(
             year,
             month - 1,
@@ -230,7 +254,22 @@ export const MeetingsPage: React.FC = () => {
       };
     }
 
+    let flyerStorageId: any = undefined;
+
     try {
+      if (flyerFile) {
+        setIsUploadingFlyer(true);
+        const postUrl = await generateMeetingFlyerUploadUrl();
+        const result = await fetch(postUrl, {
+          method: "POST",
+          headers: { "Content-Type": flyerFile.type },
+          body: flyerFile,
+        });
+        const { storageId } = await result.json();
+        flyerStorageId = storageId;
+        setIsUploadingFlyer(false);
+      }
+
       await createMeeting({
         name,
         description: description || undefined,
@@ -245,6 +284,7 @@ export const MeetingsPage: React.FC = () => {
         locationName: (formatType === 'Physical' || formatType === 'Hybrid') ? locationName : undefined,
         occurrences,
         customLocation,
+        flyerStorageId,
       });
 
       // Clear Form
@@ -253,6 +293,8 @@ export const MeetingsPage: React.FC = () => {
       setStartDateStr('');
       setEndDateStr('');
       setMeetingUrl('');
+      setFlyerFile(null);
+      setFlyerPreview(null);
       setLocationName('');
       setUseCustomLocation(false);
       setCustomLat('');
@@ -621,8 +663,92 @@ export const MeetingsPage: React.FC = () => {
                 </>
               )}
 
-              <button type="submit" disabled={isSubmitting} className={styles.submitBtn}>
-                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : 'Create Meeting'}
+              {/* Gathering Flyer Picture Upload */}
+              <div className={styles.formGroup} style={{ marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ImageIcon size={16} /> Gathering Flyer Picture (Optional)
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input 
+                    type="file" 
+                    id="meetingFlyerInput"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFlyerChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="meetingFlyerInput" style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px dashed var(--border-color)',
+                    color: 'var(--text-primary)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}>
+                    <Upload size={16} /> {flyerPreview ? "Replace Flyer Image" : "Choose Flyer (JPG, PNG, WebP ≤ 3MB)"}
+                  </label>
+
+                  {flyerPreview && (
+                    <div style={{
+                      position: 'relative',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      maxHeight: '180px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <img src={flyerPreview} alt="Flyer preview" style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }} />
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setFlyerFile(null);
+                          setFlyerPreview(null);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <X size={14} /> Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#b45309',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  padding: '0.6rem 0.8rem',
+                  borderRadius: '10px',
+                  lineHeight: '1.4',
+                  marginTop: '0.25rem'
+                }}>
+                  ⚠️ <strong>Privacy Guardrail:</strong> Do not upload identifiable photos of minors or individuals who have not consented to digital storage.
+                </div>
+              </div>
+
+              <button type="submit" disabled={isSubmitting || isUploadingFlyer} className={styles.submitBtn}>
+                {isSubmitting || isUploadingFlyer ? <Loader2 className="animate-spin" size={18} /> : 'Create Meeting'}
               </button>
             </form>
           </div>

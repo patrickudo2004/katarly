@@ -24,6 +24,7 @@ import {
   Copy
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { FlyerLightbox } from './FlyerLightbox';
 import styles from './MeetingDetailsModal.module.css';
 
 interface MeetingDetailsModalProps {
@@ -36,6 +37,7 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
   const [activeTab, setActiveTab] = useState<'details' | 'roster' | 'feedback'>('details');
   const [showQrBroadcaster, setShowQrBroadcaster] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -601,6 +603,28 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
                 </div>
               )}
 
+              {/* Gathering Flyer Section */}
+              {meeting.flyerUrl && (
+                <div className={styles.flyerSection}>
+                  <span className={styles.label}>Gathering Flyer</span>
+                  <div 
+                    className={styles.flyerCard} 
+                    onClick={() => setShowLightbox(true)}
+                    title="Click to view full screen"
+                  >
+                    <img 
+                      src={meeting.flyerUrl} 
+                      alt={`${meeting.name} Flyer`} 
+                      className={styles.flyerThumbnail}
+                      loading="lazy"
+                    />
+                    <div className={styles.flyerOverlay}>
+                      <span>Tap to expand full screen</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Attendance Status Confirmation */}
               {meeting.userAttendance && (
                 <div className={styles.attendanceStatus} style={meeting.userAttendance.status === 'Excused' ? { background: 'var(--bg-secondary)', color: 'var(--text-secondary)', borderColor: 'var(--border-color)' } : {}}>
@@ -829,6 +853,14 @@ export const MeetingDetailsModal: React.FC<MeetingDetailsModalProps> = ({ meetin
             </button>
           </div>
         </div>
+      )}
+
+      {showLightbox && meeting.flyerUrl && (
+        <FlyerLightbox 
+          imageUrl={meeting.flyerUrl} 
+          title={meeting.name} 
+          onClose={() => setShowLightbox(false)} 
+        />
       )}
     </div>
   );

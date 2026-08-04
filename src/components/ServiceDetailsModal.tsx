@@ -21,6 +21,7 @@ import {
   Printer
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { FlyerLightbox } from './FlyerLightbox';
 import styles from './ServiceDetailsModal.module.css';
 
 interface ServiceDetailsModalProps {
@@ -38,6 +39,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'roster'>('details');
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   // Form state for manual check-in
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -269,6 +271,28 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                 )}
               </div>
 
+              {/* Service Flyer Section */}
+              {service.flyerUrl && (
+                <div className={styles.flyerSection}>
+                  <h4 className={styles.flyerHeader}>Service Flyer</h4>
+                  <div 
+                    className={styles.flyerCard} 
+                    onClick={() => setShowLightbox(true)}
+                    title="Click to view full screen"
+                  >
+                    <img 
+                      src={service.flyerUrl} 
+                      alt={`${service.name} Flyer`} 
+                      className={styles.flyerThumbnail}
+                      loading="lazy"
+                    />
+                    <div className={styles.flyerOverlay}>
+                      <span>Tap to expand full screen</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* QR Code Ticket Viewer */}
               {service.format !== 'Online' && (
                 <div className={styles.qrSection}>
@@ -411,6 +435,14 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
           </div>
         )}
       </div>
+
+      {showLightbox && service.flyerUrl && (
+        <FlyerLightbox 
+          imageUrl={service.flyerUrl} 
+          title={service.name} 
+          onClose={() => setShowLightbox(false)} 
+        />
+      )}
     </div>
   );
 };
