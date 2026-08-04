@@ -44,13 +44,8 @@ function validateMeetingUrl(platform: string, url: string) {
   }
 }
 
-export const generateMeetingFlyerUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    return await ctx.storage.generateUploadUrl();
-  },
+export const generateMeetingFlyerUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
 });
 
 export const createMeeting = mutation({

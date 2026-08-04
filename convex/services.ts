@@ -25,13 +25,8 @@ function validateMeetingUrl(platform: string, url: string) {
   }
 }
 
-export const generateFlyerUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await auth.getUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    return await ctx.storage.generateUploadUrl();
-  },
+export const generateFlyerUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
 });
 
 export const getChurchServices = query({
