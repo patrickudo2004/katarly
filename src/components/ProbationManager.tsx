@@ -28,7 +28,7 @@ export const ProbationManager: React.FC<Props> = ({ churchId }) => {
   });
 
   const addRemark = useMutation(api.probation.addRemark);
-  const promoteUser = useMutation(api.users.updateUserRole);
+  const graduateUser = useMutation(api.probation.graduateProbationer);
 
   const [remarkContent, setRemarkContent] = useState('');
   const [remarkSentiment, setRemarkSentiment] = useState<'Good' | 'Fair' | 'Concern'>('Good');
@@ -48,9 +48,9 @@ export const ProbationManager: React.FC<Props> = ({ churchId }) => {
   };
 
   const handlePromote = async (userId: any) => {
-    if (!confirm("Promote this volunteer to full status?")) return;
+    if (!confirm("Graduate and promote this volunteer to full status?")) return;
     try {
-      await promoteUser({ userId, role: "Volunteer" });
+      await graduateUser({ userId, role: "Volunteer" });
       setSelectedUser(null);
     } catch (err: any) {
       alert(err.message);

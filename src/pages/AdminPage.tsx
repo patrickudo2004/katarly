@@ -10,12 +10,15 @@ import { BorrowRequestTracker } from '../components/BorrowRequestTracker';
 import { VerificationCenter } from '../components/VerificationCenter';
 import { Users, Mail, Settings, Shield, Loader2, Plus, Trash2, UserCog, ChevronRight, Building2, Briefcase, ShieldCheck, Search, Award, ArrowRightLeft } from 'lucide-react';
 import { ProbationManager } from '../components/ProbationManager';
+import { MemberProfileModal } from '../components/MemberProfileModal';
+import { format } from 'date-fns';
 import styles from './AdminPage.module.css';
 
 export const AdminPage: React.FC = () => {
   const activeUser = useQuery(api.users.me);
   const [activeTab, setActiveTab] = useState<'hierarchy' | 'users' | 'probations' | 'settings' | 'borrow' | 'verifications'>('hierarchy');
   const [hasDefaultedTab, setHasDefaultedTab] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<any>(null);
 
   React.useEffect(() => {
     if (activeUser && !hasDefaultedTab) {
@@ -205,11 +208,13 @@ export const AdminPage: React.FC = () => {
             <>
               <button className={activeTab === 'hierarchy' ? styles.activeTab : ''} onClick={() => setActiveTab('hierarchy')}>Hierarchy</button>
               <button className={activeTab === 'users' ? styles.activeTab : ''} onClick={() => setActiveTab('users')}>Users</button>
-              <button className={activeTab === 'verifications' ? styles.activeTab : ''} onClick={() => setActiveTab('verifications')}>Verifications</button>
             </>
           )}
           {['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'SubunitLead', 'SubunitAssistant'].includes(activeUser?.role || '') && (
-            <button className={activeTab === 'borrow' ? styles.activeTab : ''} onClick={() => setActiveTab('borrow')}>Borrow Teams</button>
+            <>
+              <button className={activeTab === 'verifications' ? styles.activeTab : ''} onClick={() => setActiveTab('verifications')}>Verifications</button>
+              <button className={activeTab === 'borrow' ? styles.activeTab : ''} onClick={() => setActiveTab('borrow')}>Borrow Teams</button>
+            </>
           )}
           {activeUser?.role === 'SuperAdmin' && (
             <button className={activeTab === 'settings' ? styles.activeTab : ''} onClick={() => setActiveTab('settings')}>Settings</button>
@@ -562,6 +567,17 @@ export const AdminPage: React.FC = () => {
                         </td>
                         <td>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            {user.safeguardingExpiry ? (
+                              user.safeguardingExpiry > Date.now() ? (
+                                <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>
+                                  ✓ DBS Valid (Exp: {format(user.safeguardingExpiry, 'MMM yyyy')})
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600 }}>
+                                  ⚠ DBS Expired ({format(user.safeguardingExpiry, 'MMM yyyy')})
+                                </span>
+                              )
+                            ) : null}
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
                               <input 
                                 type="checkbox"
@@ -600,7 +616,14 @@ export const AdminPage: React.FC = () => {
                                 Restore
                               </button>
                             )}
-                            <button className={styles.iconBtn}><ChevronRight size={16} /></button>
+                            <button 
+                              className={styles.iconBtn}
+                              onClick={() => setProfileUserId(user._id)}
+                              title="View member profile"
+                              aria-label="View member profile"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -684,6 +707,12 @@ export const AdminPage: React.FC = () => {
           </div>
         )}
       </div>
+      {profileUserId && (
+        <MemberProfileModal
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </div>
   );
 };

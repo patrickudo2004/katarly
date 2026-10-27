@@ -35,6 +35,7 @@ export const AttendancePage: React.FC = () => {
   const todayServices = useQuery(api.services.getDailyServices);
   const markAttendance = useMutation(api.attendance.markAttendance);
   const requestVerification = useMutation(api.attendance.requestVerification);
+  const joinOnlineService = useMutation(api.services.joinOnlineService);
 
   const [step, setStep] = useState<'scan' | 'select' | 'success' | 'verifying'>('scan');
   const [scanData, setScanData] = useState<any>(null);
@@ -223,6 +224,34 @@ export const AttendancePage: React.FC = () => {
               <ShieldCheck size={20} />
               Request Manual Check-in
             </button>
+
+            {todayServices && todayServices.some(s => (s.format === 'Online' || s.format === 'Hybrid') && s.meetingUrl) && (
+              <div className="mt-2 pt-2 border-t border-[var(--border-color)]">
+                <p className="text-gray-500 text-xs mb-2">Serving remotely today?</p>
+                {todayServices
+                  .filter(s => (s.format === 'Online' || s.format === 'Hybrid') && s.meetingUrl)
+                  .map(s => (
+                    <button
+                      key={s._id}
+                      onClick={async () => {
+                        setIsProcessing(true);
+                        try {
+                          const res = await joinOnlineService({ serviceId: s._id });
+                          window.open(res.meetingUrl, '_blank');
+                          setStep('success');
+                        } catch (err: any) {
+                          setError(cleanErrorMessage(err.message));
+                        } finally {
+                          setIsProcessing(false);
+                        }
+                      }}
+                      className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors mb-2"
+                    >
+                      Join {s.name} Online & Check In
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
 

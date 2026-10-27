@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
+import { checkMilestonesInternal } from "./recognition";
 
 function validateMeetingUrl(platform: string, url: string) {
   if (!url.startsWith("https://")) {
@@ -379,5 +380,75 @@ export const getUpcomingServices = query({
       .take(20);
   },
 });
+
+export const joinOnlineService = mutation({
+  args: {
+    serviceId: v.id("services"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || !user.churchId) throw new Error("User has no church assigned");
+
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) throw new Error("Service not found");
+    if (service.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
+
+    if (service.format !== "Online" && service.format !== "Hybrid") {
+      throw new Error("Online join is only supported for Online or Hybrid services.");
+    }
+
+    if (!service.meetingUrl) {
+      throw new Error("This service does not have an online link configured.");
+    }
+
+    const now = Date.now();
+    const thirtyMins = 30 * 60 * 1000;
+    if (now < service.startTime - thirtyMins || now > service.endTime + thirtyMins) {
+      throw new Error("Attendance window for this service is currently closed.");
+    }
+
+    // Check if already checked in
+    const existing = await ctx.db
+      .query("attendance")
+      .withIndex("by_service", (q: any) => q.eq("serviceId", service._id))
+      .filter((q: any) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (existing) {
+      return { attendanceId: existing._id, meetingUrl: service.meetingUrl };
+    }
+
+    // Resolve Rota for department/subunit
+    const rotaEntry = await ctx.db
+      .query("rotas")
+      .withIndex("by_service_user", (q: any) => q.eq("serviceId", service._id).eq("userId", userId))
+      .first();
+
+    const departmentId = rotaEntry?.departmentId || user.departmentId || undefined;
+    const subunitId = rotaEntry?.subunitId || user.subunitId || undefined;
+    const status = now > service.startTime + 15 * 60 * 1000 ? "Late" : "Present";
+
+    const attendanceId = await ctx.db.insert("attendance", {
+      serviceId: service._id,
+      userId,
+      churchId: user.churchId,
+      departmentId,
+      subunitId,
+      timestamp: now,
+      method: "WebJoin",
+      markedById: userId,
+      status,
+    });
+
+    await checkMilestonesInternal(ctx, userId);
+
+    return { attendanceId, meetingUrl: service.meetingUrl };
+  },
+});
+
 
 

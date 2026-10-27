@@ -224,6 +224,96 @@
   font-weight: 600;
 }
 
+.subTabs {
+  display: flex;
+  gap: 8px;
+  margin: 1rem 0 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.subTabBtn {
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subTabBtnActive {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.approveButton {
+  flex: 1;
+  background: #10b981;
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 44px;
+}
+
+.approveButton:hover {
+  background: #059669;
+}
+
+.approveButton:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.declineButton {
+  flex: 1;
+  background: #ef4444;
+  color: white;
+  font-weight: 700;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 44px;
+}
+
+.declineButton:hover {
+  background: #dc2626;
+}
+
+.declineButton:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
 @media (max-width: 480px) {
   .marketplaceContainer {
     padding: 0.5rem;

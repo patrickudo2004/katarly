@@ -121,3 +121,29 @@ export const updateDepartment = mutation({
     });
   },
 });
+
+export const toggleDepartmentSafeguarding = mutation({
+  args: { id: v.id("departments") },
+  handler: async (ctx, args) => {
+    const userId = await auth.getUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    const dept = await ctx.db.get(args.id);
+    if (!dept || dept.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
+    }
+
+    const isGlobal = user.role === "SuperAdmin" || user.role === "DeaconHead" || user.role === "PastoralOversight";
+    const isDeptHead = user.role === "DepartmentHead" && user.departmentId === args.id;
+
+    if (!isGlobal && !isDeptHead) {
+      throw new Error("Unauthorized to toggle safeguarding requirement");
+    }
+
+    await ctx.db.patch(args.id, {
+      requiresSafeguarding: !dept.requiresSafeguarding,
+    });
+  },
+});

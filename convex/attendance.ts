@@ -652,12 +652,12 @@ export const verifyAndMarkCheckIn = mutation({
       throw new Error("Check-in token has expired");
     }
 
-    // 4. Retrieve active service starting in next 2 hours or started in last 30 minutes
+    // 4. Retrieve active service: starting in next 2 hours or currently ongoing (up to 3 hours ago or before endTime + 30 min)
     const nowMs = Date.now();
-    const minStartTime = nowMs - 30 * 60 * 1000;
+    const minStartTime = nowMs - 3 * 60 * 60 * 1000;
     const maxStartTime = nowMs + 2 * 60 * 60 * 1000;
 
-    const services = await ctx.db
+    const candidateServices = await ctx.db
       .query("services")
       .withIndex("by_church", (q) => q.eq("churchId", scannerUser.churchId!))
       .filter((q) =>
@@ -668,8 +668,14 @@ export const verifyAndMarkCheckIn = mutation({
       )
       .collect();
 
+    const services = candidateServices.filter(s => {
+      const isUpcoming = s.startTime >= nowMs && s.startTime <= maxStartTime;
+      const isOngoing = nowMs >= s.startTime && nowMs <= (s.endTime ? s.endTime + 30 * 60 * 1000 : s.startTime + 2.5 * 60 * 60 * 1000);
+      return isUpcoming || isOngoing;
+    });
+
     if (services.length === 0) {
-      throw new Error("No active service found starting in the next 2 hours or started in the last 30 minutes");
+      throw new Error("No active or ongoing service found within the attendance window");
     }
 
     // Sort by proximity to nowMs

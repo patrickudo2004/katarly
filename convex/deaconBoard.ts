@@ -14,9 +14,9 @@ async function getAuthenticatedUser(ctx: any) {
 export const getDeaconDashboard = query({
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
-    // Allowed for DeaconHead and SuperAdmin
-    if (user.role !== "DeaconHead" && user.role !== "SuperAdmin") {
-      throw new Error("Unauthorized: Access restricted to Deacon Heads and Super Admins");
+    // Restricted strictly to DeaconHead
+    if (user.role !== "DeaconHead") {
+      throw new Error("Unauthorized: Access restricted to Deacon Heads");
     }
     const churchId = user.churchId!;
 
@@ -108,6 +108,9 @@ export const resolveEscalation = mutation({
 
     const escalation = await ctx.db.get(args.escalationId);
     if (!escalation) throw new Error("Escalation not found");
+    if (escalation.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
+    }
 
     await ctx.db.patch(args.escalationId, {
       status: args.action,
@@ -121,6 +124,26 @@ export const resolveEscalation = mutation({
       if (probationId) {
         await ctx.db.patch(probationId, {
           status: args.action === "approved" ? "extended" : "active",
+        });
+      }
+    }
+
+    // If it's a borrow escalation, update borrow request
+    if (escalation.type === "borrow" && escalation.itemId) {
+      const borrowId = ctx.db.normalizeId("borrowRequests", escalation.itemId);
+      if (borrowId) {
+        await ctx.db.patch(borrowId, {
+          status: args.action === "approved" ? "approved" : "declined",
+        });
+      }
+    }
+
+    // If it's a timeOff escalation, update timeOff request
+    if (escalation.type === "timeOff" && escalation.itemId) {
+      const timeOffId = ctx.db.normalizeId("timeOffRequests", escalation.itemId);
+      if (timeOffId) {
+        await ctx.db.patch(timeOffId, {
+          status: args.action === "approved" ? "Approved" : "Rejected",
         });
       }
     }
@@ -260,9 +283,9 @@ export const getPendingEscalations = query({
 export const getDeaconBoardMessages = query({
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
-    // Allowed for DeaconHead and SuperAdmin
-    if (user.role !== "DeaconHead" && user.role !== "SuperAdmin") {
-      throw new Error("Access to Deacon Board channel is restricted to Deacon Heads and Super Admins");
+    // Restricted strictly to DeaconHead role
+    if (user.role !== "DeaconHead") {
+      throw new Error("Access to Deacon Board channel is restricted to Deacon Heads");
     }
 
     const channel = await ctx.db

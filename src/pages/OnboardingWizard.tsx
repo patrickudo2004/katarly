@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Camera, Phone, Calendar, ChevronRight, Loader2, Check } from 'lucide-react';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { AvailabilityMatrix } from '../components/AvailabilityMatrix';
 import styles from './OnboardingWizard.module.css';
 
 export const OnboardingWizard: React.FC = () => {
@@ -12,6 +13,7 @@ export const OnboardingWizard: React.FC = () => {
   
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
+  const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -28,7 +30,6 @@ export const OnboardingWizard: React.FC = () => {
         body: file,
       });
       const { storageId } = await result.json();
-      // In a real app, you'd get the public URL or use a helper
       await updateProfile({ image: storageId });
     } catch (error) {
       console.error(error);
@@ -44,6 +45,7 @@ export const OnboardingWizard: React.FC = () => {
     try {
       await updateProfile({ 
         phone, 
+        availability,
         onboardingCompleted: true 
       });
       window.location.href = '/';
@@ -59,9 +61,9 @@ export const OnboardingWizard: React.FC = () => {
       <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}>
         <ThemeToggle />
       </div>
-      <div className={styles.wizardCard}>
+      <div className={styles.wizardCard} style={{ maxWidth: step === 3 ? '600px' : '480px', transition: 'max-width 0.3s' }}>
         <div className={styles.progress}>
-          {[1, 2].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className={`${styles.dot} ${step >= i ? styles.active : ''}`} />
           ))}
         </div>
@@ -114,6 +116,29 @@ export const OnboardingWizard: React.FC = () => {
               />
             </div>
 
+            <button onClick={nextStep} className={styles.nextBtn}>
+              Continue <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className={styles.step}>
+            <div className={styles.iconCircle}>
+              <Calendar size={32} />
+            </div>
+            <h2>Serving Rhythm</h2>
+            <p>Select which weeks and days you are typically available to serve.</p>
+            
+            <div style={{ width: '100%', marginBottom: '2rem' }}>
+              <AvailabilityMatrix 
+                initialAvailability={availability}
+                onSave={(newAvail) => setAvailability(newAvail)}
+                title=""
+                subtitle=""
+              />
+            </div>
+
             <button onClick={completeOnboarding} className={styles.finishBtn} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className={styles.spinner} /> : (
                 <>Finish Setup <Check size={18} /></>
@@ -125,3 +150,4 @@ export const OnboardingWizard: React.FC = () => {
     </div>
   );
 };
+

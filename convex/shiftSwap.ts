@@ -372,7 +372,22 @@ export const getUserSwaps = query({
       .filter((q) => q.eq(q.field("claimantId"), userId))
       .collect();
 
-    return [...requested, ...claimed].sort((a, b) => b.updatedAt - a.updatedAt);
+    const all = [...requested, ...claimed].sort((a, b) => b.updatedAt - a.updatedAt);
+    return await Promise.all(
+      all.map(async (swap) => {
+        const rota = await ctx.db.get(swap.rotaId);
+        const service = rota ? await ctx.db.get(rota.serviceId) : null;
+        const requester = await ctx.db.get(swap.requesterId);
+        const claimant = swap.claimantId ? await ctx.db.get(swap.claimantId) : null;
+        return {
+          ...swap,
+          rota,
+          service,
+          requester: requester ? { name: requester.name, email: requester.email } : null,
+          claimant: claimant ? { name: claimant.name, email: claimant.email } : null,
+        };
+      })
+    );
   },
 });
 

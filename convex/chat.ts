@@ -17,9 +17,9 @@ function hasChannelAccess(user: any, channel: any, borrowedDeptIds: string[]): b
   // 1. Announcements: Visible to all church members
   if (channel.type === "announcement") return true;
 
-  // 2. Deacon Board: Visible ONLY to DeaconHead and SuperAdmin
+  // 2. Deacon Board: Visible strictly to users holding the DeaconHead role
   if (channel.type === "deaconBoard") {
-    return user.role === "DeaconHead" || user.role === "SuperAdmin";
+    return user.role === "DeaconHead";
   }
 
   // 3. SuperAdmin and DeaconHead: Global access to all other channels (departments, subunits)
@@ -172,12 +172,14 @@ export const sendMessage = mutation({
       throw new Error("Only SuperAdmins can post in announcements");
     }
 
+    const isOversight = user.role === "PastoralOversight";
     const messageId = await ctx.db.insert("messages", {
       channelId: args.channelId,
       userId: user._id,
       text: args.text,
       fileId: args.fileId,
       isPinned: false,
+      isOversight,
       createdAt: Date.now(),
     });
 
@@ -194,6 +196,9 @@ export const deleteMessage = mutation({
 
     const channel = await ctx.db.get(message.channelId);
     if (!channel) throw new Error("Channel not found");
+    if (channel.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church deletion denied");
+    }
 
     const isAuthor = message.userId === user._id;
     let isModerator = false;
@@ -259,6 +264,9 @@ export const pinMessage = mutation({
 
     const channel = await ctx.db.get(message.channelId);
     if (!channel) throw new Error("Channel not found");
+    if (channel.churchId !== user.churchId) {
+      throw new Error("Unauthorized: Cross-church deletion denied");
+    }
 
     const borrowedDeptIds = await getUserBorrowedDepartmentIds(ctx, user._id, Date.now());
     const borrowedDeptIdStrings = borrowedDeptIds.map((id: any) => id.toString());

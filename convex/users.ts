@@ -182,9 +182,9 @@ export const getAllChurchUsers = query({
     }
 
     // Role-based scoping
-    if (user.role === "SuperAdmin") {
-      // Sees everyone
-    } else if (user.role === "DeaconHead" || user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary" || user.role === "PastoralOversight") {
+    if (user.role === "SuperAdmin" || user.role === "DeaconHead") {
+      // Sees everyone across the church for church-wide governance
+    } else if (user.role === "DepartmentHead" || user.role === "DepartmentAssistant" || user.role === "DepartmentSecretary" || user.role === "PastoralOversight") {
       if (!user.departmentId) return [];
     } else if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
       if (!user.subunitId) return [];
@@ -195,7 +195,7 @@ export const getAllChurchUsers = query({
     let users = await usersQuery.collect();
 
     // Scoping filtering in JavaScript to support cross-coverage (additionalSubunits)
-    if (user.role !== "SuperAdmin") {
+    if (user.role !== "SuperAdmin" && user.role !== "DeaconHead") {
       if (user.role === "SubunitLead" || user.role === "SubunitAssistant") {
         users = users.filter((u) => 
           u.subunitId === user.subunitId ||
@@ -368,6 +368,11 @@ export const archiveUser = mutation({
       throw new Error("Unauthorized to archive users");
     }
 
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.churchId !== admin.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
+    }
+
     await ctx.db.patch(args.userId, {
       status: "archived",
       statusMetadata: {
@@ -390,6 +395,11 @@ export const unarchiveUser = mutation({
 
     if (admin?.role !== "SuperAdmin") {
       throw new Error("Only SuperAdmins can unarchive users");
+    }
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.churchId !== admin.churchId) {
+      throw new Error("Unauthorized: Cross-church modification denied");
     }
 
     await ctx.db.patch(args.userId, {
@@ -479,6 +489,37 @@ export const updateAdditionalSubunits = mutation({
 
     await ctx.db.patch(args.userId, {
       additionalSubunits: args.subunitIds,
+    });
+
+    return { success: true };
+  },
+});
+
+export const updateSafeguardingExpiry = mutation({
+  args: {
+    userId: v.id("users"),
+    expiryDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const adminId = await auth.getUserId(ctx);
+    if (!adminId) throw new Error("Not authenticated");
+    const admin = await ctx.db.get(adminId);
+    if (!admin) throw new Error("Admin user not found");
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser || targetUser.churchId !== admin.churchId) {
+      throw new Error("Unauthorized: Cross-church operation blocked");
+    }
+
+    const isGlobal = admin.role === "SuperAdmin" || admin.role === "DeaconHead" || admin.role === "PastoralOversight";
+    const isDeptHead = admin.role === "DepartmentHead" && admin.departmentId === targetUser.departmentId;
+
+    if (!isGlobal && !isDeptHead) {
+      throw new Error("Unauthorized: Only Admins or Department Heads can update Safeguarding/DBS expiry");
+    }
+
+    await ctx.db.patch(args.userId, {
+      safeguardingExpiry: args.expiryDate,
     });
 
     return { success: true };

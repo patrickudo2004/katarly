@@ -5,11 +5,12 @@
   padding: 4px 10px;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .icon {
@@ -20,4 +21,149 @@
 
 .label {
   line-height: 1;
+}
+
+/* Role Specific Themes (Light Mode Default) */
+.role_Volunteer {
+  color: #b91c1c;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+:global(.dark) .role_Volunteer {
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.role_SubunitLead {
+  color: #374151;
+  background-color: rgba(107, 114, 128, 0.12);
+  border: 1px solid #9ca3af;
+}
+:global(.dark) .role_SubunitLead {
+  color: #d1d5db;
+  background-color: rgba(156, 163, 175, 0.15);
+  border: 1px solid #6b7280;
+}
+
+.role_SubunitAssistant {
+  color: #4b5563;
+  background-color: rgba(107, 114, 128, 0.08);
+  border: 1px solid #d1d5db;
+}
+:global(.dark) .role_SubunitAssistant {
+  color: #9ca3af;
+  background-color: rgba(156, 163, 175, 0.1);
+  border: 1px solid #4b5563;
+}
+
+.role_DepartmentHead {
+  color: #854d0e;
+  background-color: rgba(254, 240, 138, 0.3);
+  border: 1.5px solid #ca8a04;
+}
+:global(.dark) .role_DepartmentHead {
+  color: #fef08a;
+  background-color: rgba(234, 179, 8, 0.15);
+  border: 1.5px solid #eab308;
+}
+
+.role_DepartmentAssistant {
+  color: #854d0e;
+  background-color: rgba(254, 240, 138, 0.18);
+  border: 1px solid #ca8a04;
+}
+:global(.dark) .role_DepartmentAssistant {
+  color: #fef08a;
+  background-color: rgba(234, 179, 8, 0.1);
+  border: 1px solid #ca8a04;
+}
+
+.role_DepartmentSecretary {
+  color: #0e7490;
+  background-color: rgba(6, 182, 212, 0.12);
+  border: 1px solid #0891b2;
+}
+:global(.dark) .role_DepartmentSecretary {
+  color: #67e8f9;
+  background-color: rgba(6, 182, 212, 0.15);
+  border: 1px solid #22d3ee;
+}
+
+.role_PastoralOversight {
+  color: #15803d;
+  background-color: rgba(21, 128, 61, 0.12);
+  border: 1.5px solid #15803d;
+}
+:global(.dark) .role_PastoralOversight {
+  color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.15);
+  border: 1.5px solid #22c55e;
+}
+
+.role_DeaconHead {
+  color: #1e3a5f;
+  background-color: rgba(30, 58, 95, 0.12);
+  border: 2px solid #1e3a5f;
+}
+:global(.dark) .role_DeaconHead {
+  color: #93c5fd;
+  background-color: rgba(147, 197, 253, 0.15);
+  border: 2px solid #60a5fa;
+}
+
+.role_Probation {
+  color: #1d4ed8;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px dashed #3b82f6;
+}
+:global(.dark) .role_Probation {
+  color: #93c5fd;
+  background-color: rgba(59, 130, 246, 0.15);
+  border: 1px dashed #60a5fa;
+}
+
+.role_ExtendedProbation {
+  color: #1e3a8a;
+  background-color: rgba(30, 64, 175, 0.15);
+  border: 1.5px solid #1d4ed8;
+}
+:global(.dark) .role_ExtendedProbation {
+  color: #bfdbfe;
+  background-color: rgba(30, 64, 175, 0.25);
+  border: 1.5px solid #3b82f6;
+}
+
+.role_OnNotice {
+  color: #b45309;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid #f59e0b;
+}
+:global(.dark) .role_OnNotice {
+  color: #fcd34d;
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid #fbbf24;
+}
+
+.role_SuperAdmin {
+  color: #6d28d9;
+  background-color: rgba(139, 92, 246, 0.12);
+  border: 1.5px solid #8b5cf6;
+}
+:global(.dark) .role_SuperAdmin {
+  color: #c4b5fd;
+  background-color: rgba(139, 92, 246, 0.2);
+  border: 1.5px solid #a78bfa;
+}
+
+.role_Borrowed {
+  color: #7e22ce !important;
+  background-color: rgba(168, 85, 247, 0.12) !important;
+  border: 2px solid #a855f7 !important;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+}
+:global(.dark) .role_Borrowed {
+  color: #d8b4fe !important;
+  background-color: rgba(168, 85, 247, 0.2) !important;
+  border: 2px solid #c084fc !important;
 }

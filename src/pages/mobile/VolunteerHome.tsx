@@ -177,14 +177,6 @@ export const VolunteerHome: React.FC = () => {
         </div>
       </section>
 
-      <button 
-        className={styles.floatingBtn} 
-        onClick={() => navigate('/attendance')}
-        aria-label="Check In QR Code"
-      >
-        <QrCode size={24} />
-      </button>
-
       {showProfileModal && (
         <MemberProfileModal 
           userId={me._id} 

@@ -74,6 +74,17 @@ export const createRotaEntry = mutation({
       if (isOnLeave) {
         throw new Error("Volunteer is on approved leave during this service.");
       }
+
+      // 3. Safeguarding Check
+      const targetDept = await ctx.db.get(args.departmentId);
+      if (targetDept?.requiresSafeguarding) {
+        const volunteer = await ctx.db.get(args.userId);
+        if (!volunteer?.safeguardingExpiry || volunteer.safeguardingExpiry < service.startTime) {
+          throw new Error(
+            `Safeguarding Block: ${volunteer?.name || 'Volunteer'} cannot be scheduled for ${targetDept.name}. Valid DBS/Safeguarding clearance is required.`
+          );
+        }
+      }
     }
 
     return await ctx.db.insert("rotas", {
@@ -416,6 +427,16 @@ export const assignUserToShift = mutation({
 
     if (isOnLeave) {
       throw new Error("Volunteer is on approved leave during this service.");
+    }
+
+    // 3. Safeguarding Check
+    const targetDept = await ctx.db.get(rota.departmentId);
+    if (targetDept?.requiresSafeguarding) {
+      if (!userToAssign.safeguardingExpiry || userToAssign.safeguardingExpiry < service.startTime) {
+        throw new Error(
+          `Safeguarding Block: ${userToAssign.name || 'Volunteer'} cannot be scheduled for ${targetDept.name}. Valid DBS/Safeguarding clearance is required.`
+        );
+      }
     }
 
     await ctx.db.patch(args.rotaId, {

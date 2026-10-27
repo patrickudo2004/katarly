@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { VolunteerProfile } from '../components/VolunteerProfile';
+import { AvailabilityMatrix } from '../components/AvailabilityMatrix';
 import { Trash2, AlertTriangle, Loader2, Edit2, Camera, Save, X as CloseIcon } from 'lucide-react';
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useNavigate } from 'react-router-dom';
@@ -182,6 +183,15 @@ export const ProfilePage: React.FC = () => {
         <>
           <VolunteerProfile userId={me._id} />
           
+          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+            <AvailabilityMatrix 
+              initialAvailability={me.availability || {}}
+              onSave={async (avail) => {
+                await updateProfile({ availability: avail });
+              }}
+            />
+          </div>
+
           <div className={styles.settingsCard}>
             <h3>✉️ Email Notifications</h3>
             <p className={styles.cardSubtitle}>Configure how you receive shift alerts and team updates via email.</p>

@@ -26,6 +26,7 @@ export const ChatPage: React.FC = () => {
   const messages = useQuery(api.chat.getChannelMessages, selectedChannelId ? { channelId: selectedChannelId } : "skip");
   const sendMessage = useMutation(api.chat.sendMessage);
   const deleteMessage = useMutation(api.chat.deleteMessage);
+  const pinMessage = useMutation(api.chat.pinMessage);
   const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
   const saveFileMetadata = useMutation(api.chat.saveFileMetadata);
   const me = useQuery(api.users.me);
@@ -283,15 +284,36 @@ export const ChatPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  {(isMe || ['SuperAdmin', 'DepartmentHead', 'PastoralOversight'].includes(me?.role || '')) && (
-                    <button 
-                      className={styles.deleteMsgBtn} 
-                      onClick={() => setMessageToDelete(msg._id)}
-                      title="Delete message"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', alignSelf: 'center', flexShrink: 0 }}>
+                    {['SuperAdmin', 'DeaconHead', 'PastoralOversight', 'DepartmentHead', 'SubunitLead'].includes(me?.role || '') && (
+                      <button 
+                        className={styles.deleteMsgBtn} 
+                        onClick={async () => {
+                          try {
+                            await pinMessage({ messageId: msg._id });
+                          } catch (err: any) {
+                            setError(err.message || "Failed to toggle pin");
+                          }
+                        }}
+                        title={msg.isPinned ? "Unpin message" : "Pin message"}
+                        aria-label={msg.isPinned ? "Unpin message" : "Pin message"}
+                        style={{ color: msg.isPinned ? '#8b5cf6' : undefined, opacity: 1 }}
+                      >
+                        <Pin size={13} fill={msg.isPinned ? "#8b5cf6" : "none"} />
+                      </button>
+                    )}
+                    {(isMe || ['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'PastoralOversight'].includes(me?.role || '')) && (
+                      <button 
+                        className={styles.deleteMsgBtn} 
+                        onClick={() => setMessageToDelete(msg._id)}
+                        title="Delete message"
+                        aria-label="Delete message"
+                        style={{ opacity: 1 }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })

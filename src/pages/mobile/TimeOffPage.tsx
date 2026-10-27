@@ -55,54 +55,54 @@ export const TimeOffPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
-      <header className="flex items-center gap-4 p-4 sticky top-0 bg-white/80 backdrop-blur-md z-10">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+      <header className="flex items-center gap-4 p-4 sticky top-0 bg-[var(--bg-primary)]/90 backdrop-blur-md border-b border-[var(--border-color)] z-10">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-[var(--surface-hover)] rounded-full text-[var(--text-primary)]">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold">Request Time Off</h1>
+        <h1 className="text-xl font-bold text-[var(--text-primary)]">Request Time Off</h1>
       </header>
 
       <section className={styles.section}>
         <div className={styles.card}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 text-red-600 rounded-lg flex items-center gap-2 text-sm">
+              <div className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg flex items-center gap-2 text-sm">
                 <AlertCircle size={16} />
                 {error}
               </div>
             )}
             {success && (
-              <div className="p-3 bg-green-50 text-green-600 rounded-lg flex items-center gap-2 text-sm">
+              <div className="p-3 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg flex items-center gap-2 text-sm">
                 <CheckCircle2 size={16} />
                 Request submitted successfully!
               </div>
             )}
             
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Start Date</label>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Start Date</label>
               <input 
                 type="date" 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-purple-500 transition-colors"
+                className="w-full p-3 bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--input-border)] rounded-xl outline-none focus:border-purple-500 transition-colors"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
             
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">End Date</label>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">End Date</label>
               <input 
                 type="date" 
                 min={startDate}
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-purple-500 transition-colors"
+                className="w-full p-3 bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--input-border)] rounded-xl outline-none focus:border-purple-500 transition-colors"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
             
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Reason</label>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Reason</label>
               <textarea 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-purple-500 transition-colors min-h-[100px]"
+                className="w-full p-3 bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--input-border)] rounded-xl outline-none focus:border-purple-500 transition-colors min-h-[100px]"
                 placeholder="Briefly explain why you need time off..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

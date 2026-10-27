@@ -40,6 +40,7 @@ export default defineSchema({
     additionalSubunits: v.optional(v.array(v.string())),
     isExtendedProbation: v.optional(v.boolean()),
     isBorrowed: v.optional(v.boolean()),
+    safeguardingExpiry: v.optional(v.number()), // Timestamp for DBS/Safeguarding validity
     status: v.optional(v.union(v.literal("active"), v.literal("archived"), v.literal("pending_deletion"))),
     statusMetadata: v.optional(v.object({
       archivedAt: v.optional(v.number()),

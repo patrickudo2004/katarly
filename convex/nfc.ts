@@ -27,7 +27,7 @@ export const getNfcConfig = query({
       churchName: church.name,
       nfcSecret: church.settings?.nfcSecret,
       autoCheckin: church.settings?.nfcAutoCheckinEnabled ?? true,
-      baseUrl: process.env.VITE_APP_URL || "https://servesync-pi.vercel.app",
+      baseUrl: process.env.VITE_APP_URL || "https://katarly.vercel.app",
     };
   },
 });
@@ -125,10 +125,20 @@ export const validateTap = mutation({
     // Log attendance
     const isLate = now > service.startTime + (church.settings?.lateThresholdMinutes || 15) * 60 * 1000;
     
+    const pointsAwarded = isLate ? 5 : 15;
+    const currentPoints = user.points || 0;
+    const currentTotal = user.totalPointsEarned || 0;
+    await ctx.db.patch(user._id, {
+      points: currentPoints + pointsAwarded,
+      totalPointsEarned: currentTotal + pointsAwarded,
+    });
+
     await ctx.db.insert("attendance", {
       userId: user._id,
       serviceId: service._id,
       churchId: args.churchId,
+      departmentId: user.departmentId,
+      subunitId: user.subunitId,
       timestamp: now,
       status: isLate ? "Late" : "Present",
       method: "nfc",
@@ -138,7 +148,7 @@ export const validateTap = mutation({
       status: "success", 
       serviceName: service.name, 
       isLate,
-      pointsEarned: isLate ? 5 : 15 
+      pointsEarned: pointsAwarded
     };
   },
 });

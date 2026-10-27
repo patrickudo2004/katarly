@@ -20,7 +20,9 @@ import {
   Lock, 
   Send,
   Check,
-  Layers
+  Layers,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { BadgeDisplay } from './BadgeDisplay';
@@ -53,9 +55,13 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
   const graduateProbationer = useMutation(api.probation.graduateProbationer);
   const initializeProbation = useMutation(api.probation.initializeProbation);
   const updateAdditionalSubunits = useMutation(api.users.updateAdditionalSubunits);
+  const updateSafeguardingExpiry = useMutation(api.users.updateSafeguardingExpiry);
 
   // Form States
   const [isUpdatingSubunits, setIsUpdatingSubunits] = useState(false);
+  const [isEditingDBS, setIsEditingDBS] = useState(false);
+  const [dbsDate, setDbsDate] = useState('');
+  const [isSavingDBS, setIsSavingDBS] = useState(false);
   const [remarkContent, setRemarkContent] = useState('');
   const [privateNote, setPrivateNote] = useState('');
   const [remarkSentiment, setRemarkSentiment] = useState<'Good' | 'Fair' | 'Concern'>('Good');
@@ -305,6 +311,111 @@ export const MemberProfileModal: React.FC<MemberProfileModalProps> = ({ userId, 
                     </div>
                   </div>
                 )}
+
+                {/* Safeguarding / DBS Compliance Card */}
+                <div className={styles.infoCard} style={{ gridColumn: '1 / -1', flexDirection: 'column', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {user.safeguardingExpiry && user.safeguardingExpiry > Date.now() ? (
+                        <ShieldCheck size={20} color="#16a34a" />
+                      ) : (
+                        <ShieldAlert size={20} color={user.safeguardingExpiry ? '#dc2626' : '#d97706'} />
+                      )}
+                      <div className={styles.infoMeta}>
+                        <label>Safeguarding & DBS Compliance</label>
+                        <span>
+                          {user.safeguardingExpiry ? (
+                            user.safeguardingExpiry > Date.now()
+                              ? `Cleared (Expires ${format(user.safeguardingExpiry, 'MMM d, yyyy')})`
+                              : `Expired on ${format(user.safeguardingExpiry, 'MMM d, yyyy')}`
+                          ) : (
+                            'No DBS Clearance on file'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    {isLeader && !isEditingDBS && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDbsDate(user.safeguardingExpiry ? new Date(user.safeguardingExpiry).toISOString().split('T')[0] : '');
+                          setIsEditingDBS(true);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '4px 10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        Update
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingDBS && (
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <input
+                        type="date"
+                        value={dbsDate}
+                        onChange={(e) => setDbsDate(e.target.value)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--input-border)',
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.8125rem',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isSavingDBS}
+                        onClick={async () => {
+                          setIsSavingDBS(true);
+                          try {
+                            const timestamp = dbsDate ? new Date(dbsDate).getTime() : undefined;
+                            await updateSafeguardingExpiry({ userId, expiryDate: timestamp });
+                            setIsEditingDBS(false);
+                          } catch (err: any) {
+                            alert(err.message || 'Failed to update Safeguarding expiry');
+                          } finally {
+                            setIsSavingDBS(false);
+                          }
+                        }}
+                        style={{
+                          background: '#8b5cf6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isSavingDBS ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingDBS(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Rota Stats / Flame Streak */}

@@ -360,7 +360,7 @@ export const DeptHeadHome: React.FC = () => {
                               placeholder="Reason for rejection (optional)..." 
                               value={rejectionReasonText}
                               onChange={(e) => setRejectionReasonText(e.target.value)}
-                              className="w-full p-3 text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 transition-colors"
+                              className="w-full p-3 text-sm bg-[var(--input-bg)] text-[var(--text-primary)] border border-[var(--input-border)] rounded-xl outline-none focus:border-red-500 transition-colors"
                             />
                             <div className="flex gap-2 justify-end">
                               <button 
@@ -368,7 +368,7 @@ export const DeptHeadHome: React.FC = () => {
                                   setRejectingRequestId(null);
                                   setRejectionReasonText('');
                                 }}
-                                className="px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded-lg font-semibold"
+                                className="px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] rounded-lg font-semibold"
                               >
                                 Cancel
                               </button>

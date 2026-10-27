@@ -396,16 +396,32 @@ export const MeetingCard: React.FC<MeetingCardProps> = ({ meeting, onDuplicate }
             </span>
             <div className={styles.starsContainer}>
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star 
+                <button
+                  type="button"
                   key={s}
-                  size={20}
-                  className={styles.starIcon}
-                  fill={s <= (hoverRating || rating) ? '#f59e0b' : 'none'}
-                  stroke={s <= (hoverRating || rating) ? '#f59e0b' : 'var(--text-secondary)'}
+                  aria-label={`Rate ${s} star${s > 1 ? 's' : ''}`}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: '8px',
+                    minWidth: '44px',
+                    minHeight: '44px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
                   onMouseEnter={() => setHoverRating(s)}
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setRating(s)}
-                />
+                >
+                  <Star 
+                    size={22}
+                    className={styles.starIcon}
+                    fill={s <= (hoverRating || rating) ? '#f59e0b' : 'none'}
+                    stroke={s <= (hoverRating || rating) ? '#f59e0b' : 'var(--text-secondary)'}
+                  />
+                </button>
               ))}
             </div>
             

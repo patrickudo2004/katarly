@@ -23,6 +23,10 @@ export const awardBadge = mutation({
     const badge = await ctx.db.get(args.badgeId);
     if (!badge) throw new Error("Badge not found");
 
+    if (targetUser.churchId !== currentUser.churchId || badge.churchId !== currentUser.churchId) {
+      throw new Error("Unauthorized: Cross-church badge award denied");
+    }
+
     // Check if already awarded
     const existing = await ctx.db
       .query("userBadges")
@@ -95,9 +99,18 @@ export const getHallOfFame = query({
       .withIndex("by_church", (q) => q.eq("churchId", args.churchId));
 
     const users = await usersQuery.collect();
+
+    const departments = await ctx.db
+      .query("departments")
+      .withIndex("by_church", (q) => q.eq("churchId", args.churchId))
+      .collect();
+    const deptMap = new Map(departments.map(d => [d._id.toString(), d.name]));
     
     const filteredUsers = args.department 
-      ? users.filter(u => u.department === args.department)
+      ? users.filter(u => {
+          const deptName = (u.departmentId && deptMap.get(u.departmentId.toString())) || u.department;
+          return deptName === args.department || (u.departmentId && u.departmentId.toString() === args.department);
+        })
       : users;
 
     const leaderboard = await Promise.all(
@@ -112,11 +125,13 @@ export const getHallOfFame = query({
           .withIndex("by_user", (q) => q.eq("userId", user._id))
           .collect();
 
+        const userDeptName = (user.departmentId && deptMap.get(user.departmentId.toString())) || user.department || "General";
+
         return {
           userId: user._id,
           name: user.name,
           role: user.role,
-          department: user.department,
+          department: userDeptName,
           badgeCount: badges.length,
           attendanceCount: attendance.length,
           badges: await Promise.all(badges.slice(0, 3).map(async b => await ctx.db.get(b.badgeId))),

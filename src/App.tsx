@@ -55,6 +55,13 @@ const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 const convex = new ConvexReactClient(CONVEX_URL);
 const queryClient = new QueryClient();
 
+function RoleGuard({ allowedRoles, userRole, children }: { allowedRoles: string[]; userRole?: string; children: React.ReactNode }) {
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
 function AppContent() {
   const me = useQuery(api.users.me);
   const memberships = useQuery(api.users.getMyMemberships);
@@ -62,7 +69,7 @@ function AppContent() {
   const syncLegacy = useMutation(api.users.syncLegacyMembership);
   const [isSwitching, setIsSwitching] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
-  const isMobile = useMediaQuery('(max-width: 1024px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
 
   React.useEffect(() => {
     if (me && me.churchId && memberships && memberships.length === 0 && !isSyncing) {
@@ -178,15 +185,12 @@ function AppContent() {
           <MySchedule />
         </PageLayout>
       } />
-      <Route path="/time-off" element={
-        <PageLayout user={me as any}>
-          <TimeOff />
-        </PageLayout>
-      } />
       <Route path="/invites" element={
-        <PageLayout user={me as any}>
-          <InviteManagement />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <InviteManagement />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/chat" element={
         <PageLayout user={me as any}>
@@ -194,19 +198,25 @@ function AppContent() {
         </PageLayout>
       } />
       <Route path="/admin" element={
-        <PageLayout user={me as any}>
-          <AdminPage />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'SubunitLead', 'SubunitAssistant']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <AdminPage />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/admin/settings" element={
-        <PageLayout user={me as any}>
-          <AdminSettings />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <AdminSettings />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/services" element={
-        <PageLayout user={me as any}>
-          <ServiceManagement />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <ServiceManagement />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/marketplace" element={
         <PageLayout user={me as any}>
@@ -219,9 +229,11 @@ function AppContent() {
         </PageLayout>
       } />
       <Route path="/reports" element={
-        <PageLayout user={me as any}>
-          <ReportsPage />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'DepartmentAssistant', 'DepartmentSecretary', 'PastoralOversight', 'SubunitLead', 'SubunitAssistant']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <ReportsPage />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/profile" element={
         <PageLayout user={me as any}>
@@ -249,17 +261,25 @@ function AppContent() {
         </PageLayout>
       } />
       <Route path="/people" element={
-        <PageLayout user={me as any}>
-          <PeoplePage />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <PeoplePage />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/probation" element={
-        <PageLayout user={me as any}>
-          <ProbationPage />
-        </PageLayout>
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead']} userRole={me?.role}>
+          <PageLayout user={me as any}>
+            <ProbationPage />
+          </PageLayout>
+        </RoleGuard>
       } />
       <Route path="/select-church" element={<ChurchSelector />} />
-      <Route path="/print/attendance/:churchId" element={<PrintAttendance />} />
+      <Route path="/print/attendance/:churchId" element={
+        <RoleGuard allowedRoles={['SuperAdmin', 'DeaconHead', 'DepartmentHead', 'SubunitLead']} userRole={me?.role}>
+          <PrintAttendance />
+        </RoleGuard>
+      } />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/tap" element={<NfcGateway />} />
       <Route path="/debug-auth" element={<DebugAuth />} />

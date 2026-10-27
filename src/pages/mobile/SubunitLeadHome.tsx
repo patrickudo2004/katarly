@@ -307,14 +307,6 @@ export const SubunitLeadHome: React.FC = () => {
         </div>
       </section>
 
-      <button 
-        className={styles.floatingBtn} 
-        onClick={() => navigate('/attendance')}
-        aria-label="Check In QR Scan"
-      >
-        <QrCode size={24} />
-      </button>
-
       <MobileAssignShiftModal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}

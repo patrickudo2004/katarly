@@ -54,6 +54,7 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
   // Mutations
   const manualMark = useMutation(api.attendance.manualMark);
   const deleteService = useMutation(api.services.deleteService);
+  const joinOnlineService = useMutation(api.services.joinOnlineService);
 
   const isLeader = useMemo(() => {
     if (!me) return false;
@@ -258,14 +259,22 @@ export const ServiceDetailsModal: React.FC<ServiceDetailsModalProps> = ({
                     <div>
                       <strong>Virtual Access Room</strong>
                       <p className={styles.urlText}>{service.meetingUrl}</p>
-                      <a 
-                        href={service.meetingUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await joinOnlineService({ serviceId: service._id });
+                            window.open(res.meetingUrl, '_blank');
+                            alert("Checked in successfully for online service!");
+                          } catch (err: any) {
+                            window.open(service.meetingUrl, '_blank');
+                          }
+                        }}
                         className={styles.joinStreamBtn}
+                        style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', border: 'none' }}
                       >
-                        <ExternalLink size={16} style={{ marginRight: '6px' }} /> Launch Live Stream
-                      </a>
+                        <ExternalLink size={16} style={{ marginRight: '6px' }} /> Join Live Stream & Check In
+                      </button>
                     </div>
                   </div>
                 )}
